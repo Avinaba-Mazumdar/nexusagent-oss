@@ -13,7 +13,6 @@ app = FastAPI(
     redoc_url="/redoc",
 )
 
-# CORS configuration
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.CORS_ORIGINS,
@@ -22,7 +21,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Include Routers
 app.include_router(health_router)
 app.include_router(health_router, prefix="/api")
 

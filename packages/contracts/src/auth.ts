@@ -1,10 +1,3 @@
-/**
- * Authentication & Session Contracts
- *
- * Schemas for FastAPI Python backend auth engine, JWT tokens,
- * ephemeral guest sessions, and token-bucket rate limits.
- */
-
 export interface UserSession {
     id: string;
     email?: string | null;

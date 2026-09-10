@@ -1,43 +1,47 @@
 @import 'tailwindcss';
 
 @theme {
-    --color-background: #090d16;
-    --color-foreground: #f8fafc;
-    --color-card: #111827;
-    --color-card-foreground: #f8fafc;
-    --color-popover: #0f172a;
-    --color-popover-foreground: #f8fafc;
-    --color-primary: #06b6d4;
-    --color-primary-foreground: #090d16;
-    --color-secondary: #1e293b;
-    --color-secondary-foreground: #f8fafc;
-    --color-muted: #1e293b;
-    --color-muted-foreground: #94a3b8;
-    --color-accent: #10b981;
-    --color-accent-foreground: #ffffff;
-    --color-destructive: #f43f5e;
+    --color-background: #f4f5f8;
+    --color-foreground: #0f172a;
+    --color-card: #ffffff;
+    --color-card-foreground: #0f172a;
+    --color-popover: #ffffff;
+    --color-popover-foreground: #0f172a;
+    --color-primary: #004ea1;
+    --color-primary-foreground: #ffffff;
+    --color-secondary: #f1f5f9;
+    --color-secondary-foreground: #0f172a;
+    --color-muted: #f1f5f9;
+    --color-muted-foreground: #475569;
+    --color-accent: #e8f3fc;
+    --color-accent-foreground: #004182;
+    --color-destructive: #991b1b;
     --color-destructive-foreground: #ffffff;
-    --color-border: rgba(255, 255, 255, 0.08);
-    --color-input: rgba(255, 255, 255, 0.12);
-    --color-ring: #06b6d4;
+    --color-border: #cbd5e1;
+    --color-input: #94a3b8;
+    --color-ring: #004182;
     --font-sans: 'Instrument Sans', system-ui, -apple-system, sans-serif;
     --font-heading: 'Outfit', system-ui, -apple-system, sans-serif;
     --font-mono: 'JetBrains Mono', monospace;
 }
 
 :root {
-    --canvas-base: #090d16;
-    --canvas-subtle: #0b0f19;
-    --surface-soft: #0f172a;
-    --surface-card: #111827;
-    --surface-card-elevated: #1a2234;
-    --surface-glass: rgba(17, 24, 39, 0.75);
-    --surface-glass-border: rgba(255, 255, 255, 0.08);
-    --glow-cyan: 0 0 20px rgba(6, 182, 212, 0.25);
-    --glow-emerald: 0 0 20px rgba(16, 185, 129, 0.25);
-    --citation-pill: #1e293b;
-    --citation-pill-border: #334155;
-    --citation-pill-hover: #06b6d4;
+    --canvas-base: #f4f5f8;
+    --canvas-subtle: #eaedf2;
+    --surface-card: #ffffff;
+    --surface-border: #cbd5e1;
+    --primary-blue: #004ea1;
+    --primary-blue-hover: #003673;
+    --primary-blue-dark: #004182;
+    --primary-blue-tint: #e8f3fc;
+    --dark-pill: #1e232a;
+    --dark-pill-hover: #0a0d12;
+    --text-primary: #0f172a;
+    --text-secondary: #334155;
+    --text-muted: #475569;
+    --citation-bg: #e8f3fc;
+    --citation-text: #004182;
+    --citation-border: #93c5fd;
 }
 
 body {
@@ -48,44 +52,42 @@ body {
     overflow-x: hidden;
 }
 
-/* Custom cyber obsidian scrollbars */
+:focus-visible {
+    outline: 2px solid #004182 !important;
+    outline-offset: 2px !important;
+}
+
 ::-webkit-scrollbar {
-    width: 6px;
-    height: 6px;
+    width: 8px;
+    height: 8px;
 }
 
 ::-webkit-scrollbar-track {
-    background: #0b0f19;
+    background: #eaedf2;
 }
 
 ::-webkit-scrollbar-thumb {
-    background: #1e293b;
+    background: #64748b;
     border-radius: 9999px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-    background: #334155;
+    background: #475569;
 }
 
-/* Glassmorphism utility */
-.glass-panel {
-    background-color: rgba(17, 24, 39, 0.75);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    border: 1px solid rgba(255, 255, 255, 0.08);
+.skip-link {
+    position: absolute;
+    top: -40px;
+    left: 0;
+    background: #004182;
+    color: #ffffff;
+    padding: 8px 16px;
+    z-index: 100;
+    transition: top 0.15s ease-out;
+    font-weight: 600;
+    border-radius: 0 0 8px 0;
 }
 
-.glass-panel-elevated {
-    background-color: rgba(26, 34, 52, 0.85);
-    backdrop-filter: blur(16px);
-    -webkit-backdrop-filter: blur(16px);
-    border: 1px solid rgba(255, 255, 255, 0.12);
-}
-
-.glow-cyan {
-    box-shadow: 0 0 20px rgba(6, 182, 212, 0.25);
-}
-
-.glow-emerald {
-    box-shadow: 0 0 20px rgba(16, 185, 129, 0.25);
+.skip-link:focus {
+    top: 0;
 }

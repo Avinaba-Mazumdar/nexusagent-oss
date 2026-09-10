@@ -1,10 +1,3 @@
-/**
- * Model Context Protocol (MCP v2) Contracts
- *
- * Wire protocol specifications, tool catalogs, JSON-RPC 2.0 schemas,
- * and observability telemetry for MCP transports (SSE, HTTP, and stdio).
- */
-
 export interface McpToolParameter {
     type: string;
     description?: string;

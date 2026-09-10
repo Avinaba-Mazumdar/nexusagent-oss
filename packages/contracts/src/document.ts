@@ -1,10 +1,3 @@
-/**
- * Document & Citation Contracts
- *
- * Schemas for document metadata, vector chunks, reciprocal rank fusion (RRF)
- * search results, and inline line-level citations.
- */
-
 export interface DocumentMetadata {
     id: string;
     userId: string;

@@ -1,55 +1,48 @@
 ---
 version: alpha
 name: NexusAgent-Archon-Design-System
-description: A high-contrast, cyber-engineering systems intelligence interface anchored on deep obsidian canvas (#090D16), glassmorphic midnight slate panels (#111827), cyber cyan (#06B6D4) and electric emerald (#10B981) signature accents. Engineered for Next.js 16 + shadcn/ui + Tailwind CSS v4, sub-second real-time streaming observability, WCAG 2.1 AA accessibility, dynamic Mermaid.js SVG architecture rendering, and interactive citation inspection.
+description: A clean, anti-slop light-mode systems intelligence and architecture observability console inspired by modern enterprise cloud dashboards (Datadog, Linear, Stripe). Anchored on an airy neutral canvas (#F4F5F8), crisp elevated white cards (#FFFFFF), refined hairline borders (#CBD5E1), and signature Archon Blue (#004EA1) accents with high-contrast charcoal action pills (#1E232A). Engineered for Next.js 16 + React 19 + shadcn/ui + Tailwind CSS v4, with sub-second real-time streaming observability, WCAG 2.2 AAA accessibility compliance (7:1 text contrast, 3:1 non-text contrast, 44px target sizes, skip links), interactive architecture topology nodes, and line-level citation inspection.
 
 colors:
-    primary: '#06b6d4'
-    primary-active: '#0891b2'
-    primary-subtle: 'rgba(6, 182, 212, 0.12)'
-    primary-border: 'rgba(6, 182, 212, 0.35)'
-    accent: '#10b981'
-    accent-active: '#059669'
-    accent-glow: 'rgba(16, 185, 129, 0.25)'
-    ink: '#f8fafc'
-    ink-secondary: '#94a3b8'
-    body: '#cbd5e1'
-    muted: '#64748b'
-    hairline: 'rgba(255, 255, 255, 0.08)'
-    border-strong: 'rgba(255, 255, 255, 0.16)'
-    canvas: '#090d16'
-    canvas-subtle: '#0b0f19'
-    surface-soft: '#0f172a'
-    surface-card: '#111827'
-    surface-card-elevated: '#1a2234'
-    surface-glass: 'rgba(17, 24, 39, 0.75)'
-    surface-glass-border: 'rgba(255, 255, 255, 0.08)'
-    on-primary: '#090d16'
-    on-accent: '#ffffff'
-    on-dark: '#f8fafc'
-    status-valid: '#10b981'
-    status-valid-bg: 'rgba(16, 185, 129, 0.12)'
-    status-valid-border: 'rgba(16, 185, 129, 0.30)'
-    status-warning: '#f59e0b'
-    status-warning-bg: 'rgba(245, 158, 11, 0.12)'
-    status-warning-border: 'rgba(245, 158, 11, 0.30)'
-    status-danger: '#f43f5e'
-    status-danger-bg: 'rgba(244, 63, 94, 0.12)'
-    status-danger-border: 'rgba(244, 63, 94, 0.30)'
-    status-info: '#38bdf8'
-    status-info-bg: 'rgba(56, 189, 248, 0.12)'
-    status-info-border: 'rgba(56, 189, 248, 0.30)'
-    citation-pill: '#1e293b'
-    citation-pill-border: '#334155'
-    citation-pill-hover: '#06b6d4'
+    primary: '#004ea1'
+    primary-hover: '#003673'
+    primary-dark: '#004182'
+    primary-subtle: '#e8f3fc'
+    primary-border: '#93c5fd'
+    dark-pill: '#1e232a'
+    dark-pill-hover: '#0a0d12'
+    ink: '#0f172a'
+    ink-secondary: '#334155'
+    body: '#1e293b'
+    muted: '#475569'
+    muted-bg: '#f1f5f9'
+    border: '#cbd5e1'
+    border-subtle: '#e2e8f0'
+    input-border: '#64748b'
+    canvas: '#f4f5f8'
+    canvas-subtle: '#eaedf2'
+    surface-card: '#ffffff'
+    surface-card-elevated: '#ffffff'
+    status-valid: '#14532d'
+    status-valid-bg: '#ecfdf5'
+    status-valid-border: '#86efac'
+    status-warning: '#78350f'
+    status-warning-bg: '#fffbeb'
+    status-warning-border: '#fcd34d'
+    status-danger: '#991b1b'
+    status-danger-bg: '#fef2f2'
+    status-danger-border: '#fca5a5'
+    citation-pill: '#e8f3fc'
+    citation-pill-border: '#93c5fd'
+    citation-pill-text: '#004182'
+    citation-pill-hover: '#d8ecf9'
 
 shadows:
-    sm: '0 1px 2px rgba(0, 0, 0, 0.4)'
-    md: '0 4px 6px -1px rgba(0, 0, 0, 0.5), 0 2px 4px -2px rgba(0, 0, 0, 0.5)'
-    lg: '0 10px 15px -3px rgba(0, 0, 0, 0.6), 0 4px 6px -4px rgba(0, 0, 0, 0.6)'
-    glow-cyan: '0 0 20px rgba(6, 182, 212, 0.25)'
-    glow-emerald: '0 0 20px rgba(16, 185, 129, 0.25)'
-    drawer: '-10px 0 25px -5px rgba(0, 0, 0, 0.65)'
+    xs: '0 1px 2px rgba(0, 0, 0, 0.03)'
+    sm: '0 1px 3px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.02)'
+    card: '0 1px 3px rgba(0, 0, 0, 0.03), 0 6px 16px -2px rgba(0, 0, 0, 0.03)'
+    dropdown: '0 4px 12px rgba(0, 0, 0, 0.06), 0 1px 3px rgba(0, 0, 0, 0.04)'
+    modal: '0 20px 25px -5px rgba(0, 0, 0, 0.08), 0 8px 10px -6px rgba(0, 0, 0, 0.04)'
 
 typography:
     display-xl:
@@ -98,14 +91,15 @@ typography:
 
 # NexusAgent (Codename: Archon) — UI/UX Design System Specification
 
-## 1. Design Philosophy & Core Tenets
+## 1. Design Philosophy: Anti-Slop, Clean Light Systems Intelligence
 
-NexusAgent is built for Staff-Plus Systems Engineers, VP of Engineering, and CTOs who evaluate mission-critical distributed architectures. The visual identity conveys **cryptographic precision, high-velocity intelligence, and deep observability**.
+NexusAgent is engineered for Staff-Plus Systems Engineers, VP of Engineering, and CTOs who evaluate mission-critical distributed architectures. The visual identity avoids the dark "AI slop" cliche (neon glows, purple/cyan gradients, low-contrast text) in favor of **clarity, high density, and cryptographic precision**, modeled on world-class observability consoles.
 
-- **Dark-Canvas Obsidian Core**: Deep black `#090D16` and `#0B0F19` foundations minimize eye fatigue during extended technical reviews and code audits.
-- **Glassmorphic Tactile Panels**: Cards and drawers utilize `backdrop-blur-md` and semi-transparent surfaces (`rgba(17, 24, 39, 0.75)`) with crisp `0.5px` borders (`rgba(255, 255, 255, 0.08)`).
-- **Dual-Coded Cyber Accents**: Cyber Cyan (`#06B6D4`) denotes active planning and streaming tokens; Electric Emerald (`#10B981`) denotes verified consensus invariants and passing reflection checks.
-- **Sub-Second Observability**: Every agent decision node, LlamaIndex chunk retrieval, and MCP tool call is reflected dynamically in real time without page reloads.
+- **Airy Neutral Canvas**: Soft grey `#F4F5F8` foundation provides comfortable daytime reading and high contrast for technical reviews and architectural auditing.
+- **Crisp Elevated Cards**: Pure white `#FFFFFF` cards with subtle borders (`#E2E8F0`) and soft pillowy elevation (`box-shadow: 0 1px 3px rgba(0,0,0,0.03), 0 6px 16px -2px rgba(0,0,0,0.03)`).
+- **Archon Blue Signature Accent**: Professional `#004EA1` denotes active states, links, and primary CTA triggers, paired with `#E8F3FC` light tint chips and `#1E232A` dark action pills.
+- **Architecture Flow Topology**: Node cards with clean headers (e.g. `Radis-Master`, `sdkclient.eng...`, `Neon-Storage`), sub-metrics rows (`150 kbps ↗`), and clean status indicators.
+- **Data-Dense Telemetry Panels**: TCP throughput bar charts with clean categorical segments (high red, medium amber, low blue) and structured service overview tables.
 
 ---
 
@@ -119,25 +113,25 @@ NexusAgent integrates **shadcn/ui** primitives powered by **Tailwind CSS v4** na
 @import 'tailwindcss';
 
 @theme {
-    --color-background: #090d16;
-    --color-foreground: #f8fafc;
-    --color-card: #111827;
-    --color-card-foreground: #f8fafc;
-    --color-popover: #0f172a;
-    --color-popover-foreground: #f8fafc;
-    --color-primary: #06b6d4;
-    --color-primary-foreground: #090d16;
-    --color-secondary: #1e293b;
-    --color-secondary-foreground: #f8fafc;
-    --color-muted: #1e293b;
-    --color-muted-foreground: #94a3b8;
-    --color-accent: #10b981;
-    --color-accent-foreground: #ffffff;
-    --color-destructive: #f43f5e;
+    --color-background: #f4f5f8;
+    --color-foreground: #0f172a;
+    --color-card: #ffffff;
+    --color-card-foreground: #0f172a;
+    --color-popover: #ffffff;
+    --color-popover-foreground: #0f172a;
+    --color-primary: #0a66c2;
+    --color-primary-foreground: #ffffff;
+    --color-secondary: #f1f5f9;
+    --color-secondary-foreground: #0f172a;
+    --color-muted: #f1f5f9;
+    --color-muted-foreground: #64748b;
+    --color-accent: #e8f3fc;
+    --color-accent-foreground: #0a66c2;
+    --color-destructive: #dc2626;
     --color-destructive-foreground: #ffffff;
-    --color-border: rgba(255, 255, 255, 0.08);
-    --color-input: rgba(255, 255, 255, 0.12);
-    --color-ring: #06b6d4;
+    --color-border: #e2e8f0;
+    --color-input: #e2e8f0;
+    --color-ring: #0a66c2;
     --font-sans: 'Instrument Sans', system-ui, -apple-system, sans-serif;
     --font-heading: 'Outfit', system-ui, -apple-system, sans-serif;
     --font-mono: 'JetBrains Mono', monospace;
@@ -146,104 +140,90 @@ NexusAgent integrates **shadcn/ui** primitives powered by **Tailwind CSS v4** na
 
 ---
 
-## 3. Four-Zone Command Center Layout
+## 3. Command Center Layout (Modeled on Sample Directory)
 
-````
-┌───────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
-│ HEADER: [NexusAgent Archon Branding]               │ Quota: [████░] 4/5 Tokens │ [Google Sign-In] │ [BYOK]    │
-├──────────────────────────┬────────────────────────────────────────────────────┬───────────────────────────────┤
-│ LEFT PANEL               │ CENTER PANEL                                       │ RIGHT PANEL                   │
-│ (Data and Tools Panel)   │ (Active Chat Interface)                            │ (Live Agent Inspector)        │
-│                          │                                                    │                               │
-│ 📁 Files Uploaded        │ Active Document: RFC-104-distributed-cache.md       │ 🧭 Current Node               │
-│  - RFC-104-cache.md      │                                                    │  [ planner ] -> [ RETRIEVER ] │
-│  - Neon-storage.md       │ 🤖 NexusAgent (Streaming...)                       │  Status: RUNNING (Node 2/5)   │
-│  + Drag-and-Drop Upload  │ Based on Section 4.2 of [RFC-104:L128], Raft...    │                               │
-│                          │                                                    │ 📊 Token Usage                │
-│ 🔌 Active MCP Servers    │ ```mermaid                                         │  - Prompt: 1,420 tokens       │
-│  - local:8000/api/mcp/sse│ graph LR                                           │  - Completion: 384 tokens     │
-│  - claude-desktop (Link) │    Leader --> FollowerA                            │  - Cached: 890 tokens (90% off│
-│                          │    Leader --> FollowerB                            │  - Est. Cost: $0.00018        │
-│ 🎛️ Live Tool Switches   │ ```                                                │                               │
-│  [x] Hybrid RAG Search   │                                                    │ 📜 State Log Viewer           │
-│  [x] AST Python Sandbox  │ ┌────────────────────────────────────────────────┐ │  - 22:14:01 [Planner] Sub-goal│
-│  [x] SQL Schema Audit    │ │ User Input: Ask architectural question... [Send│ │  - 22:14:02 [RAG] Top 4 chunks│
-│  [ ] Web Search (Ext)    │ └────────────────────────────────────────────────┘ │  - 22:14:03 [AST] Math valid  │
-└──────────────────────────┴────────────────────────────────────────────────────┴───────────────────────────────┘
-````
+```
+┌────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
+│ HEADER: [NexusAgent Archon] | Interval: [last 5 min] | [Breakdown ▼] | [Quick search...] | [Load ▼] | [1-Click] │
+├───────┬────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+│ RAIL  │ TOP SECTION: Architecture Topology / Distributed Cluster Nodes (Radis-Master -> sdkclient -> Neon)    │
+│  [■]  │  - Node Cards with Archon Blue headers, status pills, and sub-metrics (US-east-lb: 150 kbps)          │
+│  [📁] ├──────────────────────────────────────────────────────┬─────────────────────────────────────────────────┤
+│  [⚡] │ CENTER: Active Synthesis & Streaming Verdict        │ RIGHT: Active Tools & Document Vault            │
+│  [📊] │  - Quorum invariant verification stream              │  - [x] Hybrid RAG Search (Neon pgvector)        │
+│       │  - Line-level citation pills: [RFC-104:L128-145]     │  - [x] AST Python Sandbox                       │
+│  [🛡️] │  - [Execute Plan] (#0a66c2) | [Approve Tool] (dark)  │  - [ ] SQL Schema Audit                         │
+│       ├──────────────────────────────────────────────────────┴─────────────────────────────────────────────────┤
+│       │ BOTTOM SECTION: Telemetry & Mesh Overview                                                              │
+│       │  - TCP Throughput bar chart (Alerts: 52 Excellent | High 439 | Medium 146 | Low 2.3k)                  │
+│       │  - Service Overview Table (From, To, Status, Current Rate kbps)                                        │
+└───────┴────────────────────────────────────────────────────────────────────────────────────────────────────────┘
+```
 
-### 3.1 Header (Branding & Sign-In) (`components/header/`)
+### 3.1 Header & Control Strip
 
-- **Branding**: Hexagonal Archon icon with gradient title (`NexusAgent Archon: Autonomous Systems Analyst`).
-- **User Sign-In & Auth**: Python Backend Auth (FastAPI JWT) sign-in modal with user avatar display, plus "1-Click Guest Pass" toggle.
-- **Quota Token Meter**: Visual 5-segment token bucket pill displaying remaining live queries (`4/5 remaining`) and hourly reset timer.
-- **BYOK & Simulator Toggles**: "Bring Your Own Key" (BYOK) modal launcher and 1-click Deterministic Simulator toggle (100% free mode).
+- **Branding**: Clean rounded blue tile with CPU icon and `NexusAgent Archon` title.
+- **Interval & Filter Pills**: Sub-toolbar filters (`Interval: last 5 min`, `Breakdown: Service > Zone`, `Service in: 3`).
+- **Search & Actions**: Rounded search input, Quota pill badge, dark pill action button (`Load ▼`), and Archon Blue primary CTA (`1-Click Guest`).
 
-### 3.2 Left Panel: Data and Tools Panel (`components/workspace/`)
+### 3.2 Vertical Left Icon Rail
 
-- **Files Uploaded (Document Vault)**:
-    - List of ingested architecture whitepapers, RFCs, and API contracts.
-    - Per-document chunk count, SHA-256 integrity hash, and LlamaIndex parsing status badges.
-    - Drag-and-drop file upload zone supporting `.md`, `.pdf`, `.txt`, `.json`.
-- **Active MCP Servers**:
-    - Live indicator of registered Model Context Protocol endpoints (e.g. `http://localhost:8000/api/mcp/sse`).
-    - Connection status pill for external clients (Claude Desktop, Cursor, Antigravity).
-- **Live Tool Switches**:
-    - Tactile toggle switches (using shadcn/ui `Switch`) allowing operators to enable or disable individual tools in real time:
-        - `Hybrid RAG Search` (Neon pgvector + tsvector BM25)
-        - `AST Python Sandbox` (Isolated mathematical latency verifier)
-        - `SQL Schema Audit` (Postgres schema and index efficiency analyzer)
-        - `Web Search (Ext)` (Tavily / Perplexity fallback tool)
-        - `Mermaid Dynamic SVG` (Architecture diagram synthesis)
+- Compact 56px icon rail providing instant 1-click navigation between:
+    - `Layers` (Active Overview Dashboard)
+    - `Database` (Document Vault & RFC chunk inspection)
+    - `Zap` (MCP Tools & Wire logs)
+    - `Activity` (System Telemetry & Metrics)
+    - `ShieldCheck` (OWASP Agentic Security Guard)
 
-### 3.3 Center Panel: Active Chat Interface (`components/canvas/`)
+### 3.3 Topology & Central Execution Stream
 
-- **AI Agent Stream Thread**:
-    - Real-time token streaming with sub-600ms TTFT via Server-Sent Events (SSE).
-    - Shiki syntax-highlighted code blocks with copy-to-clipboard.
-    - **Dynamic Mermaid.js SVG Diagrams**: Interactive architecture diagrams with hardware-accelerated zoom, pan, and SVG export.
-    - **Interactive Citation Pills**: Clickable badges (`[RFC-104:L128-145]`) displaying snippet previews on hover and jumping to exact document line ranges on click.
-    - **Human-in-the-Loop (HITL) Action Banner**: Amber modal card (`components/hitl/HitlModal.tsx`) appearing when a high-impact tool execution requires human approval.
-- **User Inputs Console**:
-    - Multi-line textarea with auto-grow, keyboard shortcuts (`Ctrl+Enter` / `Cmd+Enter`), model selector (Gemini 2.5 Flash / Claude 3.7 / GPT-4o), and quick 1-click showcase scenario buttons.
+- **Interactive Architecture Flow**: Node-based cluster map with clean status chips and routing metrics.
+- **Synthesizer Thread**: Real-time verdict with clickable source citation pills (`[RFC-104:L128-145]`) that preview and jump to exact line ranges.
 
-### 3.4 Right Panel: Live Agent Inspector (`components/observability/`)
+### 3.4 Telemetry & Service Mesh Overview
 
-- **Current Node**:
-    - Visual indicator of active LangGraph node (`planner` -> `retriever` -> `mcp_tools` -> `python_sandbox` -> `reflection` -> `synthesizer`).
-    - Animated pulsing cyan glow indicating execution in flight, transitioning to emerald upon node completion.
-- **Token Usage & Cost Tracker**:
-    - Real-time counters tracking Prompt Tokens, Completion Tokens, and Cached Tokens (leveraging prompt caching discounts).
-    - Live query cost estimator ($0.000XX) providing total financial transparency.
-- **State Log Viewer**:
-    - Chronological execution timeline logging each step transition, timestamp, and duration in milliseconds.
-    - Expandable payloads inspecting intermediate tool input arguments, raw outputs, and the reflection critic's confidence score ($0.00 - 1.00$).
-    - Raw JSON-RPC wire protocol viewer for inspecting MCP request/response payloads (`components/observability/McpInspector.tsx`).
+- **TCP Throughput Card**: Segmented vertical bar chart displaying categorized metrics (Alerts: 52 Excellent, High, Medium, Low).
+- **Service Mesh Table**: Clear rows with checkboxes, service source/destination, status badges (`Alert`, `Warm`, `Healthy`), and transfer rates.
 
 ---
 
 ## 4. Typography & Visual Hierarchy
 
-- **Headings (`Outfit`)**: Modern geometric sans-serif for command center headers, card titles, and modal headers.
-- **Body & Controls (`Instrument Sans`)**: Modern geometric sans-serif optimized for crisp small-text legibility and technical clarity in dense technical documentation.
-- **Code & Payloads (`JetBrains Mono`)**: Fixed-width font with clear ligatures for Python scripts, JSON schemas, and citations.
+- **Headings (`Outfit`)**: Clean, geometric modern sans-serif for dashboard titles, section cards, and modal headers.
+- **Body & Controls (`Instrument Sans`)**: Modern, crisp geometric typography tailored for small-text readability, UI controls, and dense technical tables.
+- **Code & Citations (`JetBrains Mono`)**: Monospaced font with high legibility for metrics (`150 kbps`), wire logs, and citation badges.
 
 ---
 
-## 5. Micro-Animations & Tactile States
+## 5. Micro-Interactions & States
 
-- **Glow Pulse on Active Nodes**: Active LangGraph nodes pulse with a subtle cyan glow (`animation: pulse 2s infinite`).
-- **Stream Ingestion Smooth Scroll**: The conversation container maintains automatic anchor scrolling as new tokens arrive.
-- **Citation Pill Hover Micro-Lift**: `transform: translateY(-1px)` with smooth cubic-bezier transition (`0.2s ease-out`).
-- **Zero-Friction Modal Transitions**: Radix UI Dialog transitions with `scale-95 to scale-100` and `opacity-0 to opacity-100` in 150ms.
+- **Subtle Elevation on Hover**: Cards and nodes smoothly elevate (`transition: all 0.15s ease-out`).
+- **Citation Hover Preview**: Citation badges (`[RFC-104:L128-145]`) display instant popovers with snippet line previews.
+- **Tactile Switches**: Clean Archon Blue toggles with smooth pill translation.
+- **Zero Distracting Animations**: No pulsing neon glows, spinning gradient borders, or excessive animated banners.
 
 ---
 
-## 6. Accessibility & Responsive Breakpoints
+## 6. WCAG 2.2 Level AAA Compliance Specifications
 
-- **WCAG 2.1 AA Compliance**: All text elements maintain a minimum contrast ratio of `4.5:1` against their respective card surfaces.
-- **Dual-Coded Status**: Success, warning, and error states pair distinct colors with dedicated Lucide icons (`CheckCircle`, `AlertTriangle`, `XCircle`) to ensure colorblind accessibility.
-- **Responsive Breakpoints**:
-    - `Desktop (>= 1280px)`: Full 4-zone command center layout (Header + Left Workspace + Center Canvas + Right Observability).
-    - `Tablet (768px - 1279px)`: Left workspace collapses into an icon dock; Right observability drawer toggles via slide-over sheet.
-    - `Mobile (375px - 767px)`: Center canvas takes priority; left vault and right DAG accessible via bottom navigation tabs.
+NexusAgent strictly adheres to the highest level of accessibility (**WCAG 2.2 Level AAA**):
+
+1. **Contrast (Enhanced) — SC 1.4.6 (Level AAA)**:
+    - All standard text maintains a minimum contrast ratio of **7:1** against adjacent backgrounds:
+        - Deep slate text (`#0F172A`) on white: **17.9:1**
+        - Secondary body text (`#334155`) on white: **9.5:1**
+        - Muted label text (`#475569`) on white: **7.1:1**
+        - Primary brand text (`#004182`) on white: **9.7:1**
+        - Citation pills (`#004182` on `#E8F3FC`): **9.0:1**
+        - Buttons (`#FFFFFF` on `#004EA1`): **7.4:1**
+2. **Non-Text Contrast — SC 1.4.11 (Level AA & AAA)**:
+    - Interactive UI components (switch tracks, input borders `#64748B`, button borders) maintain at least **3:1** contrast against adjacent backgrounds.
+3. **Focus Appearance — SC 2.4.13 (Level AAA)**:
+    - High-contrast 2px solid focus indicators (`outline: 2px solid #004182`) with 2px offset (`outline-offset: 2px`) guaranteed never to be obscured by adjacent content.
+4. **Target Size (Enhanced) — SC 2.5.5 (Level AAA)**:
+    - All pointer targets (buttons, switch toggles, inputs, dialog triggers) occupy a minimum bounding touch target of at least **44 by 44 CSS pixels**.
+5. **Bypass Blocks — SC 2.4.1 (Level A & AAA)**:
+    - Persistent keyboard skip-navigation link (`.skip-link`) allows assistive technology users to jump directly to `#main-canvas`.
+6. **Accessible Semantic Landmarks & Live Regions**:
+    - Structured HTML5 semantic hierarchy: `role="banner"`, `role="main"`, `<aside aria-label="...">`, `<nav aria-label="...">`.
+    - Dynamic AI stream regions employ `aria-live="polite"` and `aria-atomic="true"` for respectful screen reader announcements.

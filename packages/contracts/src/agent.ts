@@ -1,10 +1,3 @@
-/**
- * Agent DAG, Execution State, and Real-Time Telemetry Contracts
- *
- * Strongly-typed LangGraph state schemas, execution step nodes,
- * Server-Sent Event (SSE) payloads, and Human-in-the-Loop (HITL) gates.
- */
-
 import type { CitationItem } from './document';
 
 export type AgentRole = 'user' | 'assistant' | 'system';
@@ -106,10 +99,6 @@ export interface AgentState {
     isStreaming: boolean;
     useSimulation: boolean;
 }
-
-// ----------------------------------------------------------------------------
-// Server-Sent Events (SSE) Wire Protocol Payloads
-// ----------------------------------------------------------------------------
 
 export type SSEEventType = 'plan' | 'node_start' | 'tool_call' | 'tool_result' | 'reflection' | 'token' | 'hitl_request' | 'done' | 'error';
 

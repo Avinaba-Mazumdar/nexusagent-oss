@@ -4,25 +4,25 @@ import { cva, type VariantProps } from 'class-variance-authority';
 import { cn } from '@/lib/utils';
 
 const buttonVariants = cva(
-    'inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all duration-200 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 cursor-pointer active:scale-[0.98]',
+    'inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-xl text-sm font-semibold transition-all duration-150 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#004182] disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 cursor-pointer active:scale-[0.98]',
     {
         variants: {
             variant: {
-                default: 'bg-primary text-primary-foreground font-semibold shadow hover:bg-cyan-400 shadow-[0_0_15px_rgba(6,182,212,0.25)]',
-                emerald: 'bg-accent text-accent-foreground font-semibold shadow hover:bg-emerald-400 shadow-[0_0_15px_rgba(16,185,129,0.25)]',
-                secondary: 'bg-secondary text-secondary-foreground shadow-sm hover:bg-slate-700/80 border border-white/5',
-                outline: 'border border-border bg-transparent shadow-sm hover:bg-secondary hover:text-foreground',
-                ghost: 'hover:bg-secondary/60 text-muted-foreground hover:text-foreground',
-                destructive: 'bg-destructive text-destructive-foreground shadow-sm hover:bg-rose-600',
-                glass: 'glass-panel text-foreground shadow-sm hover:bg-white/5 hover:border-white/20',
-                link: 'text-primary underline-offset-4 hover:underline'
+                default: 'bg-[#004ea1] text-white shadow-xs hover:bg-[#003673]',
+                dark: 'bg-[#1e232a] text-white shadow-xs hover:bg-[#0a0d12]',
+                soft: 'bg-[#e8f3fc] text-[#004182] border border-[#93c5fd] hover:bg-[#d8ecf9]',
+                secondary: 'bg-[#f1f5f9] text-[#0f172a] border border-[#cbd5e1] hover:bg-[#e2e8f0]',
+                outline: 'border border-[#94a3b8] bg-white text-[#0f172a] shadow-xs hover:bg-[#f8fafc]',
+                ghost: 'hover:bg-[#f1f5f9] text-[#1e293b] hover:text-[#0f172a]',
+                destructive: 'bg-[#991b1b] text-white shadow-xs hover:bg-[#7f1d1d]',
+                link: 'text-[#004ea1] underline-offset-4 hover:underline'
             },
             size: {
-                default: 'h-9 px-4 py-2',
-                sm: 'h-8 rounded-md px-3 text-xs',
-                lg: 'h-10 rounded-md px-6 text-base',
-                icon: 'h-9 w-9',
-                'icon-sm': 'h-7 w-7'
+                default: 'min-h-[44px] px-4 py-2.5',
+                sm: 'min-h-[36px] px-3.5 py-1.5 text-xs rounded-lg',
+                lg: 'min-h-[48px] px-6 py-3 text-base',
+                icon: 'min-h-[44px] min-w-[44px] rounded-xl',
+                'icon-sm': 'min-h-[36px] min-w-[36px] rounded-lg'
             }
         },
         defaultVariants: {

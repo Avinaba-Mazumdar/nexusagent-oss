@@ -1,4 +1,4 @@
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import { Instrument_Sans, Outfit, JetBrains_Mono } from 'next/font/google';
 import '../styles/globals.css';
 
@@ -20,15 +20,38 @@ const jetbrainsMono = JetBrains_Mono({
     display: 'swap'
 });
 
+export const viewport: Viewport = {
+    themeColor: '#004ea1',
+    width: 'device-width',
+    initialScale: 1
+};
+
 export const metadata: Metadata = {
     title: 'NexusAgent (Archon) — Autonomous Systems Analyst',
     description:
-        'Enterprise-grade autonomous systems analyst and architecture intelligence engine powered by LangGraph, LlamaIndex, Neon PostgreSQL 18, and MCP v2.'
+        'Enterprise-grade autonomous systems analyst and architecture intelligence engine powered by LangGraph, LlamaIndex, Neon PostgreSQL 18, and MCP v2.',
+    icons: {
+        icon: [
+            { url: '/favicon.ico', sizes: 'any' },
+            { url: '/icon.svg', type: 'image/svg+xml' },
+            { url: '/favicon-32x32.png', type: 'image/png', sizes: '32x32' },
+            { url: '/favicon-16x16.png', type: 'image/png', sizes: '16x16' }
+        ],
+        apple: [{ url: '/apple-touch-icon.png', sizes: '180x180', type: 'image/png' }],
+        other: [
+            {
+                rel: 'mask-icon',
+                url: '/icon.svg',
+                color: '#004ea1'
+            }
+        ]
+    },
+    manifest: '/site.webmanifest'
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
     return (
-        <html lang="en" className={`${instrumentSans.variable} ${outfit.variable} ${jetbrainsMono.variable} dark`}>
+        <html lang="en" className={`${instrumentSans.variable} ${outfit.variable} ${jetbrainsMono.variable}`}>
             <body className="bg-background text-foreground antialiased font-sans min-h-screen">{children}</body>
         </html>
     );

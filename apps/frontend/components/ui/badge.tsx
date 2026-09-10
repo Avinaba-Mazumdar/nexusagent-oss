@@ -3,18 +3,19 @@ import { cva, type VariantProps } from 'class-variance-authority';
 import { cn } from '@/lib/utils';
 
 const badgeVariants = cva(
-    'inline-flex items-center rounded-md border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-1 focus:ring-ring',
+    'inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-[#004182] focus:ring-offset-1',
     {
         variants: {
             variant: {
-                default: 'border-cyan-500/30 bg-cyan-500/10 text-cyan-400 shadow-sm',
-                secondary: 'border-slate-700 bg-slate-800/80 text-slate-300',
-                success: 'border-emerald-500/30 bg-emerald-500/10 text-emerald-400',
-                warning: 'border-amber-500/30 bg-amber-500/10 text-amber-400',
-                destructive: 'border-rose-500/30 bg-rose-500/10 text-rose-400',
-                outline: 'border-white/10 text-foreground',
-                citation:
-                    'border-slate-700 bg-slate-800/90 text-cyan-300 font-mono hover:border-cyan-400 hover:text-cyan-200 transition-colors cursor-pointer shadow-sm'
+                default: 'border-transparent bg-[#004ea1] text-white',
+                soft: 'border-[#93c5fd] bg-[#e8f3fc] text-[#004182]',
+                secondary: 'border-[#cbd5e1] bg-[#f1f5f9] text-[#1e293b]',
+                success: 'border-[#86efac] bg-[#ecfdf5] text-[#14532d]',
+                warning: 'border-[#fcd34d] bg-[#fffbeb] text-[#78350f]',
+                destructive: 'border-[#fca5a5] bg-[#fef2f2] text-[#991b1b]',
+                dark: 'border-transparent bg-[#1e232a] text-white',
+                outline: 'border-[#94a3b8] bg-white text-[#0f172a]',
+                citation: 'border-[#93c5fd] bg-[#e8f3fc] text-[#004182] font-mono hover:bg-[#d8ecf9] transition-colors cursor-pointer shadow-2xs'
             }
         },
         defaultVariants: {
@@ -23,10 +24,10 @@ const badgeVariants = cva(
     }
 );
 
-export interface BadgeProps extends React.HTMLAttributes<HTMLDivElement>, VariantProps<typeof badgeVariants> {}
+export interface BadgeProps extends React.HTMLAttributes<HTMLSpanElement>, VariantProps<typeof badgeVariants> {}
 
 function Badge({ className, variant, ...props }: BadgeProps) {
-    return <div className={cn(badgeVariants({ variant }), className)} {...props} />;
+    return <span className={cn(badgeVariants({ variant }), className)} {...props} />;
 }
 
 export { Badge, badgeVariants };

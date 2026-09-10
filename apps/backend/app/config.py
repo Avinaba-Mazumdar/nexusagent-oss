@@ -7,7 +7,6 @@ class Settings(BaseSettings):
     ENVIRONMENT: str = "development"
     DEBUG: bool = True
 
-    # Server & CORS
     HOST: str = "0.0.0.0"
     PORT: int = 8000
     CORS_ORIGINS: list[str] = [
@@ -15,18 +14,15 @@ class Settings(BaseSettings):
         "http://127.0.0.1:3000",
     ]
 
-    # Neon PostgreSQL 18
     NEON_DATABASE_URL: str = ""
     DATABASE_URL: str = ""
 
-    # Security & Auth
     JWT_SECRET_KEY: str = "archon-dev-insecure-secret-key-change-in-production-12345"
     JWT_ALGORITHM: str = "HS256"
-    ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24  # 24 hours
-    GUEST_TOKEN_EXPIRE_MINUTES: int = 60 * 24  # 24 hours
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24
+    GUEST_TOKEN_EXPIRE_MINUTES: int = 60 * 24
     GUEST_QUOTA_DEFAULT: int = 5
 
-    # AI Providers & Fallbacks
     OPENAI_API_KEY: str = ""
     ANTHROPIC_API_KEY: str = ""
     GEMINI_API_KEY: str = ""

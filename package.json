@@ -5,6 +5,10 @@
     "description": "NexusAgent (Codename: Archon) Autonomous Systems Analyst Monorepo",
     "scripts": {
         "dev": "turbo run dev",
+        "dev:fe": "pnpm --filter @nexusagent/frontend dev",
+        "dev:be": "uv run --project apps/backend uvicorn app.main:app --reload --port 8000",
+        "dev:frontend": "pnpm --filter @nexusagent/frontend dev",
+        "dev:backend": "uv run --project apps/backend uvicorn app.main:app --reload --port 8000",
         "build": "turbo run build",
         "test": "turbo run test",
         "lint": "turbo run lint",

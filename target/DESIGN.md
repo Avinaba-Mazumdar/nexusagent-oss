@@ -4,92 +4,92 @@ name: NexusAgent-Archon-Design-System
 description: A high-contrast, cyber-engineering systems intelligence interface anchored on deep obsidian canvas (#090D16), glassmorphic midnight slate panels (#111827), cyber cyan (#06B6D4) and electric emerald (#10B981) signature accents. Engineered for Next.js 16 + shadcn/ui + Tailwind CSS v4, sub-second real-time streaming observability, WCAG 2.1 AA accessibility, dynamic Mermaid.js SVG architecture rendering, and interactive citation inspection.
 
 colors:
-    primary: "#06b6d4"
-    primary-active: "#0891b2"
-    primary-subtle: "rgba(6, 182, 212, 0.12)"
-    primary-border: "rgba(6, 182, 212, 0.35)"
-    accent: "#10b981"
-    accent-active: "#059669"
-    accent-glow: "rgba(16, 185, 129, 0.25)"
-    ink: "#f8fafc"
-    ink-secondary: "#94a3b8"
-    body: "#cbd5e1"
-    muted: "#64748b"
-    hairline: "rgba(255, 255, 255, 0.08)"
-    border-strong: "rgba(255, 255, 255, 0.16)"
-    canvas: "#090d16"
-    canvas-subtle: "#0b0f19"
-    surface-soft: "#0f172a"
-    surface-card: "#111827"
-    surface-card-elevated: "#1a2234"
-    surface-glass: "rgba(17, 24, 39, 0.75)"
-    surface-glass-border: "rgba(255, 255, 255, 0.08)"
-    on-primary: "#090d16"
-    on-accent: "#ffffff"
-    on-dark: "#f8fafc"
-    status-valid: "#10b981"
-    status-valid-bg: "rgba(16, 185, 129, 0.12)"
-    status-valid-border: "rgba(16, 185, 129, 0.30)"
-    status-warning: "#f59e0b"
-    status-warning-bg: "rgba(245, 158, 11, 0.12)"
-    status-warning-border: "rgba(245, 158, 11, 0.30)"
-    status-danger: "#f43f5e"
-    status-danger-bg: "rgba(244, 63, 94, 0.12)"
-    status-danger-border: "rgba(244, 63, 94, 0.30)"
-    status-info: "#38bdf8"
-    status-info-bg: "rgba(56, 189, 248, 0.12)"
-    status-info-border: "rgba(56, 189, 248, 0.30)"
-    citation-pill: "#1e293b"
-    citation-pill-border: "#334155"
-    citation-pill-hover: "#06b6d4"
+    primary: '#06b6d4'
+    primary-active: '#0891b2'
+    primary-subtle: 'rgba(6, 182, 212, 0.12)'
+    primary-border: 'rgba(6, 182, 212, 0.35)'
+    accent: '#10b981'
+    accent-active: '#059669'
+    accent-glow: 'rgba(16, 185, 129, 0.25)'
+    ink: '#f8fafc'
+    ink-secondary: '#94a3b8'
+    body: '#cbd5e1'
+    muted: '#64748b'
+    hairline: 'rgba(255, 255, 255, 0.08)'
+    border-strong: 'rgba(255, 255, 255, 0.16)'
+    canvas: '#090d16'
+    canvas-subtle: '#0b0f19'
+    surface-soft: '#0f172a'
+    surface-card: '#111827'
+    surface-card-elevated: '#1a2234'
+    surface-glass: 'rgba(17, 24, 39, 0.75)'
+    surface-glass-border: 'rgba(255, 255, 255, 0.08)'
+    on-primary: '#090d16'
+    on-accent: '#ffffff'
+    on-dark: '#f8fafc'
+    status-valid: '#10b981'
+    status-valid-bg: 'rgba(16, 185, 129, 0.12)'
+    status-valid-border: 'rgba(16, 185, 129, 0.30)'
+    status-warning: '#f59e0b'
+    status-warning-bg: 'rgba(245, 158, 11, 0.12)'
+    status-warning-border: 'rgba(245, 158, 11, 0.30)'
+    status-danger: '#f43f5e'
+    status-danger-bg: 'rgba(244, 63, 94, 0.12)'
+    status-danger-border: 'rgba(244, 63, 94, 0.30)'
+    status-info: '#38bdf8'
+    status-info-bg: 'rgba(56, 189, 248, 0.12)'
+    status-info-border: 'rgba(56, 189, 248, 0.30)'
+    citation-pill: '#1e293b'
+    citation-pill-border: '#334155'
+    citation-pill-hover: '#06b6d4'
 
 shadows:
-    sm: "0 1px 2px rgba(0, 0, 0, 0.4)"
-    md: "0 4px 6px -1px rgba(0, 0, 0, 0.5), 0 2px 4px -2px rgba(0, 0, 0, 0.5)"
-    lg: "0 10px 15px -3px rgba(0, 0, 0, 0.6), 0 4px 6px -4px rgba(0, 0, 0, 0.6)"
-    glow-cyan: "0 0 20px rgba(6, 182, 212, 0.25)"
-    glow-emerald: "0 0 20px rgba(16, 185, 129, 0.25)"
-    drawer: "-10px 0 25px -5px rgba(0, 0, 0, 0.65)"
+    sm: '0 1px 2px rgba(0, 0, 0, 0.4)'
+    md: '0 4px 6px -1px rgba(0, 0, 0, 0.5), 0 2px 4px -2px rgba(0, 0, 0, 0.5)'
+    lg: '0 10px 15px -3px rgba(0, 0, 0, 0.6), 0 4px 6px -4px rgba(0, 0, 0, 0.6)'
+    glow-cyan: '0 0 20px rgba(6, 182, 212, 0.25)'
+    glow-emerald: '0 0 20px rgba(16, 185, 129, 0.25)'
+    drawer: '-10px 0 25px -5px rgba(0, 0, 0, 0.65)'
 
 typography:
     display-xl:
-        fontFamily: "Outfit, system-ui, sans-serif"
+        fontFamily: 'Outfit, system-ui, sans-serif'
         fontSize: 32px
         fontWeight: 700
         lineHeight: 1.15
         letterSpacing: -0.5px
     display-lg:
-        fontFamily: "Outfit, system-ui, sans-serif"
+        fontFamily: 'Outfit, system-ui, sans-serif'
         fontSize: 24px
         fontWeight: 700
         lineHeight: 1.2
         letterSpacing: -0.3px
     title-md:
-        fontFamily: "Inter, system-ui, sans-serif"
+        fontFamily: "'Instrument Sans', system-ui, sans-serif"
         fontSize: 16px
         fontWeight: 600
         lineHeight: 1.35
         letterSpacing: -0.1px
     title-sm:
-        fontFamily: "Inter, system-ui, sans-serif"
+        fontFamily: "'Instrument Sans', system-ui, sans-serif"
         fontSize: 14px
         fontWeight: 600
         lineHeight: 1.4
         letterSpacing: 0
     body-md:
-        fontFamily: "Inter, system-ui, sans-serif"
+        fontFamily: "'Instrument Sans', system-ui, sans-serif"
         fontSize: 14px
         fontWeight: 400
         lineHeight: 1.5
         letterSpacing: 0
     body-sm:
-        fontFamily: "Inter, system-ui, sans-serif"
+        fontFamily: "'Instrument Sans', system-ui, sans-serif"
         fontSize: 12px
         fontWeight: 400
         lineHeight: 1.45
         letterSpacing: 0
     code:
-        fontFamily: "JetBrains Mono, monospace"
+        fontFamily: 'JetBrains Mono, monospace'
         fontSize: 13px
         fontWeight: 500
         lineHeight: 1.5
@@ -116,7 +116,7 @@ NexusAgent integrates **shadcn/ui** primitives powered by **Tailwind CSS v4** na
 ### 2.1 Tailwind CSS v4 Configuration (`apps/frontend/styles/globals.css`)
 
 ```css
-@import "tailwindcss";
+@import 'tailwindcss';
 
 @theme {
     --color-background: #090d16;
@@ -138,9 +138,9 @@ NexusAgent integrates **shadcn/ui** primitives powered by **Tailwind CSS v4** na
     --color-border: rgba(255, 255, 255, 0.08);
     --color-input: rgba(255, 255, 255, 0.12);
     --color-ring: #06b6d4;
-    --font-sans: "Inter", system-ui, -apple-system, sans-serif;
-    --font-heading: "Outfit", system-ui, -apple-system, sans-serif;
-    --font-mono: "JetBrains Mono", monospace;
+    --font-sans: 'Instrument Sans', system-ui, -apple-system, sans-serif;
+    --font-heading: 'Outfit', system-ui, -apple-system, sans-serif;
+    --font-mono: 'JetBrains Mono', monospace;
 }
 ```
 
@@ -175,7 +175,7 @@ NexusAgent integrates **shadcn/ui** primitives powered by **Tailwind CSS v4** na
 ### 3.1 Header (Branding & Sign-In) (`components/header/`)
 
 - **Branding**: Hexagonal Archon icon with gradient title (`NexusAgent Archon: Autonomous Systems Analyst`).
-- **User Sign-In & Auth**: Supabase Auth Google Sign-in button with user avatar display, plus "1-Click Guest Pass" toggle.
+- **User Sign-In & Auth**: Python Backend Auth (FastAPI JWT) sign-in modal with user avatar display, plus "1-Click Guest Pass" toggle.
 - **Quota Token Meter**: Visual 5-segment token bucket pill displaying remaining live queries (`4/5 remaining`) and hourly reset timer.
 - **BYOK & Simulator Toggles**: "Bring Your Own Key" (BYOK) modal launcher and 1-click Deterministic Simulator toggle (100% free mode).
 
@@ -190,7 +190,7 @@ NexusAgent integrates **shadcn/ui** primitives powered by **Tailwind CSS v4** na
     - Connection status pill for external clients (Claude Desktop, Cursor, Antigravity).
 - **Live Tool Switches**:
     - Tactile toggle switches (using shadcn/ui `Switch`) allowing operators to enable or disable individual tools in real time:
-        - `Hybrid RAG Search` (Supabase pgvector + tsvector BM25)
+        - `Hybrid RAG Search` (Neon pgvector + tsvector BM25)
         - `AST Python Sandbox` (Isolated mathematical latency verifier)
         - `SQL Schema Audit` (Postgres schema and index efficiency analyzer)
         - `Web Search (Ext)` (Tavily / Perplexity fallback tool)
@@ -225,7 +225,7 @@ NexusAgent integrates **shadcn/ui** primitives powered by **Tailwind CSS v4** na
 ## 4. Typography & Visual Hierarchy
 
 - **Headings (`Outfit`)**: Modern geometric sans-serif for command center headers, card titles, and modal headers.
-- **Body & Controls (`Inter`)**: High-legibility neutral sans-serif optimized for small-text readability in dense technical documentation.
+- **Body & Controls (`Instrument Sans`)**: Modern geometric sans-serif optimized for crisp small-text legibility and technical clarity in dense technical documentation.
 - **Code & Payloads (`JetBrains Mono`)**: Fixed-width font with clear ligatures for Python scripts, JSON schemas, and citations.
 
 ---

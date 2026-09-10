@@ -10,7 +10,7 @@ NexusAgent is an enterprise-grade autonomous systems analyst that evaluates dist
 
 - **Autonomous Agent DAG**: Multi-step Plan-and-Execute workflow with a self-reflection critic loop powered by **LangGraph 1.2**.
 - **Modern 4-Zone UI**: High-contrast command center built with **Next.js 16**, **React 19**, **shadcn/ui**, and **Tailwind CSS v4** (Header, Left Workspace Panel, Center Canvas Active Chat, Right Live Observability Inspector).
-- **Hybrid RAG Pipeline**: Combines dense vector search with sparse keyword search (**Supabase `pgvector`** + **`tsvector` BM25**) fused via Reciprocal Rank Fusion (RRF), powered by **LlamaIndex** hierarchical parsing.
+- **Hybrid RAG Pipeline**: Combines dense vector search with sparse keyword search (**Neon PostgreSQL 18 `pgvector`** + **`tsvector` BM25**) fused via Reciprocal Rank Fusion (RRF), powered by **LlamaIndex** hierarchical parsing.
 - **Model Context Protocol (MCP v2)**: Compliant MCP v2 server (`/api/mcp/sse` + `/api/mcp/messages` + CLI stdio) and client for seamless interoperability with Claude Desktop, Cursor, and Antigravity.
 - **OWASP Top 10 for Agentic AI**: Hardened perimeter with prompt injection delimiters, AST Python execution sandbox, canary token tracking, Human-in-the-Loop (HITL) gates, and immutable audit logs.
 - **100% Free-Tier & Zero-Cost Mode**: 1-Click Guest Pass with token-bucket rate limiting, local SQLite/NumPy fallbacks, and a pre-cached Deterministic Simulator ($0 API cost).
@@ -23,11 +23,11 @@ NexusAgent is an enterprise-grade autonomous systems analyst that evaluates dist
 nexusagent-oss/
 ├── apps/
 │   ├── frontend/         # Next.js 16 + React 19 + TypeScript 7 + shadcn/ui + Tailwind v4 + Zustand + Mermaid.js
-│   └── backend/          # FastAPI 0.141 + Python 3.14 + LangGraph 1.2 + LlamaIndex + Supabase + MCP v2
+│   └── backend/          # FastAPI 0.141 + Python 3.14 + LangGraph 1.2 + LlamaIndex + Neon Postgres 18 + MCP v2
 ├── packages/
 │   └── contracts/        # Shared TypeScript interfaces & wire schemas
 ├── target/
-│   ├── ARCHITECTURE.md   # System topology, Supabase DDL, pgvector HNSW, OWASP specs
+│   ├── ARCHITECTURE.md   # System topology, Neon Postgres 18 DDL, pgvector HNSW, OWASP specs
 │   ├── DESIGN.md         # 4-zone UI layout, cyber obsidian tokens, component guide
 │   ├── AGENTs.md         # AI Agent context, system master, coding invariants
 │   └── TODOs.md          # Active MVP0 phased task board

@@ -30,21 +30,22 @@ This document tracks all implementation phases for the **NexusAgent** autonomous
 
 ---
 
-## Phase 2: Supabase Data Fabric, pgvector & RLS Migration
+## Phase 2: Neon PostgreSQL 18 Data Tier, pgvector & Python Backend Auth Engine
 
-- [ ] **Task 2.1: Supabase PostgreSQL 18 Schema Migration**
+- [ ] **Task 2.1: Neon PostgreSQL 18 Schema Migration**
     - Write `migrations/20260901000000_core_schema.sql` enabling `uuid-ossp` and `vector`.
-    - Create tables: `users`, `rate_limit_buckets`, `documents` (with `is_seeded`), `document_chunks`, `agent_conversations`, `messages`, `tool_audit_logs`, `citations`.
+    - Create tables: `users` (with password hash, guest flag, avatar), `rate_limit_buckets`, `documents` (with `is_seeded`), `document_chunks`, `agent_conversations`, `messages`, `tool_audit_logs`, `citations`.
     - Create HNSW index on `document_chunks.embedding` using `vector_cosine_ops`.
     - Create GIN index on `document_chunks.search_vector` (`tsvector`).
-- [ ] **Task 2.2: Row Level Security (RLS) Policies**
-    - Enforce granular `SELECT`, `INSERT`, `UPDATE`, `DELETE` policies on `documents` and `document_chunks`.
-    - Enforce write isolation on `agent_conversations`, `messages`, `citations`, and `rate_limit_buckets`.
-    - Enable Supabase Realtime publication for `tool_audit_logs` and `messages`.
+- [ ] **Task 2.2: FastAPI Backend Auth & Multi-Tenant Isolation (`core/auth.py`)**
+    - Implement native FastAPI authentication service with signed JWTs (`PyJWT` / `cryptography`).
+    - Implement 1-Click Guest Pass token issuance and password hashing (`argon2` / `bcrypt`).
+    - Expose `/api/auth/guest`, `/api/auth/login`, `/api/auth/register`, `/api/auth/me`.
+    - Enforce tenant data isolation via parameterized query filtering.
 - [ ] **Task 2.3: Zero-Config Local Fallback Engine (`db/fallback.py`)**
     - Implement SQLite fallback using `aiosqlite` for metadata persistence.
     - Implement in-memory dot-product cosine similarity using NumPy.
-    - Ensure backend starts and operates seamlessly if Supabase credentials are not provided.
+    - Ensure backend starts and operates seamlessly if `NEON_DATABASE_URL` credentials are not provided.
 
 ---
 
@@ -56,7 +57,7 @@ This document tracks all implementation phases for the **NexusAgent** autonomous
     - Attach rich metadata: `document_id`, `section_title`, `start_line`, `end_line`, `token_count`.
 - [ ] **Task 3.2: Dense Vector Embedding Pipeline (`rag/embeddings.py`)**
     - Implement async batch embedding generator supporting OpenAI `text-embedding-3-small` (1536-dim) or Gemini embeddings.
-    - Store embeddings directly into Supabase `document_chunks` table.
+    - Store embeddings directly into Neon `document_chunks` table.
 - [ ] **Task 3.3: Reciprocal Rank Fusion (RRF) Hybrid Search (`rag/hybrid_search.py`)**
     - Execute concurrent dense vector search (pgvector HNSW) and sparse lexical search (Postgres BM25 `tsvector`).
     - Calculate RRF fused ranking: $RRF(d) = \frac{1}{60 + rank_{dense}(d)} + \frac{1}{60 + rank_{sparse}(d)}$.
@@ -70,7 +71,7 @@ This document tracks all implementation phases for the **NexusAgent** autonomous
     - Define `AgentState` TypedDict: `messages`, `plan`, `current_step_index`, `retrieved_chunks`, `tool_outputs`, `reflection`, `human_approval_required`, `iteration_count`.
 - [ ] **Task 4.2: LangGraph 1.2 StateGraph Node Pipeline (`agent/graph.py`)**
     - Implement `planner` node: Decomposes architectural inquiries into 3–5 verifiable sub-goals.
-    - Implement `retriever` node: Queries LlamaIndex + Supabase Hybrid RAG.
+    - Implement `retriever` node: Queries LlamaIndex + Neon Hybrid RAG.
     - Implement `mcp_tools` node: Executes internal and external Model Context Protocol tools.
     - Implement `reflection` critic node: Evaluates intermediate claims against RFC constraints, emitting confidence score.
     - Implement `synthesizer` node: Generates markdown synthesis with citation markers and Mermaid diagrams.
@@ -100,7 +101,7 @@ This document tracks all implementation phases for the **NexusAgent** autonomous
 ## Phase 6: Next.js 16 + shadcn/ui Command Center Frontend
 
 - [ ] **Task 6.1: Four-Zone Command Center Layout (`app/page.tsx`)**
-    - **Header (`components/header/`)**: Branding, version badge, Supabase Google Sign-In / Guest pass, quota token meter, BYOK toggle.
+    - **Header (`components/header/`)**: Branding, version badge, Python Backend Auth / Guest pass, quota token meter, BYOK toggle.
     - **Left Workspace (`components/workspace/`)**: Document vault with drag-and-drop uploader, active MCP servers list, and live tool toggle switches.
     - **Center Canvas (`components/canvas/`)**: Real-time agent streaming thread, dynamic Mermaid SVG viewer, interactive citation pills, and multi-line user inputs.
     - **Right Observability (`components/observability/`)**: Current node execution status, real-time token usage and cost tracker, and state log viewer with raw wire logs.
@@ -133,9 +134,9 @@ This document tracks all implementation phases for the **NexusAgent** autonomous
 - [ ] **Task 8.1: Prompt Injection Delimiters & Canary Tokens (ASI-01)**
     - Encapsulate uploaded document chunks in `<untrusted_document_context id="...">` XML tags.
     - Inject UUID canary tokens into system prompt; discard output and alert if canary leaks.
-- [ ] **Task 8.2: PII Redaction & Multi-Tenant RLS (ASI-02)**
+- [ ] **Task 8.2: PII Redaction & Multi-Tenant Isolation (ASI-02)**
     - Sanitize sensitive tokens/emails on ingestion.
-    - Enforce Supabase RLS preventing cross-tenant chunk leakage.
+    - Enforce tenant isolation preventing cross-tenant chunk leakage.
 - [ ] **Task 8.3: Rate Limiting & Financial Denial of Service (ASI-07)**
     - Implement token-bucket rate limiter: 5 queries/hr for guests, 25 queries/hr for authenticated users.
     - Enforce LangGraph recursion limit (max 10 iterations).

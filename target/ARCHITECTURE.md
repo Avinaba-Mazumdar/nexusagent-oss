@@ -3,7 +3,7 @@
 > **System Name**: NexusAgent _(Codename: Archon)_  
 > **Platform Version**: `v0.1.0-alpha` (MVP0)  
 > **Target Audience**: Founders, CTOs, VP of Engineering, Tech Leads, and Open-Source Distributed Systems Engineers  
-> **Engineering Focus**: Autonomous technical research, cyclical self-reflection DAGs (LangGraph), LlamaIndex hierarchical RAG ingestion, Model Context Protocol (MCP v2) compliance, Supabase Full-Stack Data Tier (`pgvector` Dense + `tsvector` BM25 Sparse RRF), and formal OWASP Top 10 for Agentic AI (ASI-01 through ASI-10) security boundaries.
+> **Engineering Focus**: Autonomous technical research, cyclical self-reflection DAGs (LangGraph), LlamaIndex hierarchical RAG ingestion, Model Context Protocol (MCP v2) compliance, Neon Serverless PostgreSQL 18 Data Tier (`pgvector` Dense + `tsvector` BM25 Sparse RRF), and formal OWASP Top 10 for Agentic AI (ASI-01 through ASI-10) security boundaries.
 
 ---
 
@@ -14,7 +14,7 @@
 NexusAgent functions as an autonomous **Staff-Plus Systems Architect**. When presented with complex architecture proposals, RFCs, or infrastructure whitepapers, it:
 
 1. Decomposes inquiries into structured multi-phase execution plans using **LangGraph**.
-2. Conducts **Hybrid RAG** retrieval fusing high-dimensional dense embeddings (Supabase `pgvector` with HNSW indexing) with exact lexical keywords (Supabase PostgreSQL `tsvector` with GIN indexing) via **Reciprocal Rank Fusion (RRF)**, powered by **LlamaIndex** semantic parsing.
+2. Conducts **Hybrid RAG** retrieval fusing high-dimensional dense embeddings (Neon `pgvector` with HNSW indexing) with exact lexical keywords (Neon PostgreSQL 18 `tsvector` with GIN indexing) via **Reciprocal Rank Fusion (RRF)**, powered by **LlamaIndex** semantic parsing.
 3. Interfaces with external environments and tools via the standardized **Model Context Protocol (MCP v2)** specification.
 4. Validates throughput, latency, and consistency models using an internal AST-sandboxed Python evaluation engine.
 5. Self-reflects and critiques intermediate findings against real-world distributed systems trade-offs (e.g., Raft quorum bottlenecks, split-brain mitigation, write amplification).
@@ -27,8 +27,8 @@ Reviewers and hiring executives can explore NexusAgent instantly via **1-Click G
 │                                    NEXUSAGENT AT A GLANCE                                        │
 ├──────────────────────────────┬─────────────────────────────────┬─────────────────────────────────┤
 │    AUTONOMOUS AGENT DAG      │       HYBRID RAG & TOOLS        │       DEVELOPER EXPERIENCE      │
-│  - LangGraph 1.2 Multi-Step  │  - Supabase pgvector (Dense)    │  - 1-Click Instant Guest Mode   │
-│  - Plan-and-Execute Loop     │  - Supabase tsvector (Sparse)   │  - Zero-Cost Simulator Fallback │
+│  - LangGraph 1.2 Multi-Step  │  - Neon pgvector (Dense)        │  - 1-Click Instant Guest Mode   │
+│  - Plan-and-Execute Loop     │  - Neon tsvector (Sparse)       │  - Zero-Cost Simulator Fallback │
 │  - LlamaIndex Ingestion      │  - Reciprocal Rank Fusion (RRF) │  - Live Reactive DAG Inspector  │
 │  - Self-Reflection Critic    │  - Dual MCP Server & Client     │  - Next.js 16 + shadcn/ui       │
 │  - Real-Time SSE Token Stream│  - AST Python Calculation Box   │  - OWASP Top 10 Agentic Shield  │
@@ -56,7 +56,7 @@ Reviewers and hiring executives can explore NexusAgent instantly via **1-Click G
 | **Frontend Package Manager** | **pnpm** `^10.5.2`         | Client Dependency Management         | Content-addressable storage, strict dependency tree isolation, zero phantom dependencies.          |
 | **Backend Package Manager**  | **uv** `^0.6.4`            | Python Project & Environment Manager | Written in Rust; provides 10–100x faster package installation and deterministic `uv.lock` pinning. |
 | **Runtime (Frontend)**       | **Node.js** `v24.15.0 LTS` | Client Build & SSR Engine            | Modern V8 runtime with native ESM, top-level await, and integrated test runner.                    |
-| **Runtime (Backend)**        | **Python** `3.14.0`        | Agent Engine & API Gateway           | Latest language features, enhanced typing annotations, and improved async performance.              |
+| **Runtime (Backend)**        | **Python** `3.14.0`        | Agent Engine & API Gateway           | Latest language features, enhanced typing annotations, and improved async performance.             |
 
 ### 2.2 Frontend Stack (`apps/frontend` — Client Command Center)
 
@@ -70,35 +70,34 @@ Reviewers and hiring executives can explore NexusAgent instantly via **1-Click G
 | **Diagram Engine**                 | **Mermaid.js**                   | `^11.4.1` | Client-side dynamic SVG rendering of architecture diagrams with interactive zoom, pan, and SVG export.    |
 | **Icons & UI Primitives**          | **Lucide React**                 | `^1.41.0` | Tree-shakeable, elegant SVG iconography optimized for cyber-engineering dark themes.                      |
 | **Markdown & Syntax Highlighting** | **markdown-it** + **Shiki**      | Latest    | Fine-grained AST parsing for inline citation pill injection and token-highlighted code fences.            |
-| **Supabase Client**                | `@supabase/supabase-js`          | `^2.49.1` | Browser client for Supabase Auth, Realtime Postgres subscriptions, and Storage bucket browsing.           |
+| **HTTP & State Sync Client**       | Native `fetch` + Custom Hooks    | Native    | Standard REST and Server-Sent Events client communicating with FastAPI backend auth & agent endpoints.    |
 
 ### 2.3 Backend Stack (`apps/backend` — FastAPI & Agent Engine)
 
-| Category                     | Technology / Library                | Version    | Engineering Rationale                                                                               |
-| :--------------------------- | :---------------------------------- | :--------- | :-------------------------------------------------------------------------------------------------- |
-| **API Framework**            | **FastAPI** (`fastapi[standard]`)   | `^0.141.1` | High-throughput asynchronous routing, Pydantic v2 validation, native SSE streaming support.         |
-| **Agent DAG Orchestrator**   | **LangGraph**                       | `^1.2.11`  | Cyclical graph execution with strongly typed state, state checkpointing, and node-level streaming.  |
-| **LangChain Core**           | `langchain-core`                    | `^0.3.42`  | Base primitives, message abstractions, and prompt template management.                              |
-| **RAG Ingestion & Chunking** | **LlamaIndex** (`llama-index-core`) | `^0.12.0`  | Markdown-aware node parsing, hierarchical section boundary preservation, and chunk metadata tags.   |
-| **Model Context Protocol**   | **mcp** (`mcp[cli]`)                | `^2.0.0`   | Official MCP Python SDK supporting stdio and SSE transport protocols.                               |
-| **Supabase Integration**     | `supabase` (`supabase-py`)          | `^2.13.0`  | Python client for Supabase PostgreSQL, Auth verification, Storage, and Realtime broadcast triggers. |
-| **Vector Driver**            | **pgvector** (`pgvector-python`)    | `^0.3.6`   | Native async integration with PostgreSQL pgvector extension for HNSW cosine distance queries.       |
-| **Validation & Schemas**     | **Pydantic**                        | `^2.10.6`  | Rust-backed `pydantic-core` delivering microsecond schema validation and JSON serialization.        |
-| **Database Driver**          | **asyncpg**                         | `^0.30.0`  | Native asynchronous PostgreSQL binary protocol driver delivering maximum I/O throughput.            |
-| **Rate Limiting**            | Custom Token-Bucket + Redis/Memory  | Native     | Sub-microsecond sliding token bucket tracking IP addresses and Guest UUIDs.                         |
-| **Authentication & Crypto**  | **PyJWT** + **Cryptography**        | `^2.10.1`  | HMAC-SHA256 and Ed25519 cryptographic token generation and Supabase Auth JWKS validation.           |
+| Category                     | Technology / Library                | Version    | Engineering Rationale                                                                                    |
+| :--------------------------- | :---------------------------------- | :--------- | :------------------------------------------------------------------------------------------------------- |
+| **API Framework**            | **FastAPI** (`fastapi[standard]`)   | `^0.141.1` | High-throughput asynchronous routing, Pydantic v2 validation, native SSE streaming support.              |
+| **Agent DAG Orchestrator**   | **LangGraph**                       | `^1.2.11`  | Cyclical graph execution with strongly typed state, state checkpointing, and node-level streaming.       |
+| **LangChain Core**           | `langchain-core`                    | `^0.3.42`  | Base primitives, message abstractions, and prompt template management.                                   |
+| **RAG Ingestion & Chunking** | **LlamaIndex** (`llama-index-core`) | `^0.12.0`  | Markdown-aware node parsing, hierarchical section boundary preservation, and chunk metadata tags.        |
+| **Model Context Protocol**   | **mcp** (`mcp[cli]`)                | `^2.0.0`   | Official MCP Python SDK supporting stdio and SSE transport protocols.                                    |
+| **Database Driver**          | **asyncpg**                         | `^0.30.0`  | High-performance asynchronous binary driver connecting directly to Neon PostgreSQL 18 connection pooler. |
+| **Vector Driver**            | **pgvector** (`pgvector-python`)    | `^0.3.6`   | Native async integration with PostgreSQL pgvector extension for HNSW cosine distance queries.            |
+| **Validation & Schemas**     | **Pydantic**                        | `^2.10.6`  | Rust-backed `pydantic-core` delivering microsecond schema validation and JSON serialization.             |
+| **Rate Limiting**            | Custom Token-Bucket + Redis/Memory  | Native     | Sub-microsecond sliding token bucket tracking IP addresses and Guest UUIDs.                              |
+| **Authentication & Crypto**  | **PyJWT** + **Passlib** (`argon2`)  | `^2.10.1`  | Cryptographic JWT token issuance/verification, secure argon2 password hashing, and guest sessions.       |
 
 ### 2.4 Persistence, Vector & Infrastructure
 
-| Layer                           | Provider / Tool             | Configuration                  | Rationale                                                                                                    |
-| :------------------------------ | :-------------------------- | :----------------------------- | :----------------------------------------------------------------------------------------------------------- |
-| **Primary Full-Stack Database** | **Supabase PostgreSQL**     | PostgreSQL `18.x`              | Managed PostgreSQL with native `pgvector` extension, full-text `tsvector` BM25, Auth, Storage, and Realtime. |
-| **Vector Indexing Engine**      | **pgvector (HNSW Index)**   | 1536-dimensional embeddings    | In-database vector indexing with sub-millisecond nearest neighbor search and relational metadata filtering.  |
-| **Local Vector Fallback**       | **NumPy**                   | `^2.2.3`                       | In-memory dot-product cosine similarity calculation when Supabase credentials are not configured.            |
-| **Local Relational Fallback**   | **SQLite3 (aiosqlite)**     | Native                         | Automated zero-config fallback ensuring immediate operation on fresh clones.                                 |
-| **Containerization**            | **Docker**                  | Multi-stage `python:3.14-slim` | Lean production image (<120MB) with non-root security boundaries and vulnerability scanning.                 |
-| **Client Hosting**              | **Vercel** / **Cloudflare** | Edge Network                   | Sub-50ms TTFB worldwide, automatic edge compression, Next.js native optimization.                            |
-| **Backend Hosting**             | **Render** / **Fly.io**     | Container Service              | Long-lived SSE streaming support with automatic health checks and TCP connection pooling.                    |
+| Layer                           | Provider / Tool              | Configuration                  | Rationale                                                                                                     |
+| :------------------------------ | :--------------------------- | :----------------------------- | :------------------------------------------------------------------------------------------------------------ |
+| **Primary Full-Stack Database** | **Neon Serverless Postgres** | PostgreSQL `18.x`              | Serverless PostgreSQL 18 with native `pgvector` extension, full-text `tsvector` BM25, and connection pooling. |
+| **Vector Indexing Engine**      | **pgvector (HNSW Index)**    | 1536-dimensional embeddings    | In-database vector indexing with sub-millisecond nearest neighbor search and relational metadata filtering.   |
+| **Local Vector Fallback**       | **NumPy**                    | `^2.2.3`                       | In-memory dot-product cosine similarity calculation when Neon credentials are not configured.                 |
+| **Local Relational Fallback**   | **SQLite3 (aiosqlite)**      | Native                         | Automated zero-config fallback ensuring immediate operation on fresh clones.                                  |
+| **Containerization**            | **Docker**                   | Multi-stage `python:3.14-slim` | Lean production image (<120MB) with non-root security boundaries and vulnerability scanning.                  |
+| **Client Hosting**              | **Vercel** / **Cloudflare**  | Edge Network                   | Sub-50ms TTFB worldwide, automatic edge compression, Next.js native optimization.                             |
+| **Backend Hosting**             | **Render** / **Fly.io**      | Container Service              | Long-lived SSE streaming support with automatic health checks and TCP connection pooling.                     |
 
 ---
 
@@ -119,7 +118,7 @@ graph TB
     subgraph GatewayLayer ["FastAPI Gateway (apps/backend :8000)"]
         CORS["CORS & Secure Header Guard"]
         RateLimiter["Token-Bucket Rate Limiter (IP + Guest UUID)"]
-        AuthModule["Supabase Auth & Guest JWT Validator"]
+        AuthModule["FastAPI Auth & Guest JWT Engine (Argon2 / PyJWT)"]
         OWASPShield["OWASP Agentic AI Security Perimeter"]
         Router["FastAPI Async Router"]
     end
@@ -127,7 +126,7 @@ graph TB
     subgraph AgentCore ["Autonomous Agent Execution Core (LangGraph 1.2)"]
         PlannerNode["Planner Node: Sub-Goal Decomposition"]
         LlamaParser["LlamaIndex Node: Semantic Chunking & Ingestion"]
-        RetrieverNode["Retriever Node: Supabase Hybrid RAG (pgvector + BM25)"]
+        RetrieverNode["Retriever Node: Neon Hybrid RAG (pgvector + BM25)"]
         MCPNode["MCP Client Node: Scoped Tool Invocation"]
         SandboxNode["AST Python Sandbox: Latency & Math Verification"]
         ReflectionNode["Reflection Node: Architectural Critic"]
@@ -140,12 +139,10 @@ graph TB
         ExternalClients["External Agents (Claude Desktop, Cursor, Antigravity)"]
     end
 
-    subgraph SupabaseLayer ["Supabase Full-Stack Fabric"]
-        PgVectorStore[("Supabase pgvector (HNSW Index 1536-dim)")]
-        PgLexicalStore[("Supabase tsvector (Full-Text BM25)")]
-        SupaAuth[("Supabase Auth (Google OAuth + Guest JWT)")]
-        SupaStorage[("Supabase Storage (RFC Document Vault)")]
-        SupaRealtime[("Supabase Realtime (Live Event Broadcast)")]
+    subgraph NeonDataLayer ["Neon Serverless Postgres 18 Tier"]
+        PgVectorStore[("Neon pgvector (HNSW Index 1536-dim)")]
+        PgLexicalStore[("Neon tsvector (Full-Text BM25)")]
+        NeonRelationalStore[("Neon Relational Schema (Users, Rate Limits, Docs)")]
         LocalFallback[("Zero-Config In-Memory / SQLite Fallback")]
     end
 
@@ -158,7 +155,7 @@ graph TB
     GatewayLayer --> OWASPShield
     OWASPShield --> AgentCore
     AgentCore --> MCPHub
-    AgentCore --> SupabaseLayer
+    AgentCore --> NeonDataLayer
     AgentCore --> ExternalServices
     MCPHub <--> ExternalClients
 ```
@@ -187,7 +184,7 @@ nexusagent-oss/
 │   │   │   ├── ui/                    # shadcn/ui accessible primitives (Button, Dialog, Switch, etc.)
 │   │   │   ├── header/
 │   │   │   │   ├── AppHeader.tsx      # Branding, version badge, and navigation
-│   │   │   │   ├── UserAuth.tsx       # Supabase Google Sign-In & 1-Click Guest pass
+│   │   │   │   ├── UserAuth.tsx       # FastAPI Auth & 1-Click Guest pass
 │   │   │   │   └── QuotaMeter.tsx     # Real-time token-bucket remaining quota badge
 │   │   │   ├── workspace/             # Data and Tools Panel (Left Zone)
 │   │   │   │   ├── DataToolsPanel.tsx # Container for files, active MCPs, and tool toggles
@@ -211,7 +208,7 @@ nexusagent-oss/
 │   │   │       └── McpInspector.tsx   # Interactive MCP protocol test console
 │   │   ├── hooks/
 │   │   │   ├── useAgentStream.ts      # Server-Sent Events listener and SSE parser
-│   │   │   ├── useSupabaseAuth.ts     # Supabase Google OAuth and Guest pass manager
+│   │   │   ├── useAuth.ts             # FastAPI JWT session and Guest pass manager
 │   │   │   └── useMcpClient.ts        # Direct JSON-RPC client hook
 │   │   ├── stores/
 │   │   │   ├── sessionStore.ts        # Active guest token, quota count, and BYOK keys
@@ -224,18 +221,18 @@ nexusagent-oss/
 │   └── backend/                       # FastAPI 0.141 + LangGraph 1.2 + LlamaIndex Agent Core
 │       ├── app/
 │       │   ├── main.py                # FastAPI ASGI application entrypoint & middleware
-│       │   ├── config.py              # Pydantic Settings (Supabase, OpenAI, Anthropic keys)
+│       │   ├── config.py              # Pydantic Settings (Neon, OpenAI, Anthropic keys)
 │       │   ├── core/
 │       │   │   ├── security.py        # OWASP ASI security guards, canary tokens, sanitizers
 │       │   │   ├── sandbox.py         # Subprocess AST Python code validator and runner
 │       │   │   ├── rate_limiter.py    # Sliding token-bucket rate limiter
-│       │   │   └── auth.py            # Supabase JWT and guest token verification
+│       │   │   └── auth.py            # FastAPI JWT, argon2 hashing, and guest token verification
 │       │   ├── agent/
 │       │   │   ├── state.py           # Strongly-typed LangGraph AgentState schema
 │       │   │   ├── graph.py           # LangGraph StateGraph builder and transitions
 │       │   │   ├── nodes/
 │       │   │   │   ├── planner.py     # Sub-goal planning and decomposition node
-│       │   │   │   ├── retriever.py   # LlamaIndex + Supabase Hybrid RAG node
+│       │   │   │   ├── retriever.py   # LlamaIndex + Neon Hybrid RAG node
 │       │   │   │   ├── mcp_tools.py   # Model Context Protocol execution node
 │       │   │   │   ├── sandbox.py     # Computational evaluation node
 │       │   │   │   ├── reflection.py  # Self-reflection critic node
@@ -252,11 +249,11 @@ nexusagent-oss/
 │       │   │       ├── rag_tool.py    # MCP tool exposing document retrieval
 │       │   │       └── sql_audit.py   # MCP tool auditing schema bottlenecks
 │       │   ├── db/
-│       │   │   ├── supabase.py        # Supabase client pool & pgvector connection
+│       │   │   ├── neon.py            # Neon asyncpg connection pool & pgvector driver
 │       │   │   ├── fallback.py        # In-memory NumPy & SQLite zero-config fallback
 │       │   │   └── models.py          # SQLAlchemy / SQLModel table definitions
 │       │   └── routes/
-│       │       ├── auth.py            # /api/auth endpoints
+│       │       ├── auth.py            # /api/auth endpoints (register, login, guest, me)
 │       │       ├── documents.py       # /api/documents upload and chunk endpoints
 │       │       ├── agent.py           # /api/agent/stream SSE and approval endpoints
 │       │       └── mcp.py             # /api/mcp/sse, /api/mcp/messages, /api/mcp/v1 endpoints
@@ -292,7 +289,7 @@ All user interactions in `apps/frontend` operate on modern Next.js 16 App Router
 
 ```
 apps/frontend/app/
-├── layout.tsx                     # Global CSS tokens, Inter/JetBrains fonts, Supabase auth provider
+├── layout.tsx                     # Global CSS tokens, Instrument Sans/JetBrains fonts, FastAPI auth provider
 ├── page.tsx                       # Main 4-Zone Command Center (Workspace, Canvas, Observability, Header)
 ├── documents/
 │   └── page.tsx                   # Full-screen document library, chunk inspection, and upload
@@ -305,7 +302,7 @@ apps/frontend/app/
 
 ---
 
-## 6. Entity Relationship Diagram & Supabase Database Schema (PostgreSQL 18)
+## 6. Entity Relationship Diagram & Neon Database Schema (PostgreSQL 18)
 
 ### 6.1 Entity Relationship Diagram
 
@@ -322,6 +319,7 @@ erDiagram
     users {
         uuid id PK
         varchar email
+        varchar hashed_password
         varchar name
         varchar avatar_url
         boolean is_guest
@@ -346,6 +344,7 @@ erDiagram
         varchar sha256_hash
         int total_chunks
         varchar storage_path
+        boolean is_seeded
         timestamp uploaded_at
     }
 
@@ -400,17 +399,18 @@ erDiagram
     }
 ```
 
-### 6.2 Supabase PostgreSQL Migration Script (DDL with RLS & pgvector)
+### 6.2 Neon PostgreSQL 18 Migration Script (DDL with pgvector & Tenancy Isolation)
 
 ```sql
--- Enable necessary extensions in Supabase
+-- Enable necessary extensions in Neon PostgreSQL 18
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 CREATE EXTENSION IF NOT EXISTS "vector";
 
--- 1. Users Table (Integrated with Supabase Auth or Ephemeral Guests)
+-- 1. Users Table (FastAPI Backend Authentication & Ephemeral Guests)
 CREATE TABLE IF NOT EXISTS users (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     email VARCHAR(255) UNIQUE,
+    hashed_password VARCHAR(255),
     name VARCHAR(255) NOT NULL DEFAULT 'Guest Reviewer',
     avatar_url TEXT,
     is_guest BOOLEAN NOT NULL DEFAULT TRUE,
@@ -507,110 +507,32 @@ CREATE TABLE IF NOT EXISTS citations (
     relevance_score REAL NOT NULL DEFAULT 0.0
 );
 
--- Row Level Security (RLS) Policies — Hardened & Granular
-ALTER TABLE documents ENABLE ROW LEVEL SECURITY;
-ALTER TABLE document_chunks ENABLE ROW LEVEL SECURITY;
-ALTER TABLE agent_conversations ENABLE ROW LEVEL SECURITY;
-ALTER TABLE messages ENABLE ROW LEVEL SECURITY;
-ALTER TABLE tool_audit_logs ENABLE ROW LEVEL SECURITY;
-ALTER TABLE citations ENABLE ROW LEVEL SECURITY;
-ALTER TABLE rate_limit_buckets ENABLE ROW LEVEL SECURITY;
-
--- Documents RLS: Read access to owner or seeded docs; mutations restricted strictly to owner non-seeded docs
-CREATE POLICY "Users can view own or seeded documents"
-    ON documents FOR SELECT
-    USING (auth.uid() = user_id OR is_seeded = TRUE);
-
-CREATE POLICY "Users can insert own documents"
-    ON documents FOR INSERT
-    WITH CHECK (auth.uid() = user_id AND is_seeded = FALSE);
-
-CREATE POLICY "Users can update own non-seeded documents"
-    ON documents FOR UPDATE
-    USING (auth.uid() = user_id AND is_seeded = FALSE);
-
-CREATE POLICY "Users can delete own non-seeded documents"
-    ON documents FOR DELETE
-    USING (auth.uid() = user_id AND is_seeded = FALSE);
-
--- Document Chunks RLS: Access scoped to accessible documents
-CREATE POLICY "Users can view chunks of accessible documents"
-    ON document_chunks FOR SELECT
-    USING (EXISTS (
-        SELECT 1 FROM documents d
-        WHERE d.id = document_chunks.document_id
-        AND (d.user_id = auth.uid() OR d.is_seeded = TRUE)
-    ));
-
-CREATE POLICY "Users can insert chunks for own documents"
-    ON document_chunks FOR INSERT
-    WITH CHECK (EXISTS (
-        SELECT 1 FROM documents d
-        WHERE d.id = document_chunks.document_id
-        AND d.user_id = auth.uid()
-    ));
-
-CREATE POLICY "Users can delete chunks of own documents"
-    ON document_chunks FOR DELETE
-    USING (EXISTS (
-        SELECT 1 FROM documents d
-        WHERE d.id = document_chunks.document_id
-        AND d.user_id = auth.uid()
-        AND d.is_seeded = FALSE
-    ));
-
--- Conversations & Messages RLS: Strictly scoped to authenticated owner
-CREATE POLICY "Users manage their own conversations"
-    ON agent_conversations FOR ALL
-    USING (auth.uid() = user_id);
-
-CREATE POLICY "Users manage messages in their conversations"
-    ON messages FOR ALL
-    USING (EXISTS (
-        SELECT 1 FROM agent_conversations c
-        WHERE c.id = messages.conversation_id
-        AND c.user_id = auth.uid()
-    ));
-
--- Citations RLS: Scoped to user's conversation messages
-CREATE POLICY "Users can view citations for their messages"
-    ON citations FOR SELECT
-    USING (EXISTS (
-        SELECT 1 FROM messages m
-        JOIN agent_conversations c ON m.conversation_id = c.id
-        WHERE m.id = citations.message_id
-        AND c.user_id = auth.uid()
-    ));
-
--- Tool Audit Logs RLS: Users can only inspect their own session tool logs
-CREATE POLICY "Users can view own tool audit logs"
-    ON tool_audit_logs FOR SELECT
-    USING (auth.uid() = user_id);
-
--- Rate Limit Buckets RLS: Users can view their own remaining quota
-CREATE POLICY "Users can view own rate limit bucket"
-    ON rate_limit_buckets FOR SELECT
-    USING (auth.uid() = user_id);
-
--- Supabase Realtime Publication
-ALTER PUBLICATION supabase_realtime ADD TABLE tool_audit_logs;
-ALTER PUBLICATION supabase_realtime ADD TABLE messages;
+-- Multi-Tenant Data Isolation Strategy
+-- In Neon PostgreSQL 18, tenancy isolation is strictly enforced at the FastAPI backend application layer:
+-- 1. All repository queries require verified `user_id` from the decoded JWT Bearer token:
+--    SELECT * FROM documents WHERE (user_id = $1 OR is_seeded = TRUE);
+-- 2. Optional native PostgreSQL RLS can also be activated using session configuration variables:
+--    SET LOCAL app.current_user_id = 'user-uuid';
+--    CREATE POLICY tenant_isolation_policy ON documents
+--        USING (user_id = NULLIF(current_setting('app.current_user_id', true), '')::uuid OR is_seeded = TRUE);
 ```
 
 ---
 
 ## 7. API Specifications & Standard Protocols
 
-### 7.1 Authentication & Session Management
+### 7.1 Authentication & Session Management (FastAPI Engine)
 
-- `POST /api/auth/guest`: Creates or refreshes ephemeral guest profile. Returns signed JWT (`sub: uuid`, `role: "guest"`).
-- `POST /api/auth/google`: Verifies Supabase Google OAuth session token and issues high-quota application JWT.
-- `GET /api/auth/me`: Retrieves current user details, role, and remaining token-bucket quota.
+- `POST /api/auth/guest`: Generates or refreshes ephemeral 1-click guest profile. Returns signed JWT (`sub: uuid`, `role: "guest"`, `tokens: 5`).
+- `POST /api/auth/register`: Creates new authenticated account with argon2-hashed credentials.
+- `POST /api/auth/login`: Authenticates credentials (or OAuth token) and returns access token JWT.
+- `GET /api/auth/me`: Retrieves current user session, role, and remaining token-bucket quota.
+- `POST /api/auth/refresh`: Refreshes expired access tokens.
 
 ### 7.2 LlamaIndex Document Ingestion & RAG
 
-- `GET /api/documents`: Lists all accessible RFCs and documents.
-- `POST /api/documents/upload`: Multipart file upload (`.md`, `.pdf`, `.txt`). Processes document with LlamaIndex `MarkdownNodeParser`, generates dense vector embeddings, and stores in Supabase with RLS.
+- `GET /api/documents`: Lists all accessible RFCs and documents for the authenticated tenant.
+- `POST /api/documents/upload`: Multipart file upload (`.md`, `.pdf`, `.txt`). Processes document with LlamaIndex `MarkdownNodeParser`, generates dense vector embeddings, and stores chunks in Neon PostgreSQL 18.
 - `GET /api/documents/:id/chunks`: Retrieves chunks and vector metadata for interactive inspection.
 
 ### 7.3 Agent Execution, Streaming & HITL
@@ -652,14 +574,14 @@ ALTER PUBLICATION supabase_realtime ADD TABLE messages;
 
 ## 9. Performance Benchmarks, Latency Budgets & Observability
 
-| Pipeline Stage                       | Target Latency Budget (p95) | Optimization Mechanism                                                 |
-| :----------------------------------- | :-------------------------- | :--------------------------------------------------------------------- |
-| **Auth & Rate Limit Check**          | `< 15ms`                    | In-memory token bucket + cached JWT public key verification.           |
-| **Planner Node Decomposition**       | `< 450ms`                   | Fast LLM instruction prompt with structured JSON output formatting.    |
-| **LlamaIndex + Supabase Hybrid RAG** | `< 120ms`                   | Concurrent HNSW cosine vector query + GIN BM25 query fused in memory.  |
-| **AST Python Code Sandbox**          | `< 85ms`                    | In-process AST validation (`ast.parse`) with bounded thread execution. |
-| **Self-Reflection Critic Node**      | `< 400ms`                   | Concise invariant checklist evaluated against source citations.        |
-| **Time-to-First-Token (TTFT)**       | `< 550ms`                   | SSE streaming directly from synthesizer node without full buffer wait. |
+| Pipeline Stage                   | Target Latency Budget (p95) | Optimization Mechanism                                                 |
+| :------------------------------- | :-------------------------- | :--------------------------------------------------------------------- |
+| **Auth & Rate Limit Check**      | `< 15ms`                    | In-memory token bucket + cached JWT public key verification.           |
+| **Planner Node Decomposition**   | `< 450ms`                   | Fast LLM instruction prompt with structured JSON output formatting.    |
+| **LlamaIndex + Neon Hybrid RAG** | `< 120ms`                   | Concurrent HNSW cosine vector query + GIN BM25 query fused in memory.  |
+| **AST Python Code Sandbox**      | `< 85ms`                    | In-process AST validation (`ast.parse`) with bounded thread execution. |
+| **Self-Reflection Critic Node**  | `< 400ms`                   | Concise invariant checklist evaluated against source citations.        |
+| **Time-to-First-Token (TTFT)**   | `< 550ms`                   | SSE streaming directly from synthesizer node without full buffer wait. |
 
 ---
 
@@ -671,7 +593,7 @@ ALTER PUBLICATION supabase_realtime ADD TABLE messages;
 ├──────────────────────────┬─────────────────────────────┬───────────────────────────────┤
 │   PERIMETER CONTROLS     │      SANDBOX ISOLATION      │     HUMAN-IN-THE-LOOP & RLS   │
 │  - Token-Bucket Limiter  │  - Python AST Inspection    │  - HITL Tool Approval Gates   │
-│  - XML Boundary Delimiters│  - Subprocess Celings       │  - Supabase Row-Level Security│
+│  - XML Boundary Delimiters│  - Subprocess Celings       │  - Multi-Tenant Isolation     │
 │  - Cryptographic Canaries│  - Memory & Timeout Guards  │  - Scoped MCP Bearer Tokens   │
 │  - PII Scrubbing Engine  │  - Zero Host Disk Access    │  - Immutable Tool Audit Logs  │
 └──────────────────────────┴─────────────────────────────┴───────────────────────────────┘
@@ -697,7 +619,7 @@ NexusAgent implements comprehensive, defense-in-depth mitigations against the **
 - **Risk**: Accidental extraction or exposure of proprietary API keys, secrets, or PII contained within uploaded architecture whitepapers.
 - **Mitigation**:
     1. Regex and Presidio-style pattern scrubbers strip detected AWS keys, JWT tokens, email addresses, and phone numbers during LlamaIndex document chunking.
-    2. Supabase Row Level Security (RLS) ensures users and guest sessions can only query document chunks belonging to their own session.
+    2. Multi-tenant application-level query scoping ensures users and guest sessions can only query document chunks belonging to their own session or pre-seeded RFCs.
 
 ### 10.3 ASI-03: Supply Chain & Dependency Compromise
 
@@ -758,7 +680,7 @@ NexusAgent implements comprehensive, defense-in-depth mitigations against the **
 
 - **Risk**: Inability to reconstruct agent decision paths, tool invocations, or security incidents.
 - **Mitigation**:
-    1. Every tool invocation, parameter set, execution duration, and HITL approval status is immutably recorded in the Supabase `tool_audit_logs` table.
+    1. Every tool invocation, parameter set, execution duration, and HITL approval status is immutably recorded in the Neon PostgreSQL `tool_audit_logs` table.
     2. Full node-by-node execution state is broadcast in real time over SSE and visualizable in the Next.js 16 Observability DAG and Security Audit tabs.
 
 ---
@@ -791,7 +713,7 @@ WHERE is_guest = TRUE
     - Deployed on **Render** or **Fly.io** using containerized Docker runner (`python:3.14-slim`).
     - Supports persistent long-lived HTTP Server-Sent Events (SSE) connections.
 3. **Database & Storage**:
-    - Deployed on **Supabase Free Tier** (PostgreSQL 18, 500MB storage, `pgvector`, Supabase Auth).
+    - Deployed on **Neon Serverless PostgreSQL Free Tier** (PostgreSQL 18, 0.5 GiB storage, native `pgvector`, connection pooling).
 4. **Zero-Cost Reviewer Guarantee**:
     - Deterministic Simulator Mode allows infinite evaluations without requiring live OpenAI, Anthropic, or Gemini API keys.
 

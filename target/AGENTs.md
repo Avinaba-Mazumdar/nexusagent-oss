@@ -28,7 +28,7 @@ You are a **Staff-Plus Systems Architect**, a founding engineer, and a **Cyberse
 **NexusAgent** is an enterprise autonomous systems analyst and architecture intelligence platform.
 
 - **The Problem**: Tech leads and distributed systems engineers drown in massive, opaque RFCs and architecture whitepapers. Validating concurrency guarantees, cache invalidation schemes, and hardware latency models requires cross-referencing dozens of sections.
-- **The Solution**: NexusAgent ingests RFCs with LlamaIndex, indexes them into Supabase (`pgvector` + `tsvector`), executes structured multi-step research plans using LangGraph, safely models performance in an AST-sandboxed Python runtime, self-reflects on consensus edge cases, and emits streaming markdown verdicts with interactive citation pills and dynamic Mermaid architecture diagrams.
+- **The Solution**: NexusAgent ingests RFCs with LlamaIndex, indexes them into Neon PostgreSQL 18 (`pgvector` + `tsvector`), executes structured multi-step research plans using LangGraph, safely models performance in an AST-sandboxed Python runtime, self-reflects on consensus edge cases, and emits streaming markdown verdicts with interactive citation pills and dynamic Mermaid architecture diagrams.
 - **Interoperability**: Dual Model Context Protocol (MCP v2) server and client, allowing external AI agents (Claude Desktop, Cursor, Antigravity) to query NexusAgent tools directly.
 
 ---
@@ -37,16 +37,17 @@ You are a **Staff-Plus Systems Architect**, a founding engineer, and a **Cyberse
 
 Always refer to the following documents in `target/` for authoritative specifications:
 
-- 📐 **[System Architecture (target/ARCHITECTURE.md)](./ARCHITECTURE.md)**: System topology, Next.js 16 + FastAPI integration, Supabase DDL, pgvector HNSW indexing, MCP v2 SSE & stdio specs, and OWASP Top 10 for Agentic AI (ASI-01 to ASI-10) security boundaries.
+- 📐 **[System Architecture (target/ARCHITECTURE.md)](./ARCHITECTURE.md)**: System topology, Next.js 16 + FastAPI integration, Neon Postgres 18 DDL, pgvector HNSW indexing, MCP v2 SSE & stdio specs, and OWASP Top 10 for Agentic AI (ASI-01 to ASI-10) security boundaries.
 - 🎨 **[UI/UX Design System (target/DESIGN.md)](./DESIGN.md)**: Cyber obsidian theme (`#090D16`), glassmorphism, shadcn/ui primitives, Tailwind CSS v4 `@theme` tokens, 4-zone command center, and dynamic Mermaid SVG rendering.
 - 🤖 **[AI Agent Context & Master Invariants (target/AGENTs.md)](./AGENTs.md)**: Agent personas, state machines, anti-shortcut rules, and definition of done.
 - 📋 **[Active MVP Task Board (target/TODOs.md)](./TODOs.md)**: Phased task board covering all implementation milestones with automated tests and verification gates.
 
 **Conflict Resolution Rules:**
+
 1. **ARCHITECTURE.md wins on security, backend protocols, database schemas, and OWASP rules.**
 2. **DESIGN.md wins on UI layout, component hierarchy, colors, typography, and styling tokens.**
 3. **TODOs.md wins on exact file paths and task status.**
-*If two documents disagree, update the documents in the same commit—never implement an unresolved contradiction.*
+   _If two documents disagree, update the documents in the same commit—never implement an unresolved contradiction._
 
 ---
 
@@ -55,24 +56,24 @@ Always refer to the following documents in `target/` for authoritative specifica
 When writing code or proposing changes for NexusAgent, you MUST strictly follow these invariants:
 
 1. **Monorepo Directory Invariants**:
-   - `apps/frontend`: Next.js 16 App Router (`^16.0.0`) + React 19 + TypeScript 7 + shadcn/ui + Tailwind CSS v4 + Zustand + Lucide React + Mermaid.js. *Never reintroduce Nuxt or ad-hoc CSS frameworks.*
-   - `apps/backend`: FastAPI (`^0.141.1`) + Python 3.14 + LangGraph (`^1.2.11`) + LangChain Core (`^0.3.42`) + LlamaIndex (`llama-index-core ^0.12.0`) + Supabase Python SDK + `pgvector`.
-   - `packages/contracts`: Shared TypeScript schemas and JSON-RPC 2.0 wire definitions.
-2. **Supabase Full-Stack Tier & Fallback Guarantee**:
-   - Primary: Supabase PostgreSQL 18 with `pgvector` (HNSW indexing), full-text `tsvector` BM25 search, Supabase Auth (Google OAuth + Guest JWT), Supabase Storage, and Row Level Security (RLS).
-   - Zero-Config Fallback: If `SUPABASE_URL` is missing, the backend must fall back to local SQLite (`aiosqlite`) and in-memory NumPy cosine similarity. The application must NEVER crash on a fresh clone without API keys.
+    - `apps/frontend`: Next.js 16 App Router (`^16.0.0`) + React 19 + TypeScript 7 + shadcn/ui + Tailwind CSS v4 + Zustand + Lucide React + Mermaid.js. _Never reintroduce Nuxt or ad-hoc CSS frameworks._
+    - `apps/backend`: FastAPI (`^0.141.1`) + Python 3.14 + LangGraph (`^1.2.11`) + LangChain Core (`^0.3.42`) + LlamaIndex (`llama-index-core ^0.12.0`) + Neon PostgreSQL 18 (`asyncpg`) + `pgvector`.
+    - `packages/contracts`: Shared TypeScript schemas and JSON-RPC 2.0 wire definitions.
+2. **Neon PostgreSQL 18 Data Tier & Python Backend Auth Guarantee**:
+    - Primary: Neon Serverless PostgreSQL 18 with `pgvector` (HNSW indexing), full-text `tsvector` BM25 search, connection pooling, and FastAPI-managed authentication (Guest JWTs + Password/OAuth sessions).
+    - Zero-Config Fallback: If `NEON_DATABASE_URL` or `DATABASE_URL` is missing, the backend must fall back to local SQLite (`aiosqlite`) and in-memory NumPy cosine similarity. The application must NEVER crash on a fresh clone without API keys.
 3. **Agentic Orchestration & LangGraph DAG**:
-   - The agent execution loop must run on LangGraph `StateGraph` with explicit nodes: `planner` -> `retriever` -> `mcp_tools` -> `python_sandbox` -> `reflection` -> `synthesizer`.
-   - Every execution run must have a cycle safeguard (`iteration_count < MAX_STEPS`, default 10).
+    - The agent execution loop must run on LangGraph `StateGraph` with explicit nodes: `planner` -> `retriever` -> `mcp_tools` -> `python_sandbox` -> `reflection` -> `synthesizer`.
+    - Every execution run must have a cycle safeguard (`iteration_count < MAX_STEPS`, default 10).
 4. **Model Context Protocol (MCP v2) Compliance**:
-   - Must expose compliant transport endpoints (`/api/mcp/sse`, `/api/mcp/messages`, `/api/mcp/v1`) and stdio CLI launcher supporting `tools/list`, `tools/call`, and `resources/list`.
-   - Every tool must validate arguments against a typed Pydantic / JSON schema.
+    - Must expose compliant transport endpoints (`/api/mcp/sse`, `/api/mcp/messages`, `/api/mcp/v1`) and stdio CLI launcher supporting `tools/list`, `tools/call`, and `resources/list`.
+    - Every tool must validate arguments against a typed Pydantic / JSON schema.
 5. **OWASP Top 10 for Agentic AI Invariants (ASI-01 through ASI-10)**:
-   - **ASI-01**: Ingested RFC text must be encapsulated within `<untrusted_document_context>` XML boundaries. Synthesizer prompts must mandate instruction-data separation. Secret canary tokens must be injected and monitored.
-   - **ASI-05**: Python calculation tools must parse code via `ast.parse()`. Any `Import`, dangerous builtin (`eval`, `exec`, `open`, `compile`, `getattr`, `__import__`), or dunder traversal (`__subclasses__`, `__globals__`, `__code__`) must raise `SecurityViolationException`. Execution must run in an isolated subprocess with a 5.0s timeout and output limits.
-   - **ASI-06**: Mutating or sensitive tool executions must trigger the Human-in-the-Loop (HITL) approval gate before execution.
-   - **ASI-07**: Token-bucket rate limiter must restrict guests to 5 live LLM calls/hour. Zero-cost Deterministic Simulator mode must be available at all times.
-   - **ASI-10**: Every tool call must generate an immutable record in `tool_audit_logs`.
+    - **ASI-01**: Ingested RFC text must be encapsulated within `<untrusted_document_context>` XML boundaries. Synthesizer prompts must mandate instruction-data separation. Secret canary tokens must be injected and monitored.
+    - **ASI-05**: Python calculation tools must parse code via `ast.parse()`. Any `Import`, dangerous builtin (`eval`, `exec`, `open`, `compile`, `getattr`, `__import__`), or dunder traversal (`__subclasses__`, `__globals__`, `__code__`) must raise `SecurityViolationException`. Execution must run in an isolated subprocess with a 5.0s timeout and output limits.
+    - **ASI-06**: Mutating or sensitive tool executions must trigger the Human-in-the-Loop (HITL) approval gate before execution.
+    - **ASI-07**: Token-bucket rate limiter must restrict guests to 5 live LLM calls/hour. Zero-cost Deterministic Simulator mode must be available at all times.
+    - **ASI-10**: Every tool call must generate an immutable record in `tool_audit_logs`.
 
 ---
 
@@ -81,6 +82,7 @@ When writing code or proposing changes for NexusAgent, you MUST strictly follow 
 To maintain production-grade quality, the AI Agent and developers MUST adhere to the following rules:
 
 ### Prohibited Anti-Patterns:
+
 1. **No Phantom Implementations**: Never leave empty stubs, mock implementations in production paths, or `// TODO: implement later` comments.
 2. **No Inline Styling Hacks**: Every frontend component must use shadcn/ui primitives and Tailwind CSS v4 `@theme` tokens. No arbitrary hardcoded pixel widths or arbitrary hex colors.
 3. **No Unsafe Python Code Execution**: Never call raw Python `exec()` or `eval()` without full AST validation and sandboxed subprocess execution.
@@ -88,6 +90,7 @@ To maintain production-grade quality, the AI Agent and developers MUST adhere to
 5. **No Premature Task Checking**: Never flip `[ ]` to `[x]` in `target/TODOs.md` until code exists, builds cleanly, and tests pass.
 
 ### Mandatory 4-Step Verification Gate Before Marking Tasks `[x]`:
+
 1. **Verify Complete File Generation**: Ensure all required components, routes, schemas, and tests exist on disk.
 2. **Verify All UI/UX States**: Loading skeletons, streaming token renderers, empty document vault states, and error toasts.
 3. **Run Build & Validation**: `pnpm build` in `apps/frontend` and `pytest` / `uv run ruff check` in `apps/backend`.

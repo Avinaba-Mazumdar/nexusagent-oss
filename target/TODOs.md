@@ -16,14 +16,17 @@ This document tracks all implementation phases for the **NexusAgent** autonomous
     - Configure `pnpm-workspace.yaml` declaring `apps/*` and `packages/*`.
     - Set up `turbo.json` with cached build, test, and dev pipelines.
 - [x] **Task 1.2: Next.js 16 Frontend Initialization (`apps/frontend`)**
-    - Scaffold Next.js 16 App Router project with React 19 and TypeScript 7.
+    - Scaffold Next.js 16 App Router project with React 19, TypeScript compiler (`typescript@^7.0.2`), and oxlint.
     - Initialize Tailwind CSS v4 with `@theme` tokens in `styles/globals.css`.
-    - Configure **shadcn/ui** primitives (Button, Dialog, Drawer, Tabs, Badge, ScrollArea, Tooltip).
+    - Configure **shadcn/ui** primitives (Button, Dialog, Drawer via `vaul`, Tabs, Badge, ScrollArea, Tooltip).
+    - Modularize 4-zone command center architecture (`components/{header,workspace,canvas,observability}/`).
     - Add Lucide React (`^1.41.0`) and Mermaid.js (`^11.4.1`) dependencies.
-- [x] **Task 1.3: FastAPI Backend Initialization (`apps/backend`)**
+    - Frontend testing suite with Vitest + React Testing Library (16 passing unit tests across 7 suites).
+- [/] **Task 1.3: FastAPI Backend Scaffolding (`apps/backend`)**
     - Initialize Python 3.14 project with `uv` (`pyproject.toml` and `uv.lock`).
-    - Configure FastAPI ASGI application with CORS, Pydantic v2 settings, and Uvicorn.
-    - Set up directory structure: `agent/`, `rag/`, `mcp/`, `core/`, `db/`, `routes/`.
+    - Configure FastAPI ASGI application with CORS, Pydantic v2 settings, health probe endpoint, and Uvicorn entrypoint.
+    - Automated tests pass with `pytest` (3/3 passing tests).
+    - Scaffold module directory stubs: `agent/`, `rag/`, `mcp/`, `core/`, `db/`, `routes/` (substantive implementations scheduled for Phase 2: Auth & DB, Phase 3: RAG, Phase 4: LangGraph DAG & Sandbox, and Phase 5: MCP v2).
 - [x] **Task 1.4: Shared Contracts Package (`packages/contracts`)**
     - Define shared TypeScript interfaces: `AgentState`, `StepNode`, `SSEEventPayload`, `McpToolSchema`, `CitationItem`.
     - Export build artifacts for consumption by `apps/frontend`.

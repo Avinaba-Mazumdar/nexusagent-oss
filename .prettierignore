@@ -1,0 +1,10 @@
+node_modules
+.pnpm-store
+.next
+.turbo
+dist
+build
+out
+.venv
+next-env.d.ts
+pnpm-lock.yaml

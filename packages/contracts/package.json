@@ -1,0 +1,46 @@
+{
+    "name": "@nexusagent/contracts",
+    "version": "0.1.0-alpha",
+    "description": "Shared TypeScript types, interfaces, and schemas for NexusAgent",
+    "main": "./dist/index.js",
+    "module": "./dist/index.js",
+    "types": "./dist/index.d.ts",
+    "exports": {
+        ".": {
+            "types": "./dist/index.d.ts",
+            "import": "./dist/index.js",
+            "default": "./dist/index.js"
+        },
+        "./agent": {
+            "types": "./dist/agent.d.ts",
+            "import": "./dist/agent.js",
+            "default": "./dist/agent.js"
+        },
+        "./mcp": {
+            "types": "./dist/mcp.d.ts",
+            "import": "./dist/mcp.js",
+            "default": "./dist/mcp.js"
+        },
+        "./document": {
+            "types": "./dist/document.d.ts",
+            "import": "./dist/document.js",
+            "default": "./dist/document.js"
+        },
+        "./auth": {
+            "types": "./dist/auth.d.ts",
+            "import": "./dist/auth.js",
+            "default": "./dist/auth.js"
+        }
+    },
+    "files": [
+        "dist"
+    ],
+    "scripts": {
+        "build": "tsc -p tsconfig.json",
+        "typecheck": "tsc -p tsconfig.json --noEmit",
+        "clean": "rm -rf dist"
+    },
+    "devDependencies": {
+        "typescript": "^7.0.2"
+    }
+}

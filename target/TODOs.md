@@ -12,19 +12,19 @@ This document tracks all implementation phases for the **NexusAgent** autonomous
 
 ## Phase 1: Monorepo Foundation & Toolchain Setup
 
-- [ ] **Task 1.1: Turborepo & pnpm Monorepo Configuration**
+- [x] **Task 1.1: Turborepo & pnpm Monorepo Configuration**
     - Configure `pnpm-workspace.yaml` declaring `apps/*` and `packages/*`.
     - Set up `turbo.json` with cached build, test, and dev pipelines.
-- [ ] **Task 1.2: Next.js 16 Frontend Initialization (`apps/frontend`)**
+- [x] **Task 1.2: Next.js 16 Frontend Initialization (`apps/frontend`)**
     - Scaffold Next.js 16 App Router project with React 19 and TypeScript 7.
     - Initialize Tailwind CSS v4 with `@theme` tokens in `styles/globals.css`.
     - Configure **shadcn/ui** primitives (Button, Dialog, Drawer, Tabs, Badge, ScrollArea, Tooltip).
     - Add Lucide React (`^1.41.0`) and Mermaid.js (`^11.4.1`) dependencies.
-- [ ] **Task 1.3: FastAPI Backend Initialization (`apps/backend`)**
+- [x] **Task 1.3: FastAPI Backend Initialization (`apps/backend`)**
     - Initialize Python 3.14 project with `uv` (`pyproject.toml` and `uv.lock`).
     - Configure FastAPI ASGI application with CORS, Pydantic v2 settings, and Uvicorn.
     - Set up directory structure: `agent/`, `rag/`, `mcp/`, `core/`, `db/`, `routes/`.
-- [ ] **Task 1.4: Shared Contracts Package (`packages/contracts`)**
+- [x] **Task 1.4: Shared Contracts Package (`packages/contracts`)**
     - Define shared TypeScript interfaces: `AgentState`, `StepNode`, `SSEEventPayload`, `McpToolSchema`, `CitationItem`.
     - Export build artifacts for consumption by `apps/frontend`.
 

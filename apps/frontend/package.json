@@ -1,0 +1,41 @@
+{
+    "name": "@nexusagent/frontend",
+    "version": "0.1.0-alpha",
+    "private": true,
+    "scripts": {
+        "dev": "next dev",
+        "build": "next build",
+        "start": "next start",
+        "lint": "oxlint",
+        "typecheck": "tsc --noEmit"
+    },
+    "dependencies": {
+        "@nexusagent/contracts": "workspace:*",
+        "@radix-ui/react-dialog": "^1.1.6",
+        "@radix-ui/react-popover": "^1.1.6",
+        "@radix-ui/react-scroll-area": "^1.2.3",
+        "@radix-ui/react-slot": "^1.1.2",
+        "@radix-ui/react-switch": "^1.1.3",
+        "@radix-ui/react-tabs": "^1.1.3",
+        "@radix-ui/react-tooltip": "^1.1.8",
+        "class-variance-authority": "^0.7.1",
+        "clsx": "^2.1.1",
+        "lucide-react": "^1.41.0",
+        "mermaid": "^11.4.1",
+        "next": "16.3.4",
+        "react": "19.2.8",
+        "react-dom": "19.2.8",
+        "tailwind-merge": "^3.0.2",
+        "zustand": "^5.0.3"
+    },
+    "devDependencies": {
+        "@tailwindcss/postcss": "^4",
+        "@types/node": "^20",
+        "@types/react": "^19",
+        "@types/react-dom": "^19",
+        "babel-plugin-react-compiler": "1.0.0",
+        "oxlint": "^1.82.0",
+        "tailwindcss": "^4",
+        "typescript": "^7.0.2"
+    }
+}

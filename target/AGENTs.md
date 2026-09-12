@@ -1,4 +1,4 @@
-# NexusAgent (Codename: Archon) — AI Agent Context & System Master
+# NexusAgent — AI Agent Context & System Master
 
 This document is the primary context entrypoint for the **NexusAgent** codebase. It outlines the core architectural rules, engineering philosophy, tech stack constraints, OWASP Agentic AI security requirements, and links directly to all technical specification documents.
 

@@ -2,7 +2,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
-    APP_NAME: str = "NexusAgent (Archon)"
+    APP_NAME: str = "NexusAgent"
     VERSION: str = "0.1.0-alpha"
     ENVIRONMENT: str = "development"
     DEBUG: bool = True
@@ -17,7 +17,7 @@ class Settings(BaseSettings):
     NEON_DATABASE_URL: str = ""
     DATABASE_URL: str = ""
 
-    JWT_SECRET_KEY: str = "archon-dev-insecure-secret-key-change-in-production-12345"
+    JWT_SECRET_KEY: str = "nexusagent-dev-insecure-secret-key-change-in-production-12345"
     JWT_ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24
     GUEST_TOKEN_EXPIRE_MINUTES: int = 60 * 24

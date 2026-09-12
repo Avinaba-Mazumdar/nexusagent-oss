@@ -1,4 +1,4 @@
-# NexusAgent (Codename: Archon) — Active MVP0 Phased Task Board
+# NexusAgent — Active MVP0 Phased Task Board
 
 This document tracks all implementation phases for the **NexusAgent** autonomous architecture intelligence platform.
 
@@ -18,10 +18,10 @@ This document tracks all implementation phases for the **NexusAgent** autonomous
 - [x] **Task 1.2: Next.js 16 Frontend Initialization (`apps/frontend`)**
     - Scaffold Next.js 16 App Router project with React 19, TypeScript compiler (`typescript@^7.0.2`), and oxlint.
     - Initialize Tailwind CSS v4 with `@theme` tokens in `styles/globals.css`.
-    - Configure **shadcn/ui** primitives (Button, Dialog, Drawer via `vaul`, Tabs, Badge, ScrollArea, Tooltip).
-    - Modularize 4-zone command center architecture (`components/{header,workspace,canvas,observability}/`).
+    - Configure **shadcn/ui** primitives (Button, Dialog, Tabs, Badge, ScrollArea, Tooltip).
+    - Establish simple 4-element command center layout (`apps/frontend/app/page.tsx`).
     - Add Lucide React (`^1.41.0`) and Mermaid.js (`^11.4.1`) dependencies.
-    - Frontend testing suite with Vitest + React Testing Library (16 passing unit tests across 7 suites).
+    - Frontend testing suite with Vitest + React Testing Library (7 passing unit tests).
 - [x] **Task 1.3: FastAPI Backend Scaffolding (`apps/backend`)**
     - Initialize Python 3.14 project with `uv` (`pyproject.toml` and `uv.lock`).
     - Configure FastAPI ASGI application with CORS, Pydantic v2 settings, health probe endpoint, and Uvicorn entrypoint.

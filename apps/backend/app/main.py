@@ -8,7 +8,7 @@ from app.routes.health import router as health_router
 app = FastAPI(
     title=settings.APP_NAME,
     version=settings.VERSION,
-    description="NexusAgent (Archon) - Production-Grade Autonomous Orchestration Engine with Neon PostgreSQL 18 & LangGraph.",
+    description="NexusAgent - Production-Grade Autonomous Orchestration Engine with Neon PostgreSQL 18 & LangGraph.",
     docs_url="/docs",
     redoc_url="/redoc",
 )

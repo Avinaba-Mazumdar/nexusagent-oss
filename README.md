@@ -1,4 +1,4 @@
-# NexusAgent (Codename: Archon)
+# NexusAgent
 
 > **Autonomous Technical Research & Systems Design Intelligence Engine**
 

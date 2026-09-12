@@ -1,7 +1,7 @@
 ---
 version: alpha
-name: NexusAgent-Archon-Design-System
-description: A clean, anti-slop light-mode systems intelligence and architecture observability console inspired by modern enterprise cloud dashboards (Datadog, Linear, Stripe). Anchored on an airy neutral canvas (#F4F5F8), crisp elevated white cards (#FFFFFF), refined hairline borders (#CBD5E1), and signature Archon Blue (#004EA1) accents with high-contrast charcoal action pills (#1E232A). Engineered for Next.js 16 + React 19 + shadcn/ui + Tailwind CSS v4, with sub-second real-time streaming observability, WCAG 2.2 AAA accessibility compliance (7:1 text contrast, 3:1 non-text contrast, 44px target sizes, skip links), interactive architecture topology nodes, and line-level citation inspection.
+name: NexusAgent-Design-System
+description: A clean, anti-slop light-mode systems intelligence and architecture observability console inspired by modern enterprise cloud dashboards (Datadog, Linear, Stripe). Anchored on an airy neutral canvas (#F4F5F8), crisp elevated white cards (#FFFFFF), refined hairline borders (#CBD5E1), and signature Nexus Blue (#004EA1) accents with high-contrast charcoal action pills (#1E232A). Engineered for Next.js 16 + React 19 + shadcn/ui + Tailwind CSS v4, with sub-second real-time streaming observability, WCAG 2.2 AAA accessibility compliance (7:1 text contrast, 3:1 non-text contrast, 44px target sizes, skip links), interactive architecture topology nodes, and line-level citation inspection.
 
 colors:
     primary: '#004ea1'
@@ -89,7 +89,7 @@ typography:
         letterSpacing: -0.2px
 ---
 
-# NexusAgent (Codename: Archon) — UI/UX Design System Specification
+# NexusAgent — UI/UX Design System Specification
 
 ## 1. Design Philosophy: Anti-Slop, Clean Light Systems Intelligence
 
@@ -97,7 +97,7 @@ NexusAgent is engineered for Staff-Plus Systems Engineers, VP of Engineering, an
 
 - **Airy Neutral Canvas**: Soft grey `#F4F5F8` foundation provides comfortable daytime reading and high contrast for technical reviews and architectural auditing.
 - **Crisp Elevated Cards**: Pure white `#FFFFFF` cards with subtle borders (`#E2E8F0`) and soft pillowy elevation (`box-shadow: 0 1px 3px rgba(0,0,0,0.03), 0 6px 16px -2px rgba(0,0,0,0.03)`).
-- **Archon Blue Signature Accent**: Professional `#004EA1` denotes active states, links, and primary CTA triggers, paired with `#E8F3FC` light tint chips and `#1E232A` dark action pills.
+- **Nexus Blue Signature Accent**: Professional `#004EA1` denotes active states, links, and primary CTA triggers, paired with `#E8F3FC` light tint chips and `#1E232A` dark action pills.
 - **Architecture Flow Topology**: Node cards with clean headers (e.g. `Radis-Master`, `sdkclient.eng...`, `Neon-Storage`), sub-metrics rows (`150 kbps ↗`), and clean status indicators.
 - **Data-Dense Telemetry Panels**: TCP throughput bar charts with clean categorical segments (high red, medium amber, low blue) and structured service overview tables.
 
@@ -144,10 +144,10 @@ NexusAgent integrates **shadcn/ui** primitives powered by **Tailwind CSS v4** na
 
 ```
 ┌────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
-│ HEADER: [NexusAgent Archon] | Interval: [last 5 min] | [Breakdown ▼] | [Quick search...] | [Load ▼] | [1-Click] │
+│ HEADER: [NexusAgent] | Interval: [last 5 min] | [Breakdown ▼] | [Quick search...] | [Load ▼] | [1-Click]       │
 ├───────┬────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 │ RAIL  │ TOP SECTION: Architecture Topology / Distributed Cluster Nodes (Radis-Master -> sdkclient -> Neon)    │
-│  [■]  │  - Node Cards with Archon Blue headers, status pills, and sub-metrics (US-east-lb: 150 kbps)          │
+│  [■]  │  - Node Cards with Nexus Blue headers, status pills, and sub-metrics (US-east-lb: 150 kbps)            │
 │  [📁] ├──────────────────────────────────────────────────────┬─────────────────────────────────────────────────┤
 │  [⚡] │ CENTER: Active Synthesis & Streaming Verdict        │ RIGHT: Active Tools & Document Vault            │
 │  [📊] │  - Quorum invariant verification stream              │  - [x] Hybrid RAG Search (Neon pgvector)        │
@@ -162,9 +162,9 @@ NexusAgent integrates **shadcn/ui** primitives powered by **Tailwind CSS v4** na
 
 ### 3.1 Header & Control Strip
 
-- **Branding**: Clean rounded blue tile with CPU icon and `NexusAgent Archon` title.
+- **Branding**: Clean rounded blue tile with CPU icon and `NexusAgent` title.
 - **Interval & Filter Pills**: Sub-toolbar filters (`Interval: last 5 min`, `Breakdown: Service > Zone`, `Service in: 3`).
-- **Search & Actions**: Rounded search input, Quota pill badge, dark pill action button (`Load ▼`), and Archon Blue primary CTA (`1-Click Guest`).
+- **Search & Actions**: Rounded search input, Quota pill badge, dark pill action button (`Load ▼`), and Nexus Blue primary CTA (`1-Click Guest`).
 
 ### 3.2 Vertical Left Icon Rail
 
@@ -199,7 +199,7 @@ NexusAgent integrates **shadcn/ui** primitives powered by **Tailwind CSS v4** na
 
 - **Subtle Elevation on Hover**: Cards and nodes smoothly elevate (`transition: all 0.15s ease-out`).
 - **Citation Hover Preview**: Citation badges (`[RFC-104:L128-145]`) display instant popovers with snippet line previews.
-- **Tactile Switches**: Clean Archon Blue toggles with smooth pill translation.
+- **Tactile Switches**: Clean Nexus Blue toggles with smooth pill translation.
 - **Zero Distracting Animations**: No pulsing neon glows, spinning gradient borders, or excessive animated banners.
 
 ---

@@ -1,5 +1,5 @@
 {
-    "name": "NexusAgent (Archon) — Autonomous Systems Analyst",
+    "name": "NexusAgent — Autonomous Systems Analyst",
     "short_name": "NexusAgent",
     "description": "Enterprise-grade autonomous systems analyst and architecture intelligence engine powered by LangGraph, LlamaIndex, Neon PostgreSQL 18, and MCP v2.",
     "start_url": "/",

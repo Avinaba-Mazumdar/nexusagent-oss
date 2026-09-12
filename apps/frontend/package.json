@@ -7,7 +7,7 @@
         "build": "next build",
         "start": "next start",
         "lint": "oxlint",
-        "test": "vitest run",
+        "test": "vitest run --pool=threads --no-file-parallelism",
         "typecheck": "tsc --noEmit"
     },
     "dependencies": {
@@ -27,7 +27,6 @@
         "react": "19.2.8",
         "react-dom": "19.2.8",
         "tailwind-merge": "^3.0.2",
-        "vaul": "^1.1.2",
         "zustand": "^5.0.3"
     },
     "devDependencies": {

@@ -1,7 +1,7 @@
 [project]
 name = "nexusagent-backend"
 version = "0.1.0-alpha"
-description = "NexusAgent (Archon) Autonomous Architecture Intelligence & Systems Design Engine"
+description = "NexusAgent Autonomous Architecture Intelligence & Systems Design Engine"
 readme = "README.md"
 requires-python = ">=3.14"
 dependencies = [

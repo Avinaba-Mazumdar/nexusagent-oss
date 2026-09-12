@@ -27,7 +27,7 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-    title: 'NexusAgent (Archon) — Autonomous Systems Analyst',
+    title: 'NexusAgent — Autonomous Systems Analyst',
     description:
         'Enterprise-grade autonomous systems analyst and architecture intelligence engine powered by LangGraph, LlamaIndex, Neon PostgreSQL 18, and MCP v2.',
     icons: {

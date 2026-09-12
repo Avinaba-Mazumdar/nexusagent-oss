@@ -1,4 +1,4 @@
-# NexusAgent (Archon) Backend
+# NexusAgent Backend
 
 Autonomous Architecture Intelligence & Systems Design Engine built with FastAPI, LangGraph, and Neon PostgreSQL 18.
 

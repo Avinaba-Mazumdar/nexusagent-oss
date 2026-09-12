@@ -1,6 +1,6 @@
-# NexusAgent (Codename: Archon) — System Architecture & Technical Specification
+# NexusAgent — System Architecture & Technical Specification
 
-> **System Name**: NexusAgent _(Codename: Archon)_  
+> **System Name**: NexusAgent  
 > **Platform Version**: `v0.1.0-alpha` (MVP0)  
 > **Target Audience**: Founders, CTOs, VP of Engineering, Tech Leads, and Open-Source Distributed Systems Engineers  
 > **Engineering Focus**: Autonomous technical research, cyclical self-reflection DAGs (LangGraph), LlamaIndex hierarchical RAG ingestion, Model Context Protocol (MCP v2) compliance, Neon Serverless PostgreSQL 18 Data Tier (`pgvector` Dense + `tsvector` BM25 Sparse RRF), and formal OWASP Top 10 for Agentic AI (ASI-01 through ASI-10) security boundaries.

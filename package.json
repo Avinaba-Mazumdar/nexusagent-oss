@@ -2,7 +2,7 @@
     "name": "nexusagent-monorepo",
     "version": "0.1.0-alpha",
     "private": true,
-    "description": "NexusAgent (Codename: Archon) Autonomous Systems Analyst Monorepo",
+    "description": "NexusAgent Autonomous Systems Analyst Monorepo",
     "scripts": {
         "dev": "turbo run dev",
         "dev:fe": "pnpm --filter @nexusagent/frontend dev",

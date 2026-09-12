@@ -16,9 +16,13 @@ CREATE TABLE IF NOT EXISTS users (
     name VARCHAR(255) NOT NULL DEFAULT 'Guest Reviewer',
     avatar_url TEXT,
     is_guest BOOLEAN NOT NULL DEFAULT TRUE,
+    client_ip VARCHAR(45),
+    device_id VARCHAR(64),
     created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     last_seen_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
+
+CREATE INDEX IF NOT EXISTS idx_users_device_id ON users(device_id);
 
 -- 2. Token-Bucket Rate Limiter State
 CREATE TABLE IF NOT EXISTS rate_limit_buckets (

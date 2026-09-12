@@ -1,6 +1,6 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import Home from './page';
 
 describe('Home Page - Layout and Header Controls', () => {
@@ -38,5 +38,56 @@ describe('Home Page - Layout and Header Controls', () => {
         expect(screen.getByRole('heading', { name: 'Sign In' })).toBeInTheDocument();
         expect(screen.getByRole('button', { name: /google sign in/i })).toBeInTheDocument();
         expect(screen.getByRole('button', { name: /guest sign in/i })).toBeInTheDocument();
+    });
+
+    it('authenticates guest, displays session header with quota, and signs out', async () => {
+        const mockGuestResponse = {
+            user: {
+                id: '11111111-1111-1111-1111-111111111111',
+                email: null,
+                name: 'Guest Architect #111111',
+                avatarUrl: null,
+                isGuest: true,
+                createdAt: '2026-09-13T00:00:00Z',
+                lastSeenAt: '2026-09-13T00:00:00Z'
+            },
+            tokens: {
+                accessToken: 'mock.jwt.token',
+                tokenType: 'bearer',
+                expiresIn: 86400
+            },
+            quotaRemaining: 5,
+            bucketCapacity: 5
+        };
+
+        const originalFetch = global.fetch;
+        global.fetch = vi.fn().mockResolvedValue({
+            ok: true,
+            json: async () => mockGuestResponse
+        } as unknown as Response);
+
+        const user = userEvent.setup();
+        render(<Home />);
+
+        // Open Dialog
+        const signInButton = screen.getByRole('button', { name: /sign in/i });
+        await user.click(signInButton);
+
+        // Click Guest Sign In
+        const guestButton = screen.getByRole('button', { name: /guest sign in/i });
+        await user.click(guestButton);
+
+        // Header shows user name and quota
+        expect(await screen.findByText('Guest Architect #111111')).toBeInTheDocument();
+        expect(screen.getByText('5/5 Quota')).toBeInTheDocument();
+
+        // Sign out restores Sign In button
+        const signOutButton = screen.getByRole('button', { name: /sign out/i });
+        await user.click(signOutButton);
+
+        expect(await screen.findByRole('button', { name: /sign in/i })).toBeInTheDocument();
+        expect(screen.queryByText('Guest Architect #111111')).not.toBeInTheDocument();
+
+        global.fetch = originalFetch;
     });
 });

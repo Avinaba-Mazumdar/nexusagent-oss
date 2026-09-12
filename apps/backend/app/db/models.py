@@ -18,6 +18,8 @@ class User(BaseModel):
     name: str = "Guest Reviewer"
     avatar_url: str | None = None
     is_guest: bool = True
+    client_ip: str | None = None
+    device_id: str | None = None
     created_at: datetime = Field(default_factory=utc_now)
     last_seen_at: datetime = Field(default_factory=utc_now)
 
@@ -116,8 +118,14 @@ class UserSession(BaseModel):
     name: str
     avatarUrl: str | None = None
     isGuest: bool
+    clientIp: str | None = None
+    deviceId: str | None = None
     createdAt: str
     lastSeenAt: str
+
+
+class GuestPassRequest(BaseModel):
+    deviceId: str | None = None
 
 
 class AuthTokens(BaseModel):

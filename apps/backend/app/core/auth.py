@@ -24,9 +24,7 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
     return pwd_context.verify(plain_password, hashed_password)
 
 
-def create_access_token(
-    data: dict, expires_delta: timedelta | None = None
-) -> tuple[str, int]:
+def create_access_token(data: dict, expires_delta: timedelta | None = None) -> tuple[str, int]:
     """Create signed HS256 JWT access token, returning token and expiresIn seconds."""
     to_encode = data.copy()
     if expires_delta:
@@ -37,18 +35,14 @@ def create_access_token(
         expire = datetime.now(UTC) + timedelta(seconds=expires_in)
 
     to_encode.update({"exp": expire, "iat": datetime.now(UTC)})
-    encoded_jwt = jwt.encode(
-        to_encode, settings.JWT_SECRET_KEY, algorithm=settings.JWT_ALGORITHM
-    )
+    encoded_jwt = jwt.encode(to_encode, settings.JWT_SECRET_KEY, algorithm=settings.JWT_ALGORITHM)
     return encoded_jwt, expires_in
 
 
 def decode_access_token(token: str) -> dict:
     """Decode and validate signed JWT."""
     try:
-        payload = jwt.decode(
-            token, settings.JWT_SECRET_KEY, algorithms=[settings.JWT_ALGORITHM]
-        )
+        payload = jwt.decode(token, settings.JWT_SECRET_KEY, algorithms=[settings.JWT_ALGORITHM])
         return payload
     except jwt.ExpiredSignatureError:
         raise HTTPException(
@@ -72,6 +66,8 @@ def user_to_session(user: User) -> UserSession:
         name=user.name,
         avatarUrl=user.avatar_url,
         isGuest=user.is_guest,
+        clientIp=user.client_ip,
+        deviceId=user.device_id,
         createdAt=user.created_at.isoformat(),
         lastSeenAt=user.last_seen_at.isoformat(),
     )
@@ -121,38 +117,53 @@ async def get_current_user(
 
 
 async def issue_guest_pass(
-    db: NeonDatabase, client_ip: str
+    db: NeonDatabase, client_ip: str, device_id: str | None = None
 ) -> GuestPassResponse:
-    """Issue 1-Click Guest Pass token with 5-quota bucket."""
-    guest_uuid = uuid4()
-    guest_name = f"Guest Architect #{str(guest_uuid)[:6]}"
+    """Issue or retrieve 1-Click Guest Pass token bound to client IP & device ID."""
     now = datetime.now(UTC)
+    clean_device_id = device_id.strip() if device_id and device_id.strip() else None
 
-    user = User(
-        id=guest_uuid,
-        email=None,
-        hashed_password=None,
-        name=guest_name,
-        avatar_url=None,
-        is_guest=True,
-        created_at=now,
-        last_seen_at=now,
-    )
-    created_user = await db.create_user(user)
+    target_user: User | None = None
+    if clean_device_id:
+        target_user = await db.get_guest_by_device_id(clean_device_id)
+
+    if target_user:
+        await db.update_user_last_seen(
+            target_user.id, client_ip=client_ip, device_id=clean_device_id
+        )
+        target_user.client_ip = client_ip
+        target_user.last_seen_at = now
+    else:
+        assigned_device_id = clean_device_id or uuid4().hex[:16]
+        guest_uuid = uuid4()
+        guest_name = f"Guest Architect #{str(guest_uuid)[:6]}"
+        user = User(
+            id=guest_uuid,
+            email=None,
+            hashed_password=None,
+            name=guest_name,
+            avatar_url=None,
+            is_guest=True,
+            client_ip=client_ip,
+            device_id=assigned_device_id,
+            created_at=now,
+            last_seen_at=now,
+        )
+        target_user = await db.create_user(user)
 
     bucket = await db.get_or_create_rate_limit(
-        user_id=created_user.id,
+        user_id=target_user.id,
         client_ip=client_ip,
         default_tokens=settings.GUEST_QUOTA_DEFAULT,
     )
 
     token_str, expires_in = create_access_token(
-        data={"sub": str(created_user.id), "role": "guest", "is_guest": True},
+        data={"sub": str(target_user.id), "role": "guest", "is_guest": True},
         expires_delta=timedelta(minutes=settings.GUEST_TOKEN_EXPIRE_MINUTES),
     )
 
     return GuestPassResponse(
-        user=user_to_session(created_user),
+        user=user_to_session(target_user),
         tokens=AuthTokens(
             accessToken=token_str,
             tokenType="bearer",

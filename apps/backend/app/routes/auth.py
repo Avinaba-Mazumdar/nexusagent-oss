@@ -13,6 +13,7 @@ from app.core.auth import (
     verify_password,
 )
 from app.db.models import (
+    GuestPassRequest,
     GuestPassResponse,
     LoginRequest,
     QuotaStatus,
@@ -36,16 +37,19 @@ def get_client_ip(request: Request) -> str:
 @router.post("/guest", response_model=GuestPassResponse)
 async def create_guest_pass(
     request: Request,
+    payload: GuestPassRequest | None = None,
     db: NeonDatabase = Depends(get_db),
 ):
     """Issue 1-Click Ephemeral Guest Pass token pre-loaded with quota."""
     client_ip = get_client_ip(request)
-    return await issue_guest_pass(db, client_ip)
+    device_id = payload.deviceId if payload else None
+    return await issue_guest_pass(db, client_ip, device_id)
 
 
 @router.post("/register", response_model=TokenResponse)
 async def register(
     payload: RegisterRequest,
+    request: Request,
     db: NeonDatabase = Depends(get_db),
 ):
     """Register standard user with Argon2 password hashing."""
@@ -56,6 +60,7 @@ async def register(
             detail="User with this email already exists",
         )
 
+    client_ip = get_client_ip(request)
     now = datetime.now(UTC)
     new_user = User(
         id=uuid4(),
@@ -64,6 +69,7 @@ async def register(
         name=payload.name.strip(),
         avatar_url=None,
         is_guest=False,
+        client_ip=client_ip,
         created_at=now,
         last_seen_at=now,
     )
@@ -85,6 +91,7 @@ async def register(
 @router.post("/login", response_model=TokenResponse)
 async def login(
     payload: LoginRequest,
+    request: Request,
     db: NeonDatabase = Depends(get_db),
 ):
     """Authenticate email and password and return access token."""
@@ -101,7 +108,8 @@ async def login(
             detail="Invalid email or password",
         )
 
-    await db.update_user_last_seen(user.id)
+    client_ip = get_client_ip(request)
+    await db.update_user_last_seen(user.id, client_ip)
 
     token_str, expires_in = create_access_token(
         data={"sub": str(user.id), "role": "user", "is_guest": user.is_guest},
@@ -124,6 +132,9 @@ async def get_current_user_profile(
 ):
     """Return active user profile and quota bucket status."""
     client_ip = get_client_ip(request)
+    await db.update_user_last_seen(current_user.id, client_ip)
+    current_user.client_ip = client_ip
+
     bucket = await db.get_or_create_rate_limit(
         user_id=current_user.id,
         client_ip=client_ip,
@@ -146,7 +157,11 @@ async def refresh_token(
 ):
     """Refresh JWT access token for currently authenticated session."""
     token_str, expires_in = create_access_token(
-        data={"sub": str(current_user.id), "role": "guest" if current_user.is_guest else "user", "is_guest": current_user.is_guest},
+        data={
+            "sub": str(current_user.id),
+            "role": "guest" if current_user.is_guest else "user",
+            "is_guest": current_user.is_guest,
+        },
         expires_delta=timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES),
     )
 

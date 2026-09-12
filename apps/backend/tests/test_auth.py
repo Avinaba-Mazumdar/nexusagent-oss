@@ -53,13 +53,25 @@ async def test_guest_pass_endpoint():
 
         # Test authenticated /me with this guest token
         token = data["tokens"]["accessToken"]
-        me_resp = await client.get(
-            "/api/auth/me", headers={"Authorization": f"Bearer {token}"}
-        )
+        me_resp = await client.get("/api/auth/me", headers={"Authorization": f"Bearer {token}"})
         assert me_resp.status_code == 200
         me_data = me_resp.json()
         assert me_data["user"]["id"] == data["user"]["id"]
         assert me_data["quota"]["tokensRemaining"] == 5
+
+        # Reusing same deviceId should return the same guest user
+        dev_id = f"test-device-{uuid4().hex[:8]}"
+        res1 = await client.post("/api/auth/guest", json={"deviceId": dev_id})
+        assert res1.status_code == 200
+        user1 = res1.json()["user"]
+
+        res2 = await client.post("/api/auth/guest", json={"deviceId": dev_id})
+        assert res2.status_code == 200
+        user2 = res2.json()["user"]
+
+        assert user1["id"] == user2["id"]
+        assert user1["name"] == user2["name"]
+        assert user2["deviceId"] == dev_id
 
 
 from uuid import uuid4
@@ -110,9 +122,7 @@ async def test_register_login_and_me_flow():
         assert bad_login.status_code == 401
 
         # 5. Access /me with token
-        me_resp = await client.get(
-            "/api/auth/me", headers={"Authorization": f"Bearer {token}"}
-        )
+        me_resp = await client.get("/api/auth/me", headers={"Authorization": f"Bearer {token}"})
         assert me_resp.status_code == 200
         me_data = me_resp.json()
         assert me_data["user"]["email"] == email

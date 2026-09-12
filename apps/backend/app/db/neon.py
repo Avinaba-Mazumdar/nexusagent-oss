@@ -23,6 +23,7 @@ class NeonDatabase:
             return False
 
         try:
+
             async def init_connection(conn: asyncpg.Connection):
                 await register_vector(conn)
 
@@ -30,6 +31,7 @@ class NeonDatabase:
                 self.dsn,
                 min_size=1,
                 max_size=10,
+                statement_cache_size=0,
                 init=init_connection,
             )
             logger.info("Successfully connected to Neon PostgreSQL 18 connection pool.")
@@ -58,9 +60,9 @@ class NeonDatabase:
         if not self.pool:
             raise RuntimeError("Neon database is not connected.")
         query = """
-            INSERT INTO users (id, email, hashed_password, name, avatar_url, is_guest, created_at, last_seen_at)
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-            RETURNING id, email, hashed_password, name, avatar_url, is_guest, created_at, last_seen_at;
+            INSERT INTO users (id, email, hashed_password, name, avatar_url, is_guest, client_ip, device_id, created_at, last_seen_at)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+            RETURNING id, email, hashed_password, name, avatar_url, is_guest, client_ip, device_id, created_at, last_seen_at;
         """
         async with self.pool.acquire() as conn:
             row = await conn.fetchrow(
@@ -71,6 +73,8 @@ class NeonDatabase:
                 user.name,
                 user.avatar_url,
                 user.is_guest,
+                user.client_ip,
+                user.device_id,
                 user.created_at,
                 user.last_seen_at,
             )
@@ -94,13 +98,30 @@ class NeonDatabase:
             row = await conn.fetchrow(query, email)
             return User(**dict(row)) if row else None
 
-    async def update_user_last_seen(self, user_id: UUID) -> None:
-        """Update last_seen_at timestamp."""
+    async def get_guest_by_device_id(self, device_id: str) -> User | None:
+        """Fetch active guest user by unique persistent client device ID."""
+        if not self.pool:
+            raise RuntimeError("Neon database is not connected.")
+        query = "SELECT * FROM users WHERE device_id = $1 AND is_guest = TRUE ORDER BY last_seen_at DESC LIMIT 1;"
+        async with self.pool.acquire() as conn:
+            row = await conn.fetchrow(query, device_id)
+            return User(**dict(row)) if row else None
+
+    async def update_user_last_seen(
+        self, user_id: UUID, client_ip: str | None = None, device_id: str | None = None
+    ) -> None:
+        """Update last_seen_at timestamp, client IP, and device ID."""
         if not self.pool:
             return
-        query = "UPDATE users SET last_seen_at = $1 WHERE id = $2;"
+        query = """
+            UPDATE users
+            SET last_seen_at = $1,
+                client_ip = COALESCE($3, client_ip),
+                device_id = COALESCE($4, device_id)
+            WHERE id = $2;
+        """
         async with self.pool.acquire() as conn:
-            await conn.execute(query, datetime.now(UTC), user_id)
+            await conn.execute(query, datetime.now(UTC), user_id, client_ip, device_id)
 
     async def get_or_create_rate_limit(
         self, user_id: UUID, client_ip: str, default_tokens: int = 5

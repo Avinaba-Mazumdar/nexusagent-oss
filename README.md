@@ -13,7 +13,7 @@ NexusAgent is an enterprise-grade autonomous systems analyst that evaluates dist
 - **Hybrid RAG Pipeline**: Combines dense vector search with sparse keyword search (**Neon PostgreSQL 18 `pgvector`** + **`tsvector` BM25**) fused via Reciprocal Rank Fusion (RRF), powered by **LlamaIndex** hierarchical parsing.
 - **Model Context Protocol (MCP v2)**: Compliant MCP v2 server (`/api/mcp/sse` + `/api/mcp/messages` + CLI stdio) and client for seamless interoperability with Claude Desktop, Cursor, and Antigravity.
 - **OWASP Top 10 for Agentic AI**: Hardened perimeter with prompt injection delimiters, AST Python execution sandbox, canary token tracking, Human-in-the-Loop (HITL) gates, and immutable audit logs.
-- **100% Free-Tier & Zero-Cost Mode**: 1-Click Guest Pass with token-bucket rate limiting, local SQLite/NumPy fallbacks, and a pre-cached Deterministic Simulator ($0 API cost).
+- **100% Free-Tier & Zero-Cost Mode**: 1-Click Guest Pass with token-bucket rate limiting, unified Neon PostgreSQL 18 Data Tier, and a pre-cached Deterministic Simulator ($0 API cost).
 
 ---
 
@@ -60,7 +60,7 @@ cd apps/backend && uv sync && cd ../..
 
 ### 2. Configure Environment (Optional)
 
-Copy `.env.example` to `.env`. If third-party API keys are not provided, NexusAgent runs in **Deterministic Simulation Mode** with local in-memory fallbacks automatically!
+Set `NEON_DATABASE_URL` in `.env`. If third-party API keys are not provided, NexusAgent runs in **Deterministic Simulation Mode** with pre-cached traces automatically!
 
 ### 3. Run Development Servers
 

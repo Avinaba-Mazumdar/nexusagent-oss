@@ -60,8 +60,7 @@ When writing code or proposing changes for NexusAgent, you MUST strictly follow 
     - `apps/backend`: FastAPI (`^0.141.1`) + Python 3.14 + LangGraph (`^1.2.11`) + LangChain Core (`^0.3.42`) + LlamaIndex (`llama-index-core ^0.12.0`) + Neon PostgreSQL 18 (`asyncpg`) + `pgvector`.
     - `packages/contracts`: Shared TypeScript schemas and JSON-RPC 2.0 wire definitions.
 2. **Neon PostgreSQL 18 Data Tier & Python Backend Auth Guarantee**:
-    - Primary: Neon Serverless PostgreSQL 18 with `pgvector` (HNSW indexing), full-text `tsvector` BM25 search, connection pooling, and FastAPI-managed authentication (Guest JWTs + Password/OAuth sessions).
-    - Zero-Config Fallback: If `NEON_DATABASE_URL` or `DATABASE_URL` is missing, the backend must fall back to local SQLite (`aiosqlite`) and in-memory NumPy cosine similarity. The application must NEVER crash on a fresh clone without API keys.
+    - Single Unified Data Tier: Neon Serverless PostgreSQL 18 with `pgvector` (HNSW indexing), full-text `tsvector` BM25 search, connection pooling, and FastAPI-managed authentication (Guest JWTs + Password/OAuth sessions) is used across local development, wq, and production. Locally, no separate database is maintained.
 3. **Agentic Orchestration & LangGraph DAG**:
     - The agent execution loop must run on LangGraph `StateGraph` with explicit nodes: `planner` -> `retriever` -> `mcp_tools` -> `python_sandbox` -> `reflection` -> `synthesizer`.
     - Every execution run must have a cycle safeguard (`iteration_count < MAX_STEPS`, default 10).

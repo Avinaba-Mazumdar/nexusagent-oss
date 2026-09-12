@@ -1,7 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import { Activity, Database, LogIn, Send, Terminal, Zap } from 'lucide-react';
+import { Activity, Database, LogIn, Send, Terminal, User } from 'lucide-react';
 import { NexusLogo } from '@/components/icons';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -68,7 +68,7 @@ export default function Home() {
                                     <span>Google Sign In</span>
                                 </Button>
                                 <Button variant="secondary" className="w-full justify-center gap-2 text-xs font-medium">
-                                    <Zap className="h-3.5 w-3.5 fill-current" aria-hidden="true" />
+                                    <User className="h-3.5 w-3.5" aria-hidden="true" />
                                     <span>Guest Sign In</span>
                                 </Button>
                             </div>

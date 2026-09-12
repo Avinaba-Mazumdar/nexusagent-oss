@@ -1,165 +1,97 @@
-# NexusAgent — Active MVP0 Phased Task Board
+# NexusAgent — Phased Implementation Board
 
-This document tracks all implementation phases for the **NexusAgent** autonomous architecture intelligence platform.
+### Phase 1: Scaffold Project [Completed]
 
-> **Status Legend:**
->
-> - `[ ]` Open / Pending Implementation (Do NOT check until code exists on disk, builds cleanly, and tests pass)
-> - `[/]` In Progress
-> - `[x]` Completed, Verified & Passing Gate
+1. Setup pnpm and Turborepo monorepo configuration
+2. Init Next.js 16 App Router frontend (`apps/frontend`)
+3. Init Python 3.14 FastAPI backend (`apps/backend`)
+4. Setup Neon PostgreSQL connection and environment
+   Verification: Run local dev servers (`pnpm dev:fe`, `pnpm dev:be`), verify health endpoint and DB connection.
 
----
+### Phase 2: Base UI & Database Schemas [Completed]
 
-## Phase 1: Monorepo Foundation & Toolchain Setup
+1. Setup shadcn/ui components and theme tokens
+2. Setup Neon PostgreSQL schema migrations (UUID, pgvector, core tables)
+3. Setup frontend and backend API communication routes
+4. Setup 4-zone command center UI layout
+   Verification: Run local servers, inspect Neon tables, verify frontend renders layout and shadcn components without errors.
 
-- [x] **Task 1.1: Turborepo & pnpm Monorepo Configuration**
-    - Configure `pnpm-workspace.yaml` declaring `apps/*` and `packages/*`.
-    - Set up `turbo.json` with cached build, test, and dev pipelines.
-- [x] **Task 1.2: Next.js 16 Frontend Initialization (`apps/frontend`)**
-    - Scaffold Next.js 16 App Router project with React 19, TypeScript compiler (`typescript@^7.0.2`), and oxlint.
-    - Initialize Tailwind CSS v4 with `@theme` tokens in `styles/globals.css`.
-    - Configure **shadcn/ui** primitives (Button, Dialog, Tabs, Badge, ScrollArea, Tooltip).
-    - Establish simple 4-element command center layout (`apps/frontend/app/page.tsx`).
-    - Add Lucide React (`^1.41.0`) and Mermaid.js (`^11.4.1`) dependencies.
-    - Frontend testing suite with Vitest + React Testing Library (7 passing unit tests).
-- [x] **Task 1.3: FastAPI Backend Scaffolding (`apps/backend`)**
-    - Initialize Python 3.14 project with `uv` (`pyproject.toml` and `uv.lock`).
-    - Configure FastAPI ASGI application with CORS, Pydantic v2 settings, health probe endpoint, and Uvicorn entrypoint.
-    - Automated tests pass with `pytest` (3/3 passing tests).
-    - Scaffold module directory stubs: `agent/`, `rag/`, `mcp/`, `core/`, `db/`, `routes/` (substantive implementations scheduled for Phase 2: Auth & DB, Phase 3: RAG, Phase 4: LangGraph DAG & Sandbox, and Phase 5: MCP v2).
-- [x] **Task 1.4: Shared Contracts Package (`packages/contracts`)**
-    - Define shared TypeScript interfaces: `AgentState`, `StepNode`, `SSEEventPayload`, `McpToolSchema`, `CitationItem`.
-    - Export build artifacts for consumption by `apps/frontend`.
+### Phase 3: User Authentication [Completed]
 
----
+1. Setup 1-Click Guest pass token issuance
+2. Setup Google auth / email registration with Argon2 password hashing
+3. Setup JWT verification and tenant isolation middleware
+4. Connect frontend auth state and user session header
+   Verification: Run auth tests, issue guest pass via `POST /api/auth/guest`, verify protected `/api/auth/me` resolves.
 
-## Phase 2: Neon PostgreSQL 18 Data Tier, pgvector & Python Backend Auth Engine
+### Phase 4: Document Ingestion & Parsing
 
-- [ ] **Task 2.1: Neon PostgreSQL 18 Schema Migration**
-    - Write `migrations/20260901000000_core_schema.sql` enabling `uuid-ossp` and `vector`.
-    - Create tables: `users` (with password hash, guest flag, avatar), `rate_limit_buckets`, `documents` (with `is_seeded`), `document_chunks`, `agent_conversations`, `messages`, `tool_audit_logs`, `citations`.
-    - Create HNSW index on `document_chunks.embedding` using `vector_cosine_ops`.
-    - Create GIN index on `document_chunks.search_vector` (`tsvector`).
-- [ ] **Task 2.2: FastAPI Backend Auth & Multi-Tenant Isolation (`core/auth.py`)**
-    - Implement native FastAPI authentication service with signed JWTs (`PyJWT` / `cryptography`).
-    - Implement 1-Click Guest Pass token issuance and password hashing (`argon2` / `bcrypt`).
-    - Expose `/api/auth/guest`, `/api/auth/login`, `/api/auth/register`, `/api/auth/me`.
-    - Enforce tenant data isolation via parameterized query filtering.
-- [ ] **Task 2.3: Zero-Config Local Fallback Engine (`db/fallback.py`)**
-    - Implement SQLite fallback using `aiosqlite` for metadata persistence.
-    - Implement in-memory dot-product cosine similarity using NumPy.
-    - Ensure backend starts and operates seamlessly if `NEON_DATABASE_URL` credentials are not provided.
+1. Build document upload endpoint (`POST /api/documents/upload`)
+2. Implement LlamaIndex markdown hierarchical parser (`rag/parser.py`)
+3. Split content into 800-char chunks with line-level section metadata
+4. Persist parsed documents and chunks into Neon `documents` and `document_chunks`
+   Verification: Upload sample RFC markdown, verify database contains document record and chunk rows with line metadata.
 
----
+### Phase 5: Vector Embeddings & Hybrid Search
 
-## Phase 3: LlamaIndex Document Ingestion & Hybrid RAG Engine
+1. Implement dense embedding generation using pgvector HNSW index
+2. Implement full-text BM25 lexical search using Postgres `tsvector` GIN index
+3. Implement Reciprocal Rank Fusion (RRF) ranking algorithm (`rag/hybrid_search.py`)
+4. Expose search endpoint `POST /api/rag/search`
+   Verification: Query RFC text via search endpoint, verify top-K results return ranked chunks with similarity scores and line numbers.
 
-- [ ] **Task 3.1: LlamaIndex Hierarchical Document Parser (`rag/parser.py`)**
-    - Integrate `llama-index-core` `MarkdownNodeParser` preserving `h1`/`h2`/`h3` section structures.
-    - Implement 800-character chunking with 120-character overlap.
-    - Attach rich metadata: `document_id`, `section_title`, `start_line`, `end_line`, `token_count`.
-- [ ] **Task 3.2: Dense Vector Embedding Pipeline (`rag/embeddings.py`)**
-    - Implement async batch embedding generator supporting OpenAI `text-embedding-3-small` (1536-dim) or Gemini embeddings.
-    - Store embeddings directly into Neon `document_chunks` table.
-- [ ] **Task 3.3: Reciprocal Rank Fusion (RRF) Hybrid Search (`rag/hybrid_search.py`)**
-    - Execute concurrent dense vector search (pgvector HNSW) and sparse lexical search (Postgres BM25 `tsvector`).
-    - Calculate RRF fused ranking: $RRF(d) = \frac{1}{60 + rank_{dense}(d)} + \frac{1}{60 + rank_{sparse}(d)}$.
-    - Return top-$K$ deduplicated chunks with line-level citation metadata.
+### Phase 6: AST Python Code Execution Sandbox
 
----
+1. Create AST static analysis validator blocking dangerous nodes and builtins (`core/sandbox.py`)
+2. Implement timeout-bounded subprocess execution runner (5.0s timeout)
+3. Expose sandbox execution endpoint `POST /api/sandbox/run`
+4. Add automated test suite for safe code and malicious injection attempts
+   Verification: Run safe math script and verify output; submit script with `import os` and assert AST rejects execution.
 
-## Phase 4: LangGraph Agent DAG & AST Python Sandbox
+### Phase 7: LangGraph Agent DAG Pipeline
 
-- [ ] **Task 4.1: Strongly-Typed AgentState Schema (`agent/state.py`)**
-    - Define `AgentState` TypedDict: `messages`, `plan`, `current_step_index`, `retrieved_chunks`, `tool_outputs`, `reflection`, `human_approval_required`, `iteration_count`.
-- [ ] **Task 4.2: LangGraph 1.2 StateGraph Node Pipeline (`agent/graph.py`)**
-    - Implement `planner` node: Decomposes architectural inquiries into 3–5 verifiable sub-goals.
-    - Implement `retriever` node: Queries LlamaIndex + Neon Hybrid RAG.
-    - Implement `mcp_tools` node: Executes internal and external Model Context Protocol tools.
-    - Implement `reflection` critic node: Evaluates intermediate claims against RFC constraints, emitting confidence score.
-    - Implement `synthesizer` node: Generates markdown synthesis with citation markers and Mermaid diagrams.
-    - Add conditional edge looping back if `reflection.needs_more_data == True` (capped at 10 iterations).
-- [ ] **Task 4.3: Cross-Platform Subprocess AST Python Sandbox (`core/sandbox.py`)**
-    - Parse candidate Python code with `ast.parse()`.
-    - Block dangerous AST nodes: `Import`, `ImportFrom`, `Call` to `eval`/`exec`/`open`/`compile`/`__import__`, dunder attributes.
-    - Execute safe code in isolated subprocess with 5.0-second timeout and output caps (cross-platform Windows/macOS/Linux).
+1. Define strongly-typed `AgentState` schema (`agent/state.py`)
+2. Implement planner, retriever, and synthesizer nodes (`agent/graph.py`)
+3. Implement reflection critic node with loop-back condition (capped at 10 iterations)
+4. Wire hybrid search and sandbox tools into agent graph
+   Verification: Invoke agent via test script, assert graph executes state transitions (plan -> retrieve -> reflect -> synthesize).
 
----
+### Phase 8: Real-Time SSE Streaming & Observability
 
-## Phase 5: Model Context Protocol (MCP v2) Server & Client
+1. Implement FastAPI Server-Sent Events endpoint `POST /api/agent/stream`
+2. Stream structured events (`plan`, `node_start`, `tool_call`, `tool_result`, `token`, `done`)
+3. Build Next.js SSE client hook (`hooks/useAgentStream.ts`)
+4. Implement reactive execution DAG tracker in observability panel
+   Verification: Trigger streaming query from UI or curl, verify incremental SSE tokens and node status events arrive in real-time.
 
-- [ ] **Task 5.1: FastAPI MCP v2 Protocol Server (`/api/mcp/sse` & CLI stdio)**
-    - Implement standard MCP SSE endpoint (`/api/mcp/sse` + `/api/mcp/messages`) and HTTP fallback (`/api/mcp/v1`).
-    - Provide `python -m app.mcp.server` stdio command for Claude Desktop and Cursor integration.
-    - Expose core tools: `hybrid_rag_search`, `python_sandbox`, `mcp_sql_audit`.
-    - Expose accessible RFCs as MCP resources.
-- [ ] **Task 5.2: MCP Tool Manifest & Scoped Authorization (`mcp/registry.py`)**
-    - Validate tool inputs using Pydantic v2 schemas.
-    - Validate Bearer JWT token and check declared permission scopes (`read:documents`, `exec:calculation`).
-- [ ] **Task 5.3: External Client Interoperability Guide**
-    - Provide Claude Desktop, Cursor, and Antigravity connection configurations.
+### Phase 9: Interactive Canvas & Diagram Rendering
 
----
+1. Implement streaming Markdown renderer with code syntax highlighting
+2. Integrate dynamic Mermaid.js SVG rendering with pan and zoom controls
+3. Implement interactive Citation Pills with line jump and hover previews
+4. Wire agent stream output to canvas viewer
+   Verification: Stream response containing Mermaid code block and citations; verify SVG diagram renders and citation click highlights source.
 
-## Phase 6: Next.js 16 + shadcn/ui Command Center Frontend
+### Phase 10: Model Context Protocol (MCP v2) Integration
 
-- [ ] **Task 6.1: Four-Zone Command Center Layout (`app/page.tsx`)**
-    - **Header (`components/header/`)**: Branding, version badge, Python Backend Auth / Guest pass, quota token meter, BYOK toggle.
-    - **Left Workspace (`components/workspace/`)**: Document vault with drag-and-drop uploader, active MCP servers list, and live tool toggle switches.
-    - **Center Canvas (`components/canvas/`)**: Real-time agent streaming thread, dynamic Mermaid SVG viewer, interactive citation pills, and multi-line user inputs.
-    - **Right Observability (`components/observability/`)**: Current node execution status, real-time token usage and cost tracker, and state log viewer with raw wire logs.
-- [ ] **Task 6.2: Real-Time Markdown & Mermaid Rendering (`components/canvas/`)**
-    - Stream markdown tokens smoothly with auto-scroll anchor.
-    - Dynamically render Mermaid.js SVG architecture diagrams with pan/zoom controls.
-    - Render interactive Citation Pills with hover popover preview and line jump.
-- [ ] **Task 6.3: Human-in-the-Loop (HITL) Modal (`components/hitl/`)**
-    - Display confirmation banner/modal when tool call requires human authorization.
-    - Send approve/reject callback to `/api/agent/approval`.
-- [ ] **Task 6.4: Interactive MCP Inspector (`components/observability/McpInspector.tsx`)**
-    - Browse registered MCP tools and JSON parameter schemas.
-    - Execute test tool calls directly from UI and view raw JSON-RPC wire request/response.
+1. Implement FastAPI MCP SSE endpoint (`/api/mcp/sse`) and CLI stdio entrypoint
+2. Register tools (`hybrid_rag_search`, `python_sandbox`, `mcp_sql_audit`) with Pydantic schemas
+3. Build frontend MCP Inspector panel to test tool calls and view JSON-RPC payloads
+4. Add client connection configuration for Claude Desktop and Cursor
+   Verification: Connect Claude or run MCP Inspector UI, call `hybrid_rag_search`, verify valid JSON-RPC response.
 
----
+### Phase 11: Human-in-the-Loop & Security Controls
 
-## Phase 7: Real-Time SSE Streaming & Observability Pipeline
+1. Implement HITL approval modal in UI and backend pause/resume endpoint (`/api/agent/approval`)
+2. Implement prompt injection delimiters (`<untrusted_document_context>`) and UUID canary tokens
+3. Implement token-bucket rate limiter for guest and registered users
+4. Add immutable audit logging to `tool_audit_logs` table
+   Verification: Trigger tool requiring approval, verify agent suspends until approved; exceed rate limit and verify HTTP 429.
 
-- [ ] **Task 7.1: FastAPI Server-Sent Events Endpoint (`routes/agent.py`)**
-    - Stream LangGraph execution events: `plan`, `node_start`, `tool_call`, `tool_result`, `reflection`, `token`, `done`.
-- [ ] **Task 7.2: Next.js SSE Client Hook (`hooks/useAgentStream.ts`)**
-    - Consume SSE stream with automatic reconnection and typed payload dispatching to Zustand stores.
-- [ ] **Task 7.3: Live Reactive Agent DAG (`components/observability/CurrentNode.tsx`)**
-    - Visualize execution graph in real time with glowing active nodes and progress badges.
+### Phase 12: Deterministic Showcase & 1-Click Guest Experience
 
----
-
-## Phase 8: OWASP Top 10 for Agentic AI Hardening (ASI-01 to ASI-10)
-
-- [ ] **Task 8.1: Prompt Injection Delimiters & Canary Tokens (ASI-01)**
-    - Encapsulate uploaded document chunks in `<untrusted_document_context id="...">` XML tags.
-    - Inject UUID canary tokens into system prompt; discard output and alert if canary leaks.
-- [ ] **Task 8.2: PII Redaction & Multi-Tenant Isolation (ASI-02)**
-    - Sanitize sensitive tokens/emails on ingestion.
-    - Enforce tenant isolation preventing cross-tenant chunk leakage.
-- [ ] **Task 8.3: Rate Limiting & Financial Denial of Service (ASI-07)**
-    - Implement token-bucket rate limiter: 5 queries/hr for guests, 25 queries/hr for authenticated users.
-    - Enforce LangGraph recursion limit (max 10 iterations).
-- [ ] **Task 8.4: Immutable Security Audit Logging (ASI-10)**
-    - Log all tool invocations, parameters, latency, and HITL status to `tool_audit_logs`.
-- [ ] **Task 8.5: Automated OWASP Security Test Suite (`tests/security/`)**
-    - Write test suites for indirect prompt injection, sandbox escape attempts, and unauthorized MCP calls.
-
----
-
-## Phase 9: Pre-Seeded RFCs, Deterministic Simulator & Showcase Readiness
-
-- [ ] **Task 9.1: Seed Showcase Architecture RFCs**
-    - Bundle `RFC-104-distributed-cache-consistency.md` (Raft vs Multi-Paxos).
-    - Bundle `Neon-Serverless-Storage-Architecture.md` (Pageserver and WAL architecture).
-- [ ] **Task 9.2: Deterministic Simulator Mode**
-    - Implement zero-cost cached execution replay for reviewers without API keys.
-    - Toggle in UI allows instant simulation with pre-computed DAG traces and Mermaid diagrams.
-- [ ] **Task 9.3: 1-Click Guest Experience Polish**
-    - Instant guest token generation (`POST /api/auth/guest`).
-    - Pre-load 5 live API quota tokens with countdown timer badge.
-- [ ] **Task 9.4: 60-Second Video Walkthrough Script Alignment**
-    - Validate demo flow: 1-Click Guest -> Scenario 1 -> Live DAG -> Mermaid SVG -> MCP Inspector.
+1. Bundle pre-seeded RFCs (`RFC-104` Raft vs Multi-Paxos, Neon Storage Architecture)
+2. Implement deterministic cached execution simulator for zero-cost demos
+3. Polish 1-Click Guest experience with pre-loaded quota badge
+4. Run end-to-end demo flow validation
+   Verification: Open app in guest mode with zero API keys, run demo scenario, verify instant cached DAG trace and rendered diagram.

@@ -1,9 +1,22 @@
+from contextlib import asynccontextmanager
+
 import uvicorn
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import settings
+from app.db.neon import neon_db
+from app.routes.auth import router as auth_router
 from app.routes.health import router as health_router
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Lifecycle manager for Neon PostgreSQL 18 connection pool."""
+    await neon_db.connect()
+    yield
+    await neon_db.disconnect()
+
 
 app = FastAPI(
     title=settings.APP_NAME,
@@ -11,6 +24,7 @@ app = FastAPI(
     description="NexusAgent - Production-Grade Autonomous Orchestration Engine with Neon PostgreSQL 18 & LangGraph.",
     docs_url="/docs",
     redoc_url="/redoc",
+    lifespan=lifespan,
 )
 
 app.add_middleware(
@@ -23,6 +37,7 @@ app.add_middleware(
 
 app.include_router(health_router)
 app.include_router(health_router, prefix="/api")
+app.include_router(auth_router, prefix="/api")
 
 
 @app.get("/", tags=["Root"])
@@ -33,6 +48,7 @@ async def root():
         "version": settings.VERSION,
         "docs_url": "/docs",
         "health_check": "/health",
+        "database": "Neon PostgreSQL 18",
     }
 
 

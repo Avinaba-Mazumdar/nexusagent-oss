@@ -37,7 +37,7 @@ Reviewers and hiring executives can explore NexusAgent instantly via **1-Click G
 
 ### 1.1 Primary Engineering Objectives
 
-1. **Deterministic & Free-Tier Resilience**: Zero runtime crashes when third-party API keys are missing. Automatic fallbacks to local SQLite (`aiosqlite`), in-memory NumPy vector search, and realistic pre-cached simulator traces.
+1. **Deterministic & Free-Tier Resilience**: Zero runtime crashes when third-party API keys are missing via realistic pre-cached simulator traces. Single unified Neon PostgreSQL 18 data tier across local development, wq, and production.
 2. **Strict MCP Standard Compliance**: Complete adherence to the Model Context Protocol (MCP v2) specification with dual transports (SSE at `/api/mcp/sse` + `/api/mcp/messages` and stdio launcher for Claude Desktop and Cursor), operating both as an MCP Tool Server and as an interactive Inspector console.
 3. **Provable Architectural Rigor**: Agent outputs must not hallucinate consensus invariants. The critic node enforces strict citations to source RFCs with line-level accuracy.
 4. **Sub-600ms Time-to-First-Token (TTFT)**: Async streaming over Server-Sent Events (SSE) ensures immediate UI responsiveness while LangGraph plans and retrieves in the background.
@@ -93,8 +93,6 @@ Reviewers and hiring executives can explore NexusAgent instantly via **1-Click G
 | :------------------------------ | :--------------------------- | :----------------------------- | :------------------------------------------------------------------------------------------------------------ |
 | **Primary Full-Stack Database** | **Neon Serverless Postgres** | PostgreSQL `18.x`              | Serverless PostgreSQL 18 with native `pgvector` extension, full-text `tsvector` BM25, and connection pooling. |
 | **Vector Indexing Engine**      | **pgvector (HNSW Index)**    | 1536-dimensional embeddings    | In-database vector indexing with sub-millisecond nearest neighbor search and relational metadata filtering.   |
-| **Local Vector Fallback**       | **NumPy**                    | `^2.2.3`                       | In-memory dot-product cosine similarity calculation when Neon credentials are not configured.                 |
-| **Local Relational Fallback**   | **SQLite3 (aiosqlite)**      | Native                         | Automated zero-config fallback ensuring immediate operation on fresh clones.                                  |
 | **Containerization**            | **Docker**                   | Multi-stage `python:3.14-slim` | Lean production image (<120MB) with non-root security boundaries and vulnerability scanning.                  |
 | **Client Hosting**              | **Vercel** / **Cloudflare**  | Edge Network                   | Sub-50ms TTFB worldwide, automatic edge compression, Next.js native optimization.                             |
 | **Backend Hosting**             | **Render** / **Fly.io**      | Container Service              | Long-lived SSE streaming support with automatic health checks and TCP connection pooling.                     |
@@ -143,7 +141,6 @@ graph TB
         PgVectorStore[("Neon pgvector (HNSW Index 1536-dim)")]
         PgLexicalStore[("Neon tsvector (Full-Text BM25)")]
         NeonRelationalStore[("Neon Relational Schema (Users, Rate Limits, Docs)")]
-        LocalFallback[("Zero-Config In-Memory / SQLite Fallback")]
     end
 
     subgraph ExternalServices ["External LLM & Provider APIs"]
@@ -250,8 +247,7 @@ nexusagent-oss/
 │       │   │       └── sql_audit.py   # MCP tool auditing schema bottlenecks
 │       │   ├── db/
 │       │   │   ├── neon.py            # Neon asyncpg connection pool & pgvector driver
-│       │   │   ├── fallback.py        # In-memory NumPy & SQLite zero-config fallback
-│       │   │   └── models.py          # SQLAlchemy / SQLModel table definitions
+│       │   │   └── models.py          # Pydantic entity and schema definitions
 │       │   └── routes/
 │       │       ├── auth.py            # /api/auth endpoints (register, login, guest, me)
 │       │       ├── documents.py       # /api/documents upload and chunk endpoints

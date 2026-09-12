@@ -14,8 +14,8 @@ dependencies = [
     "python-multipart>=0.0.20",
     "httpx>=0.28.0",
     "asyncpg>=0.30.0",
-    "aiosqlite>=0.20.0",
     "numpy>=2.0.0",
+    "pgvector>=0.5.0",
 ]
 
 [dependency-groups]
@@ -28,6 +28,9 @@ dev = [
 [tool.ruff]
 line-length = 100
 target-version = "py314"
+
+[tool.ruff.lint]
+ignore = ["B008"]
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"

@@ -11,21 +11,6 @@
             "import": "./dist/index.js",
             "default": "./dist/index.js"
         },
-        "./agent": {
-            "types": "./dist/agent.d.ts",
-            "import": "./dist/agent.js",
-            "default": "./dist/agent.js"
-        },
-        "./mcp": {
-            "types": "./dist/mcp.d.ts",
-            "import": "./dist/mcp.js",
-            "default": "./dist/mcp.js"
-        },
-        "./document": {
-            "types": "./dist/document.d.ts",
-            "import": "./dist/document.js",
-            "default": "./dist/document.js"
-        },
         "./auth": {
             "types": "./dist/auth.d.ts",
             "import": "./dist/auth.js",

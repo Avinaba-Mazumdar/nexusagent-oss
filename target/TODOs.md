@@ -22,7 +22,7 @@ This document tracks all implementation phases for the **NexusAgent** autonomous
     - Modularize 4-zone command center architecture (`components/{header,workspace,canvas,observability}/`).
     - Add Lucide React (`^1.41.0`) and Mermaid.js (`^11.4.1`) dependencies.
     - Frontend testing suite with Vitest + React Testing Library (16 passing unit tests across 7 suites).
-- [/] **Task 1.3: FastAPI Backend Scaffolding (`apps/backend`)**
+- [x] **Task 1.3: FastAPI Backend Scaffolding (`apps/backend`)**
     - Initialize Python 3.14 project with `uv` (`pyproject.toml` and `uv.lock`).
     - Configure FastAPI ASGI application with CORS, Pydantic v2 settings, health probe endpoint, and Uvicorn entrypoint.
     - Automated tests pass with `pytest` (3/3 passing tests).

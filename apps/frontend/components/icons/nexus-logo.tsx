@@ -10,13 +10,21 @@ export function NexusLogo({ variant = 'brand', size, className = '', ...props }:
         return (
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width={size} height={size} fill="none" className={className} {...props}>
                 <g fill="currentColor">
-                    <rect x="111.5" y="112.5" width="64" height="287" rx="32" />
-                    <rect x="336.5" y="112.5" width="64" height="287" rx="32" />
-                    <polygon points="127.5,176.5 175.5,150.9 384.5,335.5 336.5,361.1" />
-                    <circle cx="256" cy="256" r="64" />
+                    <rect x="180" y="84" width="24" height="60" rx="12" />
+                    <rect x="244" y="84" width="24" height="60" rx="12" />
+                    <rect x="308" y="84" width="24" height="60" rx="12" />
+                    <rect x="180" y="368" width="24" height="60" rx="12" />
+                    <rect x="244" y="368" width="24" height="60" rx="12" />
+                    <rect x="308" y="368" width="24" height="60" rx="12" />
+                    <rect x="84" y="180" width="60" height="24" rx="12" />
+                    <rect x="84" y="244" width="60" height="24" rx="12" />
+                    <rect x="84" y="308" width="60" height="24" rx="12" />
+                    <rect x="368" y="180" width="60" height="24" rx="12" />
+                    <rect x="368" y="244" width="60" height="24" rx="12" />
+                    <rect x="368" y="308" width="60" height="24" rx="12" />
+                    <rect x="208" y="208" width="96" height="96" rx="16" />
                 </g>
-                <circle cx="256" cy="256" r="35" className="fill-background" />
-                <circle cx="256" cy="256" r="16" fill="currentColor" />
+                <rect x="136" y="136" width="240" height="240" rx="32" stroke="currentColor" strokeWidth="28" fill="none" />
             </svg>
         );
     }
@@ -25,13 +33,21 @@ export function NexusLogo({ variant = 'brand', size, className = '', ...props }:
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width={size} height={size} fill="none" className={className} {...props}>
             <rect width="512" height="512" rx="116" fill="#004ea1" />
             <g fill="#ffffff">
-                <rect x="111.5" y="112.5" width="64" height="287" rx="32" />
-                <rect x="336.5" y="112.5" width="64" height="287" rx="32" />
-                <polygon points="127.5,176.5 175.5,150.9 384.5,335.5 336.5,361.1" />
-                <circle cx="256" cy="256" r="64" />
+                <rect x="180" y="84" width="24" height="60" rx="12" />
+                <rect x="244" y="84" width="24" height="60" rx="12" />
+                <rect x="308" y="84" width="24" height="60" rx="12" />
+                <rect x="180" y="368" width="24" height="60" rx="12" />
+                <rect x="244" y="368" width="24" height="60" rx="12" />
+                <rect x="308" y="368" width="24" height="60" rx="12" />
+                <rect x="84" y="180" width="60" height="24" rx="12" />
+                <rect x="84" y="244" width="60" height="24" rx="12" />
+                <rect x="84" y="308" width="60" height="24" rx="12" />
+                <rect x="368" y="180" width="60" height="24" rx="12" />
+                <rect x="368" y="244" width="60" height="24" rx="12" />
+                <rect x="368" y="308" width="60" height="24" rx="12" />
+                <rect x="208" y="208" width="96" height="96" rx="16" />
             </g>
-            <circle cx="256" cy="256" r="35" fill="#004ea1" />
-            <circle cx="256" cy="256" r="16" fill="#ffffff" />
+            <rect x="136" y="136" width="240" height="240" rx="32" stroke="#ffffff" strokeWidth="28" fill="none" />
         </svg>
     );
 }

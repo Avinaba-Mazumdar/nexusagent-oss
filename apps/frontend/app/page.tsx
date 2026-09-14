@@ -27,8 +27,20 @@ export default function Home() {
 
     React.useEffect(() => {
         initAuth();
-        if (typeof window !== 'undefined' && (window as unknown as { google?: any })?.google) {
-            setGisLoaded(true);
+        if (typeof window !== 'undefined') {
+            const storedTheme = localStorage.getItem('nexusagent_theme');
+            const systemDark = typeof window.matchMedia === 'function' ? window.matchMedia('(prefers-color-scheme: dark)').matches : false;
+            const isDark = storedTheme ? storedTheme === 'dark' : systemDark;
+            setIsDarkTheme(isDark);
+            if (isDark) {
+                document.documentElement.classList.add('dark');
+            } else {
+                document.documentElement.classList.remove('dark');
+            }
+
+            if ((window as unknown as { google?: any })?.google) {
+                setGisLoaded(true);
+            }
         }
     }, [initAuth]);
 
@@ -72,18 +84,18 @@ export default function Home() {
     };
 
     return (
-        <div className="h-screen flex flex-col bg-[#f4f5f8] text-[#0f172a] font-sans overflow-hidden">
+        <div className="h-screen flex flex-col bg-background text-foreground font-sans overflow-hidden">
             <Script src="https://accounts.google.com/gsi/client" strategy="afterInteractive" onLoad={() => setGisLoaded(true)} />
             {/* 1. Header */}
             <header
                 role="banner"
                 aria-label="Command Center Navigation"
-                className="h-14 bg-white border-b border-[#cbd5e1] px-4 md:px-6 flex items-center justify-between shrink-0 z-30"
+                className="h-14 bg-card border-b border-border px-4 md:px-6 flex items-center justify-between shrink-0 z-30"
             >
                 <div className="flex items-center gap-3">
                     <NexusLogo className="h-8 w-8 rounded-xl shadow-xs shrink-0" aria-hidden="true" />
                     <div className="flex items-center gap-2">
-                        <span className="font-heading font-bold text-sm tracking-tight text-[#0f172a]">NexusAgent</span>
+                        <span className="font-heading font-bold text-sm tracking-tight text-foreground">NexusAgent</span>
                     </div>
                 </div>
 
@@ -94,11 +106,11 @@ export default function Home() {
                                 <button
                                     type="button"
                                     aria-label="User profile menu"
-                                    className="group relative flex h-9 w-9 shrink-0 items-center justify-center rounded-full p-0 border-0 bg-transparent cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#004ea1] focus-visible:ring-offset-2"
+                                    className="group relative flex h-9 w-9 shrink-0 items-center justify-center rounded-full p-0 border-0 bg-transparent cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                                 >
-                                    <Avatar className="h-9 w-9 border border-[#cbd5e1] shadow-xs transition-colors duration-150 group-hover:border-[#004ea1] group-hover:ring-2 group-hover:ring-[#004ea1]/25">
+                                    <Avatar className="h-9 w-9 border border-border shadow-xs transition-colors duration-150 group-hover:border-primary group-hover:ring-2 group-hover:ring-primary/25">
                                         {user.avatarUrl ? <AvatarImage src={user.avatarUrl} alt={user.name} /> : null}
-                                        <AvatarFallback className="bg-[#e8f3fc] text-[#004ea1] text-xs font-bold">
+                                        <AvatarFallback className="bg-accent text-accent-foreground text-xs font-bold">
                                             {user.name
                                                 ? user.name
                                                       .split(' ')
@@ -111,12 +123,12 @@ export default function Home() {
                                     </Avatar>
                                 </button>
                             </PopoverTrigger>
-                            <PopoverContent align="end" className="w-80 p-4 rounded-2xl shadow-xl border-[#cbd5e1] bg-white">
+                            <PopoverContent align="end" className="w-80 p-4 rounded-2xl shadow-xl border-border bg-popover text-popover-foreground">
                                 {/* 1. Name / Email / Guest ID */}
-                                <div className="flex items-center gap-3 pb-3 border-b border-[#e2e8f0]">
-                                    <Avatar className="h-10 w-10 border border-[#cbd5e1] shrink-0">
+                                <div className="flex items-center gap-3 pb-3 border-b border-border">
+                                    <Avatar className="h-10 w-10 border border-border shrink-0">
                                         {user.avatarUrl ? <AvatarImage src={user.avatarUrl} alt={user.name} /> : null}
-                                        <AvatarFallback className="bg-[#e8f3fc] text-[#004ea1] text-sm font-bold">
+                                        <AvatarFallback className="bg-accent text-accent-foreground text-sm font-bold">
                                             {user.name
                                                 ? user.name
                                                       .split(' ')
@@ -129,43 +141,43 @@ export default function Home() {
                                     </Avatar>
                                     <div className="flex flex-col min-w-0 flex-1">
                                         <div className="flex items-center gap-1.5">
-                                            <span className="font-heading font-bold text-sm text-[#0f172a] truncate">{user.name}</span>
+                                            <span className="font-heading font-bold text-sm text-foreground truncate">{user.name}</span>
                                             <Badge variant={user.isGuest ? 'outline' : 'soft'} className="text-[10px] px-1.5 py-0 font-medium shrink-0">
                                                 {user.isGuest ? 'Guest' : 'Verified'}
                                             </Badge>
                                         </div>
-                                        <span className="text-xs text-[#475569] truncate" title={user.email || user.deviceId || user.id}>
+                                        <span className="text-xs text-muted-foreground truncate" title={user.email || user.deviceId || user.id}>
                                             {user.email ? user.email : `Guest ID: ${(user.deviceId || user.id).slice(0, 12)}...`}
                                         </span>
                                     </div>
                                 </div>
 
                                 {/* 2. Quota */}
-                                <div className="py-3 border-b border-[#e2e8f0] space-y-1.5">
+                                <div className="py-3 border-b border-border space-y-1.5">
                                     <div className="flex items-center justify-between text-xs">
-                                        <span className="font-medium text-[#334155]">API Quota</span>
-                                        <span className="font-bold text-[#004ea1] bg-[#e8f3fc] px-2 py-0.5 rounded-md border border-[#93c5fd]">
+                                        <span className="font-medium text-muted-foreground">API Quota</span>
+                                        <span className="font-bold text-primary bg-accent px-2 py-0.5 rounded-md border border-border">
                                             {quotaRemaining}/{bucketCapacity} Quota
                                         </span>
                                     </div>
-                                    <div className="w-full bg-[#e2e8f0] h-1.5 rounded-full overflow-hidden">
+                                    <div className="w-full bg-secondary h-1.5 rounded-full overflow-hidden">
                                         <div
-                                            className="bg-[#004ea1] h-full rounded-full transition-all duration-300"
+                                            className="bg-primary h-full rounded-full transition-all duration-300"
                                             style={{ width: `${Math.min(100, Math.max(0, (quotaRemaining / bucketCapacity) * 100))}%` }}
                                         />
                                     </div>
-                                    <p className="text-[10px] text-[#64748b]">Hourly token replenishment enabled</p>
+                                    <p className="text-[10px] text-muted-foreground">Hourly token replenishment enabled</p>
                                 </div>
 
                                 {/* 3. Theme */}
-                                <div className="py-3 border-b border-[#e2e8f0] flex items-center justify-between">
+                                <div className="py-3 border-b border-border flex items-center justify-between">
                                     <div className="flex items-center gap-2">
                                         {isDarkTheme ? (
-                                            <Moon className="h-4 w-4 text-[#004ea1]" aria-hidden="true" />
+                                            <Moon className="h-4 w-4 text-primary" aria-hidden="true" />
                                         ) : (
-                                            <Sun className="h-4 w-4 text-[#f59e0b]" aria-hidden="true" />
+                                            <Sun className="h-4 w-4 text-amber-500" aria-hidden="true" />
                                         )}
-                                        <span className="text-xs font-medium text-[#334155]">Dark Mode</span>
+                                        <span className="text-xs font-medium text-foreground">Dark Mode</span>
                                     </div>
                                     <Switch
                                         checked={isDarkTheme}
@@ -174,8 +186,10 @@ export default function Home() {
                                             if (typeof document !== 'undefined') {
                                                 if (checked) {
                                                     document.documentElement.classList.add('dark');
+                                                    localStorage.setItem('nexusagent_theme', 'dark');
                                                 } else {
                                                     document.documentElement.classList.remove('dark');
+                                                    localStorage.setItem('nexusagent_theme', 'light');
                                                 }
                                             }
                                         }}
@@ -192,7 +206,7 @@ export default function Home() {
                                             setPopoverOpen(false);
                                             logout();
                                         }}
-                                        className="w-full justify-center gap-2 text-xs font-semibold text-[#991b1b] border-[#fca5a5] hover:bg-[#fef2f2] hover:text-[#7f1d1d] rounded-xl h-9"
+                                        className="w-full justify-center gap-2 text-xs font-semibold text-destructive border-destructive/40 hover:bg-destructive/10 hover:text-destructive rounded-xl h-9"
                                     >
                                         <LogOut className="h-3.5 w-3.5" aria-hidden="true" />
                                         <span>Sign Out</span>
@@ -226,11 +240,11 @@ export default function Home() {
                                                 setIsGoogleLoading(false);
                                                 if (ok) setDialogOpen(false);
                                             }}
-                                            className="w-full justify-center gap-2 text-xs font-medium border-[#cbd5e1] hover:bg-[#f8fafc] rounded-xl h-10 shadow-xs"
+                                            className="w-full justify-center gap-2 text-xs font-medium border-border hover:bg-secondary rounded-xl h-10 shadow-xs"
                                             title="Sign in with Google"
                                         >
                                             {isGoogleLoading ? (
-                                                <Loader2 className="h-3.5 w-3.5 animate-spin text-[#004ea1]" aria-hidden="true" />
+                                                <Loader2 className="h-3.5 w-3.5 animate-spin text-primary" aria-hidden="true" />
                                             ) : (
                                                 <svg className="h-4 w-4 shrink-0" viewBox="0 0 24 24" aria-hidden="true">
                                                     <path
@@ -281,7 +295,7 @@ export default function Home() {
                                         )}
                                         <span>{isGuestLoading ? 'Creating Guest Pass...' : 'Guest Sign In'}</span>
                                     </Button>
-                                    {error && <p className="text-[11px] text-[#991b1b] text-center pt-1">{error}</p>}
+                                    {error && <p className="text-[11px] text-destructive text-center pt-1">{error}</p>}
                                 </div>
                             </DialogContent>
                         </Dialog>
@@ -295,73 +309,68 @@ export default function Home() {
                 <aside
                     role="complementary"
                     aria-label="Workspace & Tools"
-                    className="w-72 lg:w-80 bg-white border-r border-[#cbd5e1] flex flex-col shrink-0 overflow-y-auto p-4 space-y-4"
+                    className="w-72 lg:w-80 bg-card border-r border-border flex flex-col shrink-0 overflow-y-auto p-4 space-y-4"
                 >
-                    <div className="flex items-center justify-between pb-2 border-b border-[#cbd5e1]">
-                        <h2 className="flex items-center gap-1.5 text-xs font-heading font-bold text-[#0f172a]">
-                            <Database className="h-3.5 w-3.5 text-[#004ea1]" aria-hidden="true" />
+                    <div className="flex items-center justify-between pb-2 border-b border-border">
+                        <h2 className="flex items-center gap-1.5 text-xs font-heading font-bold text-foreground">
+                            <Database className="h-3.5 w-3.5 text-primary" aria-hidden="true" />
                             <span>Workspace &amp; Tools</span>
                         </h2>
                     </div>
 
-                    <Card className="border-[#cbd5e1] shadow-2xs">
+                    <Card className="shadow-2xs">
                         <CardHeader className="p-3 pb-2">
                             <CardTitle className="text-xs font-heading">Document Vault</CardTitle>
-                            <CardDescription className="text-xs text-[#334155]">Indexed architectural RFCs</CardDescription>
+                            <CardDescription className="text-xs text-muted-foreground">Indexed architectural RFCs</CardDescription>
                         </CardHeader>
                         <CardContent className="p-3 pt-0">
-                            <p className="text-xs text-[#334155]">Connect knowledge bases and view document chunks in Phase 3.</p>
+                            <p className="text-xs text-muted-foreground">Connect knowledge bases and view document chunks in Phase 3.</p>
                         </CardContent>
                     </Card>
 
-                    <Card className="border-[#cbd5e1] shadow-2xs">
+                    <Card className="shadow-2xs">
                         <CardHeader className="p-3 pb-2">
                             <CardTitle className="text-xs font-heading">Tool Registry</CardTitle>
-                            <CardDescription className="text-xs text-[#334155]">MCP v2 server tools &amp; execution</CardDescription>
+                            <CardDescription className="text-xs text-muted-foreground">MCP v2 server tools &amp; execution</CardDescription>
                         </CardHeader>
                         <CardContent className="p-3 pt-0">
-                            <p className="text-xs text-[#334155]">MCP tool controls and sandbox policies configure in Phase 4 &amp; 5.</p>
+                            <p className="text-xs text-muted-foreground">MCP tool controls and sandbox policies configure in Phase 4 &amp; 5.</p>
                         </CardContent>
                     </Card>
                 </aside>
 
                 {/* 3. Synthesis Canvas (Center) */}
-                <main role="main" aria-label="Active Synthesis Canvas" className="flex-1 flex flex-col overflow-hidden bg-[#f4f5f8]">
+                <main role="main" aria-label="Active Synthesis Canvas" className="flex-1 flex flex-col overflow-hidden bg-background">
                     <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-4">
-                        <div className="flex items-center justify-between bg-white border border-[#cbd5e1] rounded-xl px-4 py-2.5 shadow-2xs">
+                        <div className="flex items-center justify-between bg-card border border-border rounded-xl px-4 py-2.5 shadow-2xs">
                             <div className="flex items-center gap-2 text-xs">
-                                <span className="font-bold text-[#0f172a]">Synthesis Canvas</span>
+                                <span className="font-bold text-foreground">Synthesis Canvas</span>
                                 <Badge variant="soft">Ready</Badge>
                             </div>
                         </div>
 
-                        <Card className="border-[#cbd5e1] bg-white shadow-xs">
+                        <Card className="shadow-xs">
                             <CardHeader className="p-4 pb-2">
-                                <CardTitle className="text-sm font-heading font-bold text-[#0f172a]">Autonomous Systems Intelligence</CardTitle>
-                                <CardDescription className="text-xs text-[#334155]">
+                                <CardTitle className="text-sm font-heading font-bold text-foreground">Autonomous Systems Intelligence</CardTitle>
+                                <CardDescription className="text-xs text-muted-foreground">
                                     Real-time LangGraph agent output, streaming markdown verdicts, and architecture diagrams.
                                 </CardDescription>
                             </CardHeader>
                             <CardContent className="p-4 pt-2">
-                                <div className="p-4 rounded-xl bg-[#f8fafc] border border-[#cbd5e1] text-xs text-[#334155] leading-relaxed">
+                                <div className="p-4 rounded-xl bg-secondary/40 border border-border text-xs text-muted-foreground leading-relaxed">
                                     Canvas active. Awaiting architectural inquiry or simulation trigger.
                                 </div>
                             </CardContent>
                         </Card>
                     </div>
 
-                    <form
-                        onSubmit={handleSubmit}
-                        role="search"
-                        aria-label="Architecture inquiry input"
-                        className="p-4 bg-white border-t border-[#cbd5e1] shrink-0"
-                    >
+                    <form onSubmit={handleSubmit} role="search" aria-label="Architecture inquiry input" className="p-4 bg-card border-t border-border shrink-0">
                         <div className="relative flex items-center">
                             <Input
                                 value={prompt}
                                 onChange={(e) => setPrompt(e.target.value)}
                                 placeholder="Ask architectural question or paste RFC snippet..."
-                                className="pr-24 min-h-[44px] text-xs rounded-xl bg-[#f8fafc] border-[#64748b] focus-visible:bg-white"
+                                className="pr-24 min-h-[44px] text-xs rounded-xl bg-secondary/40 border-border text-foreground focus-visible:bg-card"
                             />
                             <Button
                                 type="submit"
@@ -381,35 +390,35 @@ export default function Home() {
                 <aside
                     role="complementary"
                     aria-label="Agent Telemetry & Observability"
-                    className="w-80 lg:w-84 bg-white border-l border-[#cbd5e1] flex flex-col shrink-0 overflow-y-auto p-4 space-y-4"
+                    className="w-80 lg:w-84 bg-card border-l border-border flex flex-col shrink-0 overflow-y-auto p-4 space-y-4"
                 >
-                    <div className="flex items-center justify-between pb-2 border-b border-[#cbd5e1]">
-                        <h2 className="flex items-center gap-1.5 text-xs font-heading font-bold text-[#0f172a]">
-                            <Activity className="h-3.5 w-3.5 text-[#004ea1]" aria-hidden="true" />
+                    <div className="flex items-center justify-between pb-2 border-b border-border">
+                        <h2 className="flex items-center gap-1.5 text-xs font-heading font-bold text-foreground">
+                            <Activity className="h-3.5 w-3.5 text-primary" aria-hidden="true" />
                             <span>Observability</span>
                         </h2>
                     </div>
 
-                    <Card className="border-[#cbd5e1] shadow-2xs">
+                    <Card className="shadow-2xs">
                         <CardHeader className="p-3 pb-2">
                             <CardTitle className="text-xs font-heading">DAG Telemetry</CardTitle>
-                            <CardDescription className="text-xs text-[#334155]">LangGraph cycle state</CardDescription>
+                            <CardDescription className="text-xs text-muted-foreground">LangGraph cycle state</CardDescription>
                         </CardHeader>
                         <CardContent className="p-3 pt-0">
-                            <p className="text-xs text-[#334155]">Execution graphs and node telemetry activate in Phase 4 &amp; 7.</p>
+                            <p className="text-xs text-muted-foreground">Execution graphs and node telemetry activate in Phase 4 &amp; 7.</p>
                         </CardContent>
                     </Card>
 
-                    <Card className="border-[#cbd5e1] shadow-2xs">
+                    <Card className="shadow-2xs">
                         <CardHeader className="p-3 pb-2">
                             <CardTitle className="text-xs font-heading flex items-center gap-1.5">
-                                <Terminal className="h-3.5 w-3.5 text-[#004ea1]" aria-hidden="true" />
+                                <Terminal className="h-3.5 w-3.5 text-primary" aria-hidden="true" />
                                 <span>Wire Logs</span>
                             </CardTitle>
-                            <CardDescription className="text-xs text-[#334155]">Real-time protocol streaming</CardDescription>
+                            <CardDescription className="text-xs text-muted-foreground">Real-time protocol streaming</CardDescription>
                         </CardHeader>
                         <CardContent className="p-3 pt-0">
-                            <p className="text-xs text-[#334155]">SSE streaming trace logs activate in Phase 7.</p>
+                            <p className="text-xs text-muted-foreground">SSE streaming trace logs activate in Phase 7.</p>
                         </CardContent>
                     </Card>
                 </aside>

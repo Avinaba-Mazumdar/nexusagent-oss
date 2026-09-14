@@ -4,18 +4,18 @@ import { cva, type VariantProps } from 'class-variance-authority';
 import { cn } from '@/lib/utils';
 
 const buttonVariants = cva(
-    'inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-xl text-sm font-semibold transition-all duration-150 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#004182] disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 cursor-pointer active:scale-[0.98]',
+    'inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-xl text-sm font-semibold transition-all duration-150 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 cursor-pointer active:scale-[0.98]',
     {
         variants: {
             variant: {
-                default: 'bg-[#004ea1] text-white shadow-xs hover:bg-[#003673]',
-                dark: 'bg-[#1e232a] text-white shadow-xs hover:bg-[#0a0d12]',
-                soft: 'bg-[#e8f3fc] text-[#004182] border border-[#93c5fd] hover:bg-[#d8ecf9]',
-                secondary: 'bg-[#f1f5f9] text-[#0f172a] border border-[#cbd5e1] hover:bg-[#e2e8f0]',
-                outline: 'border border-[#94a3b8] bg-white text-[#0f172a] shadow-xs hover:bg-[#f8fafc]',
-                ghost: 'hover:bg-[#f1f5f9] text-[#1e293b] hover:text-[#0f172a]',
-                destructive: 'bg-[#991b1b] text-white shadow-xs hover:bg-[#7f1d1d]',
-                link: 'text-[#004ea1] underline-offset-4 hover:underline'
+                default: 'bg-primary text-primary-foreground shadow-xs hover:bg-primary/90',
+                dark: 'bg-[#1e232a] text-white shadow-xs hover:bg-[#0a0d12] dark:bg-slate-800 dark:hover:bg-slate-700',
+                soft: 'bg-accent text-accent-foreground border border-border hover:bg-accent/80',
+                secondary: 'bg-secondary text-secondary-foreground border border-border hover:bg-secondary/80',
+                outline: 'border border-border bg-card text-card-foreground shadow-xs hover:bg-secondary',
+                ghost: 'hover:bg-secondary text-muted-foreground hover:text-foreground',
+                destructive: 'bg-destructive text-destructive-foreground shadow-xs hover:bg-destructive/90',
+                link: 'text-primary underline-offset-4 hover:underline'
             },
             size: {
                 default: 'min-h-[44px] px-4 py-2.5',

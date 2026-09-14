@@ -97,4 +97,58 @@ describe('Home Page - Layout and Header Controls', () => {
 
         global.fetch = originalFetch;
     });
+
+    it('toggles dark theme and persists choice in localStorage', async () => {
+        const mockGuestResponse = {
+            user: {
+                id: '22222222-2222-2222-2222-222222222222',
+                email: null,
+                name: 'Guest Tester',
+                avatarUrl: null,
+                isGuest: true,
+                createdAt: '2026-09-13T00:00:00Z',
+                lastSeenAt: '2026-09-13T00:00:00Z'
+            },
+            tokens: {
+                accessToken: 'mock.jwt.token',
+                tokenType: 'bearer',
+                expiresIn: 86400
+            },
+            quotaRemaining: 5,
+            bucketCapacity: 5
+        };
+
+        const originalFetch = global.fetch;
+        global.fetch = vi.fn().mockResolvedValue({
+            ok: true,
+            json: async () => mockGuestResponse
+        } as unknown as Response);
+
+        const user = userEvent.setup();
+        render(<Home />);
+
+        // Login guest
+        await user.click(screen.getByRole('button', { name: /sign in/i }));
+        await user.click(screen.getByRole('button', { name: /guest sign in/i }));
+
+        // Open profile popover
+        const profileBtn = await screen.findByRole('button', { name: /user profile menu/i });
+        await user.click(profileBtn);
+
+        // Find theme switch
+        const themeSwitch = screen.getByRole('switch', { name: /toggle dark mode theme/i });
+        expect(themeSwitch).toBeInTheDocument();
+
+        // Toggle on -> dark class added & stored
+        await user.click(themeSwitch);
+        expect(document.documentElement.classList.contains('dark')).toBe(true);
+        expect(localStorage.getItem('nexusagent_theme')).toBe('dark');
+
+        // Toggle off -> dark class removed & light stored
+        await user.click(themeSwitch);
+        expect(document.documentElement.classList.contains('dark')).toBe(false);
+        expect(localStorage.getItem('nexusagent_theme')).toBe('light');
+
+        global.fetch = originalFetch;
+    });
 });

@@ -34,7 +34,7 @@ interface AuthState {
     loginGuest: () => Promise<boolean>;
     loginGoogle: (credential: string) => Promise<boolean>;
     logout: () => void;
-    initAuth: () => void;
+    initAuth: () => Promise<void>;
 }
 
 export const useAuthStore = create<AuthState>((set) => ({
@@ -49,26 +49,56 @@ export const useAuthStore = create<AuthState>((set) => ({
 
     setIsGoogleLoading: (isGoogleLoading: boolean) => set({ isGoogleLoading }),
 
-    initAuth: () => {
+    initAuth: async () => {
         if (typeof window === 'undefined') return;
         try {
             const token = localStorage.getItem(STORAGE_KEY_TOKEN);
             const userStr = localStorage.getItem(STORAGE_KEY_USER);
             const quota = localStorage.getItem(STORAGE_KEY_QUOTA);
 
-            if (token && userStr) {
-                const user = JSON.parse(userStr) as UserSession;
-                set({
-                    token,
-                    user,
-                    quotaRemaining: quota ? parseInt(quota, 10) : 5
+            if (!token || !userStr) {
+                return;
+            }
+
+            const user = JSON.parse(userStr) as UserSession;
+            set({
+                token,
+                user,
+                quotaRemaining: quota ? parseInt(quota, 10) : 5
+            });
+
+            // Server-side session validation against Neon PostgreSQL
+            try {
+                const res = await fetch(`${API_BASE}/api/auth/me`, {
+                    headers: {
+                        Authorization: `Bearer ${token}`
+                    }
                 });
+
+                if (res.ok) {
+                    const data = await res.json();
+                    const validatedUser = data.user;
+                    const validatedQuota = data.quota?.tokensRemaining ?? 5;
+                    const validatedCapacity = data.quota?.bucketCapacity ?? 5;
+
+                    localStorage.setItem(STORAGE_KEY_USER, JSON.stringify(validatedUser));
+                    localStorage.setItem(STORAGE_KEY_QUOTA, validatedQuota.toString());
+
+                    set({
+                        user: validatedUser,
+                        quotaRemaining: validatedQuota,
+                        bucketCapacity: validatedCapacity
+                    });
+                } else if (res.status === 401 || res.status === 403 || res.status === 404) {
+                    // Stale session: record deleted from database or token revoked
+                    useAuthStore.getState().logout();
+                }
+            } catch {
+                // Network unreachable; retain cached session for offline resilience
             }
         } catch {
-            // Storage access failed or JSON invalid, fallback to empty
-            localStorage.removeItem(STORAGE_KEY_TOKEN);
-            localStorage.removeItem(STORAGE_KEY_USER);
-            localStorage.removeItem(STORAGE_KEY_QUOTA);
+            // Storage access failed or JSON invalid, fallback to logged out
+            useAuthStore.getState().logout();
         }
     },
 

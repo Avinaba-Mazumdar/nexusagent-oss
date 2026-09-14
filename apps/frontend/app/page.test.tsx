@@ -151,4 +151,37 @@ describe('Home Page - Layout and Header Controls', () => {
 
         global.fetch = originalFetch;
     });
+
+    it('invalidates stale session when server returns 401 on init', async () => {
+        localStorage.setItem('nexusagent_token', 'stale.jwt.token');
+        localStorage.setItem(
+            'nexusagent_user',
+            JSON.stringify({
+                id: '33333333-3333-3333-3333-333333333333',
+                email: 'deleted@nexusagent.internal',
+                name: 'Deleted User',
+                avatarUrl: null,
+                isGuest: false,
+                createdAt: '2026-09-13T00:00:00Z',
+                lastSeenAt: '2026-09-13T00:00:00Z'
+            })
+        );
+        localStorage.setItem('nexusagent_quota', '25');
+
+        const originalFetch = global.fetch;
+        global.fetch = vi.fn().mockResolvedValue({
+            ok: false,
+            status: 401,
+            json: async () => ({ detail: 'User not found' })
+        } as unknown as Response);
+
+        render(<Home />);
+
+        // Should revert to logged-out state with Sign In button visible
+        expect(await screen.findByRole('button', { name: /sign in/i })).toBeInTheDocument();
+        expect(screen.queryByRole('button', { name: /user profile menu/i })).not.toBeInTheDocument();
+        expect(localStorage.getItem('nexusagent_token')).toBeNull();
+
+        global.fetch = originalFetch;
+    });
 });

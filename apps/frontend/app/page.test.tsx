@@ -77,7 +77,14 @@ describe('Home Page - Layout and Header Controls', () => {
         const guestButton = screen.getByRole('button', { name: /guest sign in/i });
         await user.click(guestButton);
 
-        // Header shows user name and quota
+        // Header shows avatar button
+        const profileBtn = await screen.findByRole('button', { name: /user profile menu/i });
+        expect(profileBtn).toBeInTheDocument();
+
+        // Click Avatar to open Popover
+        await user.click(profileBtn);
+
+        // Popover shows user name and quota
         expect(await screen.findByText('Guest Architect #111111')).toBeInTheDocument();
         expect(screen.getByText('5/5 Quota')).toBeInTheDocument();
 
@@ -86,7 +93,7 @@ describe('Home Page - Layout and Header Controls', () => {
         await user.click(signOutButton);
 
         expect(await screen.findByRole('button', { name: /sign in/i })).toBeInTheDocument();
-        expect(screen.queryByText('Guest Architect #111111')).not.toBeInTheDocument();
+        expect(screen.queryByRole('button', { name: /user profile menu/i })).not.toBeInTheDocument();
 
         global.fetch = originalFetch;
     });

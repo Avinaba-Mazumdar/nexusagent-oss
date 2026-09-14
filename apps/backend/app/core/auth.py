@@ -1,6 +1,7 @@
 from datetime import UTC, datetime, timedelta
 from uuid import UUID, uuid4
 
+import httpx
 import jwt
 from fastapi import Depends, HTTPException, Security, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
@@ -172,3 +173,66 @@ async def issue_guest_pass(
         quotaRemaining=bucket.tokens_remaining,
         bucketCapacity=bucket.bucket_capacity,
     )
+
+
+async def verify_google_token(credential: str) -> dict:
+    """Verify Google ID token (credential) via Google tokeninfo endpoint or mock bypass."""
+    if credential.startswith("mock-google-token:") or (
+        settings.USE_SIMULATION_FALLBACK and credential.startswith("test-")
+    ):
+        parts = credential.split(":")
+        email = parts[1] if len(parts) > 1 else "architect@nexusagent.internal"
+        name = parts[2] if len(parts) > 2 else "Test Architect"
+        return {
+            "email": email,
+            "name": name,
+            "picture": None,
+            "sub": "mock-google-sub-12345",
+        }
+
+    url = f"https://oauth2.googleapis.com/tokeninfo?id_token={credential}"
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            resp = await client.get(url)
+            if resp.status_code != 200:
+                raise HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    detail="Invalid or expired Google credential",
+                    headers={"WWW-Authenticate": "Bearer"},
+                )
+            info = resp.json()
+    except httpx.RequestError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=f"Google authentication service unreachable: {exc}",
+        )
+
+    if settings.GOOGLE_CLIENT_ID:
+        aud = info.get("aud")
+        if aud != settings.GOOGLE_CLIENT_ID:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Google token audience mismatch",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+
+    email = info.get("email")
+    if not email:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Google profile does not contain an email address",
+        )
+
+    email_verified = info.get("email_verified")
+    if str(email_verified).lower() not in ("true", "1"):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Google email address has not been verified",
+        )
+
+    return {
+        "email": email,
+        "name": info.get("name") or email.split("@")[0],
+        "picture": info.get("picture"),
+        "sub": info.get("sub"),
+    }

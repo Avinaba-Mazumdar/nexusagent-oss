@@ -43,3 +43,7 @@ export interface RegisterRequest {
     password: string;
     name: string;
 }
+
+export interface GoogleAuthRequest {
+    credential: string;
+}

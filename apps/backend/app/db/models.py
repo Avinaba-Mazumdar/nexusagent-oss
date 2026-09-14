@@ -158,6 +158,10 @@ class RegisterRequest(BaseModel):
     name: str
 
 
+class GoogleAuthRequest(BaseModel):
+    credential: str
+
+
 class TokenResponse(BaseModel):
     accessToken: str
     tokenType: str = "bearer"

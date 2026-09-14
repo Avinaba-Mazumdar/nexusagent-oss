@@ -10,9 +10,11 @@ from app.core.auth import (
     hash_password,
     issue_guest_pass,
     user_to_session,
+    verify_google_token,
     verify_password,
 )
 from app.db.models import (
+    GoogleAuthRequest,
     GuestPassRequest,
     GuestPassResponse,
     LoginRequest,
@@ -113,6 +115,42 @@ async def login(
 
     token_str, expires_in = create_access_token(
         data={"sub": str(user.id), "role": "user", "is_guest": user.is_guest},
+        expires_delta=timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES),
+    )
+
+    return TokenResponse(
+        accessToken=token_str,
+        tokenType="bearer",
+        expiresIn=expires_in,
+        user=user_to_session(user),
+    )
+
+
+@router.post("/google", response_model=TokenResponse)
+async def google_auth(
+    payload: GoogleAuthRequest,
+    request: Request,
+    db: NeonDatabase = Depends(get_db),
+):
+    """Authenticate or register user via verified Google ID token."""
+    google_profile = await verify_google_token(payload.credential)
+
+    client_ip = get_client_ip(request)
+    user = await db.upsert_google_user(
+        email=google_profile["email"],
+        name=google_profile["name"],
+        avatar_url=google_profile.get("picture"),
+        client_ip=client_ip,
+    )
+
+    await db.get_or_create_rate_limit(
+        user_id=user.id,
+        client_ip=client_ip,
+        default_tokens=25,
+    )
+
+    token_str, expires_in = create_access_token(
+        data={"sub": str(user.id), "role": "user", "is_guest": False},
         expires_delta=timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES),
     )
 

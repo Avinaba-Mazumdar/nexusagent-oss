@@ -1,6 +1,6 @@
 import logging
 from datetime import UTC, datetime
-from uuid import UUID
+from uuid import UUID, uuid4
 
 import asyncpg
 from pgvector.asyncpg import register_vector
@@ -97,6 +97,40 @@ class NeonDatabase:
         async with self.pool.acquire() as conn:
             row = await conn.fetchrow(query, email)
             return User(**dict(row)) if row else None
+
+    async def upsert_google_user(
+        self,
+        email: str,
+        name: str,
+        avatar_url: str | None = None,
+        client_ip: str | None = None,
+    ) -> User:
+        """Upsert Google OAuth verified user and ensure is_guest is False."""
+        if not self.pool:
+            raise RuntimeError("Neon database is not connected.")
+        now = datetime.now(UTC)
+        query = """
+            INSERT INTO users (id, email, name, avatar_url, is_guest, client_ip, created_at, last_seen_at)
+            VALUES ($1, $2, $3, $4, FALSE, $5, $6, $6)
+            ON CONFLICT (email) DO UPDATE
+            SET name = EXCLUDED.name,
+                avatar_url = COALESCE(EXCLUDED.avatar_url, users.avatar_url),
+                is_guest = FALSE,
+                client_ip = COALESCE(EXCLUDED.client_ip, users.client_ip),
+                last_seen_at = EXCLUDED.last_seen_at
+            RETURNING id, email, hashed_password, name, avatar_url, is_guest, client_ip, device_id, created_at, last_seen_at;
+        """
+        async with self.pool.acquire() as conn:
+            row = await conn.fetchrow(
+                query,
+                uuid4(),
+                email.lower().strip(),
+                name.strip(),
+                avatar_url,
+                client_ip,
+                now,
+            )
+            return User(**dict(row))
 
     async def get_guest_by_device_id(self, device_id: str) -> User | None:
         """Fetch active guest user by unique persistent client device ID."""

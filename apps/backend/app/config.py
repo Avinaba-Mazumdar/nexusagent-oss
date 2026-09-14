@@ -30,6 +30,7 @@ class Settings(BaseSettings):
     OPENAI_API_KEY: str = ""
     ANTHROPIC_API_KEY: str = ""
     GEMINI_API_KEY: str = ""
+    GOOGLE_CLIENT_ID: str = ""
     USE_SIMULATION_FALLBACK: bool = True
 
     model_config = SettingsConfigDict(

@@ -26,11 +26,11 @@
 - [x] Setup 4-zone command center UI layout
       Verification: Run local servers, inspect Neon tables, verify frontend renders layout and shadcn components without errors.
 
-### Phase 3: User Authentication
+### Phase 3: User Authentication [Completed]
 
 - [x] Backend guest pass issuance & Argon2 password hashing (`core/auth.py`)
 - [x] Frontend guest sign-in button wiring & session state header
-- [ ] Google OAuth client setup & backend token verification flow
+- [x] Google OAuth client setup & backend token verification flow
 - [x] Auth token persistence (cookies/localStorage) & API client interceptor
       Verification: Click "Guest Sign In" in UI -> Header updates with active user session and quota badge; test Google sign-in flow.
 

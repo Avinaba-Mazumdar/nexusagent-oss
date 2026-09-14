@@ -148,3 +148,40 @@ async def test_unauthorized_access():
             "/api/auth/me", headers={"Authorization": "Bearer invalid_garbage_token"}
         )
         assert resp_bad.status_code == 401
+
+
+@pytest.mark.asyncio
+async def test_google_oauth_endpoint():
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
+        # 1. Valid Google OAuth authentication
+        mock_cred = "mock-google-token:google.lead@distributed.io:Senior Google Architect"
+        resp = await client.post("/api/auth/google", json={"credential": mock_cred})
+        assert resp.status_code == 200
+        data = resp.json()
+
+        assert "accessToken" in data
+        assert data["tokenType"] == "bearer"
+        assert data["user"]["email"] == "google.lead@distributed.io"
+        assert data["user"]["name"] == "Senior Google Architect"
+        assert data["user"]["isGuest"] is False
+
+        # 2. Check /me with returned JWT token
+        token = data["accessToken"]
+        me_resp = await client.get("/api/auth/me", headers={"Authorization": f"Bearer {token}"})
+        assert me_resp.status_code == 200
+        me_data = me_resp.json()
+        assert me_data["user"]["email"] == "google.lead@distributed.io"
+        assert me_data["quota"]["bucketCapacity"] == 25
+
+        # 3. Repeat authentication with updated name (upsert verification)
+        updated_cred = "mock-google-token:google.lead@distributed.io:Principal Google Architect"
+        upsert_resp = await client.post("/api/auth/google", json={"credential": updated_cred})
+        assert upsert_resp.status_code == 200
+        upsert_data = upsert_resp.json()
+        assert upsert_data["user"]["email"] == "google.lead@distributed.io"
+        assert upsert_data["user"]["name"] == "Principal Google Architect"
+
+        # 4. Invalid credential returns 401
+        bad_resp = await client.post("/api/auth/google", json={"credential": "invalid_raw_token_xyz"})
+        assert bad_resp.status_code == 401

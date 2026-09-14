@@ -27,8 +27,12 @@ interface AuthState {
     quotaRemaining: number;
     bucketCapacity: number;
     isLoading: boolean;
+    isGuestLoading: boolean;
+    isGoogleLoading: boolean;
     error: string | null;
+    setIsGoogleLoading: (loading: boolean) => void;
     loginGuest: () => Promise<boolean>;
+    loginGoogle: (credential: string) => Promise<boolean>;
     logout: () => void;
     initAuth: () => void;
 }
@@ -39,7 +43,11 @@ export const useAuthStore = create<AuthState>((set) => ({
     quotaRemaining: 5,
     bucketCapacity: 5,
     isLoading: false,
+    isGuestLoading: false,
+    isGoogleLoading: false,
     error: null,
+
+    setIsGoogleLoading: (isGoogleLoading: boolean) => set({ isGoogleLoading }),
 
     initAuth: () => {
         if (typeof window === 'undefined') return;
@@ -65,7 +73,7 @@ export const useAuthStore = create<AuthState>((set) => ({
     },
 
     loginGuest: async () => {
-        set({ isLoading: true, error: null });
+        set({ isGuestLoading: true, isLoading: true, error: null });
         try {
             const deviceId = getOrCreateDeviceId();
             const res = await fetch(`${API_BASE}/api/auth/guest`, {
@@ -95,13 +103,57 @@ export const useAuthStore = create<AuthState>((set) => ({
                 user,
                 quotaRemaining,
                 bucketCapacity,
+                isGuestLoading: false,
                 isLoading: false,
                 error: null
             });
             return true;
         } catch (err) {
             const message = err instanceof Error ? err.message : 'Unknown error during guest sign-in';
-            set({ isLoading: false, error: message });
+            set({ isGuestLoading: false, isLoading: false, error: message });
+            return false;
+        }
+    },
+
+    loginGoogle: async (credential: string) => {
+        set({ isGoogleLoading: true, isLoading: true, error: null });
+        try {
+            const res = await fetch(`${API_BASE}/api/auth/google`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ credential })
+            });
+
+            if (!res.ok) {
+                const errorData = await res.json().catch(() => null);
+                throw new Error(errorData?.detail || `Failed Google authentication: ${res.statusText}`);
+            }
+
+            const data = await res.json();
+            const token = data.accessToken;
+            const user = data.user;
+            const quotaRemaining = 25;
+            const bucketCapacity = 25;
+
+            if (typeof window !== 'undefined') {
+                localStorage.setItem(STORAGE_KEY_TOKEN, token);
+                localStorage.setItem(STORAGE_KEY_USER, JSON.stringify(user));
+                localStorage.setItem(STORAGE_KEY_QUOTA, quotaRemaining.toString());
+            }
+
+            set({
+                token,
+                user,
+                quotaRemaining,
+                bucketCapacity,
+                isGoogleLoading: false,
+                isLoading: false,
+                error: null
+            });
+            return true;
+        } catch (err) {
+            const message = err instanceof Error ? err.message : 'Unknown error during Google sign-in';
+            set({ isGoogleLoading: false, isLoading: false, error: message });
             return false;
         }
     },
@@ -117,6 +169,9 @@ export const useAuthStore = create<AuthState>((set) => ({
             token: null,
             quotaRemaining: 5,
             bucketCapacity: 5,
+            isGuestLoading: false,
+            isGoogleLoading: false,
+            isLoading: false,
             error: null
         });
     }

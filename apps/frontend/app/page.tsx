@@ -44,26 +44,46 @@ export default function Home() {
         }
     }, [initAuth]);
 
+    const gsiInitializedRef = React.useRef(false);
+    const handleCredentialRef = React.useRef<((credential: string) => Promise<void>) | null>(null);
+
+    handleCredentialRef.current = async (credential: string) => {
+        setIsGoogleLoading(true);
+        const ok = await loginGoogle(credential);
+        setIsGoogleLoading(false);
+        if (ok) setDialogOpen(false);
+    };
+
+    const initGsi = React.useCallback(() => {
+        if (gsiInitializedRef.current || !googleClientId) return;
+        const google = (window as unknown as { google?: { accounts?: { id?: { initialize: Function; renderButton: Function } } } })?.google;
+        if (!google?.accounts?.id) return;
+
+        try {
+            google.accounts.id.initialize({
+                client_id: googleClientId,
+                callback: (response: { credential?: string }) => {
+                    if (response?.credential && handleCredentialRef.current) {
+                        void handleCredentialRef.current(response.credential);
+                    }
+                }
+            });
+            gsiInitializedRef.current = true;
+        } catch {
+            // Graceful fallback
+        }
+    }, [googleClientId]);
+
     const renderGoogleButton = React.useCallback(
         (container: HTMLDivElement | null) => {
-            if (!container) return;
+            if (!container || !googleClientId) return;
             const google = (window as unknown as { google?: { accounts?: { id?: { initialize: Function; renderButton: Function } } } })?.google;
-            if (!google?.accounts?.id || !googleClientId) return;
+            if (!google?.accounts?.id) return;
+
+            initGsi();
 
             try {
                 container.innerHTML = '';
-                google.accounts.id.initialize({
-                    client_id: googleClientId,
-                    callback: async (response: { credential?: string }) => {
-                        if (response?.credential) {
-                            setIsGoogleLoading(true);
-                            const ok = await loginGoogle(response.credential);
-                            setIsGoogleLoading(false);
-                            if (ok) setDialogOpen(false);
-                        }
-                    }
-                });
-
                 google.accounts.id.renderButton(container, {
                     theme: 'outline',
                     size: 'large',
@@ -75,7 +95,7 @@ export default function Home() {
                 // Graceful fallback
             }
         },
-        [googleClientId, loginGoogle, setIsGoogleLoading]
+        [googleClientId, initGsi]
     );
 
     const handleSubmit = (e: React.FormEvent) => {

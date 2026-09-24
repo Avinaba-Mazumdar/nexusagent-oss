@@ -117,6 +117,24 @@ async def get_current_user(
     return user
 
 
+async def get_current_user_optional(
+    credentials: HTTPAuthorizationCredentials | None = Security(security_bearer),
+    db: NeonDatabase = Depends(get_db),
+) -> User | None:
+    """Optional user extractor for endpoints supporting anonymous or BYOK sessions."""
+    if not credentials:
+        return None
+    try:
+        payload = decode_access_token(credentials.credentials)
+        user_id_str = payload.get("sub")
+        if not user_id_str:
+            return None
+        return await db.get_user_by_id(UUID(user_id_str))
+    except Exception:
+        return None
+
+
+
 async def issue_guest_pass(
     db: NeonDatabase, client_ip: str, device_id: str | None = None
 ) -> GuestPassResponse:

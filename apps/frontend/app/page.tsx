@@ -2,7 +2,7 @@
 
 import * as React from 'react';
 import Script from 'next/script';
-import { Activity, Database, Loader2, LogIn, LogOut, Moon, Send, Sun, Terminal, User } from 'lucide-react';
+import { Bot, Briefcase, Database, FileText, KeyRound, Loader2, LogIn, LogOut, Moon, Send, Sparkles, Sun, UploadCloud, User } from 'lucide-react';
 import { NexusLogo } from '@/components/icons';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
@@ -13,6 +13,25 @@ import { Input } from '@/components/ui/input';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Switch } from '@/components/ui/switch';
 import { useAuthStore } from '@/lib/auth-store';
+import { HireMeModal } from '@/components/hire-me-modal';
+import { ByokModal } from '@/components/byok-modal';
+import { ObservabilityPanel, type LogEntry, type TelemetryMetrics } from '@/components/observability-panel';
+
+interface ChatItem {
+    id: string;
+    role: 'user' | 'assistant';
+    content: string;
+    citations?: string[];
+}
+
+interface SeededDoc {
+    id: string;
+    filename: string;
+    total_chunks: number;
+    uploaded_at?: string;
+}
+
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
 export default function Home() {
     const [prompt, setPrompt] = React.useState('');
@@ -20,8 +39,54 @@ export default function Home() {
     const [popoverOpen, setPopoverOpen] = React.useState(false);
     const [isDarkTheme, setIsDarkTheme] = React.useState(false);
     const [, setGisLoaded] = React.useState(false);
-    const { user, quotaRemaining, bucketCapacity, isGuestLoading, isGoogleLoading, setIsGoogleLoading, error, loginGuest, loginGoogle, logout, initAuth } =
-        useAuthStore();
+    const [hireMeModalOpen, setHireMeModalOpen] = React.useState(false);
+    const [byokModalOpen, setByokModalOpen] = React.useState(false);
+    const [seededDocs, setSeededDocs] = React.useState<SeededDoc[]>([]);
+    const [isStreaming, setIsStreaming] = React.useState(false);
+    const [messages, setMessages] = React.useState<ChatItem[]>([]);
+
+    const [metrics, setMetrics] = React.useState<TelemetryMetrics>({
+        activeModel: 'gemini-2.5-flash',
+        promptTokens: 0,
+        completionTokens: 0,
+        totalTokens: 0,
+        latencyMs: 0,
+        rpmRemaining: 15,
+        isByok: false
+    });
+
+    const [logs, setLogs] = React.useState<LogEntry[]>([
+        {
+            id: 'init-1',
+            timestamp: new Date().toLocaleTimeString(),
+            stage: 'ROUTER',
+            message: 'Initialized model cascade gateway: gemini-2.5-flash primary (15 RPM ceiling)'
+        },
+        {
+            id: 'init-2',
+            timestamp: new Date().toLocaleTimeString(),
+            stage: 'RAG',
+            message: 'Connected Neon pgvector index (benchlm, openrouter, cursorbench)'
+        }
+    ]);
+
+    const {
+        user,
+        token,
+        quotaRemaining,
+        bucketCapacity,
+        isGuestLoading,
+        isGoogleLoading,
+        setIsGoogleLoading,
+        error,
+        byokKey,
+        byokProvider,
+        loginGuest,
+        loginGoogle,
+        logout,
+        initAuth,
+        setQuotaRemaining
+    } = useAuthStore();
 
     const googleClientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || '';
 
@@ -43,6 +108,31 @@ export default function Home() {
             }
         }
     }, [initAuth]);
+
+    // Fetch seeded benchmark documents on mount
+    React.useEffect(() => {
+        async function fetchDocs() {
+            try {
+                const res = await fetch(`${API_BASE}/api/chat/documents`);
+                if (res.ok) {
+                    const data = await res.json();
+                    if (data.documents) {
+                        setSeededDocs(data.documents);
+                    }
+                }
+            } catch {
+                // Fallback docs
+                setSeededDocs([
+                    { id: '1', filename: 'benchlm_evals.md', total_chunks: 5 },
+                    { id: '2', filename: 'cursor_bench.md', total_chunks: 4 },
+                    { id: '3', filename: 'openrouter_metrics.md', total_chunks: 5 },
+                    { id: '4', filename: 'leaks_rumours.md', total_chunks: 11 },
+                    { id: '5', filename: 'artificial_analysis.md', total_chunks: 4 }
+                ]);
+            }
+        }
+        fetchDocs();
+    }, []);
 
     const gsiInitializedRef = React.useRef(false);
     const handleCredentialRef = React.useRef<((credential: string) => Promise<void>) | null>(null);
@@ -98,14 +188,132 @@ export default function Home() {
         [googleClientId, initGsi]
     );
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+        const query = prompt.trim();
+        if (!query || isStreaming) return;
+
+        // Check if demo quota is exhausted and not BYOK
+        if (!byokKey && quotaRemaining <= 0) {
+            setHireMeModalOpen(true);
+            return;
+        }
+
+        const userMsgId = `u-${Date.now()}`;
+        const assistantMsgId = `a-${Date.now()}`;
+
+        setMessages((prev) => [...prev, { id: userMsgId, role: 'user', content: query }, { id: assistantMsgId, role: 'assistant', content: '' }]);
         setPrompt('');
+        setIsStreaming(true);
+
+        const addLog = (stage: LogEntry['stage'], message: string) => {
+            setLogs((prev) => [
+                ...prev,
+                {
+                    id: `log-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+                    timestamp: new Date().toLocaleTimeString(),
+                    stage,
+                    message
+                }
+            ]);
+        };
+
+        try {
+            const headers: Record<string, string> = {
+                'Content-Type': 'application/json'
+            };
+            if (token) {
+                headers['Authorization'] = `Bearer ${token}`;
+            }
+            if (byokKey) {
+                headers['X-User-API-Key'] = byokKey;
+                headers['X-User-Provider'] = byokProvider;
+            }
+
+            const res = await fetch(`${API_BASE}/api/chat`, {
+                method: 'POST',
+                headers,
+                body: JSON.stringify({
+                    message: query,
+                    byok_key: byokKey || undefined,
+                    byok_provider: byokProvider
+                })
+            });
+
+            if (res.status === 429) {
+                const errJson = await res.json().catch(() => null);
+                const detail = errJson?.detail || 'Demo rate limit reached. Bring your own key or contact for custom build.';
+                setMessages((prev) => prev.map((m) => (m.id === assistantMsgId ? { ...m, content: `⚠️ ${detail}` } : m)));
+                addLog('ROUTER', '429 RateLimitExceeded: Free-tier bucket exhausted.');
+                setIsStreaming(false);
+                return;
+            }
+
+            if (!res.ok || !res.body) {
+                throw new Error(`Chat error (${res.statusText})`);
+            }
+
+            // Decrement remaining quota if not BYOK
+            if (!byokKey && quotaRemaining > 0) {
+                setQuotaRemaining(quotaRemaining - 1);
+            }
+
+            const reader = res.body.getReader();
+            const decoder = new TextDecoder();
+            let accumulatedText = '';
+
+            while (true) {
+                const { done, value } = await reader.read();
+                if (done) break;
+
+                const textChunk = decoder.decode(value, { stream: true });
+                const lines = textChunk.split('\n');
+
+                for (const line of lines) {
+                    if (line.startsWith('data: ')) {
+                        try {
+                            const data = JSON.parse(line.slice(6));
+                            if (data.stage === 'ROUTER') {
+                                addLog('ROUTER', data.message);
+                                setMetrics((m) => ({ ...m, activeModel: data.model, isByok: Boolean(data.isByok) }));
+                            } else if (data.stage === 'RAG') {
+                                addLog('RAG', data.message);
+                            } else if (data.stage === 'INFERENCE') {
+                                addLog('INFERENCE', data.message);
+                            } else if (data.stage === 'STREAM' && data.token) {
+                                accumulatedText += data.token;
+                                setMessages((prev) => prev.map((m) => (m.id === assistantMsgId ? { ...m, content: accumulatedText } : m)));
+                            } else if (data.stage === 'METRICS') {
+                                setMetrics((m) => ({
+                                    ...m,
+                                    promptTokens: data.promptTokens,
+                                    completionTokens: data.completionTokens,
+                                    totalTokens: data.totalTokens,
+                                    latencyMs: data.latencyMs,
+                                    activeModel: data.activeModel,
+                                    isByok: data.isByok
+                                }));
+                                addLog('STREAM', `Completed: ${data.totalTokens} tokens burned in ${data.latencyMs}ms (${data.activeModel})`);
+                            }
+                        } catch {
+                            // Non-JSON line or keep-alive
+                        }
+                    }
+                }
+            }
+        } catch (err: any) {
+            const errorText = err?.message || 'Failed to connect to inference stream.';
+            setMessages((prev) => prev.map((m) => (m.id === assistantMsgId ? { ...m, content: `Error: ${errorText}` } : m)));
+            addLog('STREAM', `Error: ${errorText}`);
+        } finally {
+            setIsStreaming(false);
+        }
     };
 
     return (
         <div className="h-screen flex flex-col bg-background text-foreground font-sans overflow-hidden">
             <Script src="https://accounts.google.com/gsi/client" strategy="afterInteractive" onLoad={() => setGisLoaded(true)} />
+
             {/* 1. Header */}
             <header
                 role="banner"
@@ -119,7 +327,21 @@ export default function Home() {
                     </div>
                 </div>
 
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2.5">
+                    {/* BYOK CTA Button */}
+                    <Button
+                        variant={byokKey ? 'default' : 'outline'}
+                        size="sm"
+                        onClick={() => setByokModalOpen(true)}
+                        className={`text-xs font-semibold gap-1.5 rounded-xl border-border h-9 ${
+                            byokKey ? 'bg-primary text-primary-foreground shadow-xs' : 'hover:bg-secondary'
+                        }`}
+                        title="Bring Your Own API Key"
+                    >
+                        <KeyRound className="h-3.5 w-3.5" />
+                        <span>{byokKey ? 'BYOK Active' : 'Bring Your Own Key'}</span>
+                    </Button>
+
                     {user ? (
                         <Popover open={popoverOpen} onOpenChange={setPopoverOpen}>
                             <PopoverTrigger asChild>
@@ -144,7 +366,7 @@ export default function Home() {
                                 </button>
                             </PopoverTrigger>
                             <PopoverContent align="end" className="w-80 p-4 rounded-2xl shadow-xl border-border bg-popover text-popover-foreground">
-                                {/* 1. Name / Email / Guest ID */}
+                                {/* User Info */}
                                 <div className="flex items-center gap-3 pb-3 border-b border-border">
                                     <Avatar className="h-10 w-10 border border-border shrink-0">
                                         {user.avatarUrl ? <AvatarImage src={user.avatarUrl} alt={user.name} /> : null}
@@ -172,7 +394,7 @@ export default function Home() {
                                     </div>
                                 </div>
 
-                                {/* 2. Quota */}
+                                {/* Quota Section */}
                                 <div className="py-3 border-b border-border space-y-1.5">
                                     <div className="flex items-center justify-between text-xs">
                                         <span className="font-medium text-muted-foreground">API Quota</span>
@@ -189,7 +411,7 @@ export default function Home() {
                                     <p className="text-[10px] text-muted-foreground">Hourly token replenishment enabled</p>
                                 </div>
 
-                                {/* 3. Theme */}
+                                {/* Theme Switch */}
                                 <div className="py-3 border-b border-border flex items-center justify-between">
                                     <div className="flex items-center gap-2">
                                         {isDarkTheme ? (
@@ -217,7 +439,7 @@ export default function Home() {
                                     />
                                 </div>
 
-                                {/* 4. Sign Out */}
+                                {/* Sign Out */}
                                 <div className="pt-3">
                                     <Button
                                         variant="outline"
@@ -248,7 +470,7 @@ export default function Home() {
                                     <DialogDescription className="text-xs">Sign in to your account or continue as a guest.</DialogDescription>
                                 </DialogHeader>
                                 <div className="flex flex-col gap-2.5 pt-2">
-                                    {/* Google Sign In with matching rounded-xl border radius and dedicated loading state */}
+                                    {/* Google Sign In */}
                                     <div className="relative w-full">
                                         <Button
                                             type="button"
@@ -288,7 +510,6 @@ export default function Home() {
                                             <span>{isGoogleLoading ? 'Signing in with Google...' : 'Google Sign In'}</span>
                                         </Button>
 
-                                        {/* Invisible Google GIS button overlay — triggers native popup on click while preserving our custom rounded-xl button */}
                                         {!isGoogleLoading && (
                                             <div
                                                 ref={renderGoogleButton}
@@ -298,7 +519,7 @@ export default function Home() {
                                         )}
                                     </div>
 
-                                    {/* Guest Sign In button with dedicated isGuestLoading state */}
+                                    {/* Guest Sign In */}
                                     <Button
                                         variant="secondary"
                                         disabled={isGuestLoading || isGoogleLoading}
@@ -338,17 +559,52 @@ export default function Home() {
                         </h2>
                     </div>
 
-                    <Card className="shadow-2xs">
+                    {/* Document Vault with Seeded Documents */}
+                    <Card className="shadow-2xs border-border">
                         <CardHeader className="p-3 pb-2">
-                            <CardTitle className="text-xs font-heading">Document Vault</CardTitle>
-                            <CardDescription className="text-xs text-muted-foreground">Indexed architectural RFCs</CardDescription>
+                            <div className="flex items-center justify-between">
+                                <CardTitle className="text-xs font-heading">Document Vault</CardTitle>
+                                <Badge variant="soft" className="text-[10px] font-mono">
+                                    {seededDocs.length} Seeded
+                                </Badge>
+                            </div>
+                            <CardDescription className="text-xs text-muted-foreground">Pre-indexed AI benchmarks (Neon pgvector)</CardDescription>
                         </CardHeader>
-                        <CardContent className="p-3 pt-0">
-                            <p className="text-xs text-muted-foreground">Connect knowledge bases and view document chunks in Phase 3.</p>
+                        <CardContent className="p-3 pt-0 space-y-2">
+                            <div className="space-y-1.5 max-h-[140px] overflow-y-auto">
+                                {seededDocs.map((doc) => (
+                                    <div
+                                        key={doc.id}
+                                        className="flex items-center justify-between p-2 rounded-lg bg-secondary/40 border border-border/70 text-[11px]"
+                                    >
+                                        <div className="flex items-center gap-1.5 truncate">
+                                            <FileText className="h-3.5 w-3.5 text-primary shrink-0" />
+                                            <span className="truncate font-mono text-foreground">{doc.filename}</span>
+                                        </div>
+                                        <Badge variant="outline" className="text-[9px] px-1 py-0 shrink-0">
+                                            {doc.total_chunks} chunks
+                                        </Badge>
+                                    </div>
+                                ))}
+                            </div>
+
+                            {/* Lead Magnet CTA: Upload Custom Data */}
+                            <Button
+                                variant="default"
+                                size="sm"
+                                onClick={() => setHireMeModalOpen(true)}
+                                className="w-full justify-center gap-1.5 text-xs font-bold rounded-xl mt-2 shadow-2xs h-9"
+                            >
+                                <UploadCloud className="h-3.5 w-3.5" />
+                                <span>Upload Custom Data</span>
+                            </Button>
+                            <p className="text-[10px] text-muted-foreground text-center">
+                                Bi-weekly benchmark index. Click upload to inquire for custom pipeline build.
+                            </p>
                         </CardContent>
                     </Card>
 
-                    <Card className="shadow-2xs">
+                    <Card className="shadow-2xs border-border">
                         <CardHeader className="p-3 pb-2">
                             <CardTitle className="text-xs font-heading">Tool Registry</CardTitle>
                             <CardDescription className="text-xs text-muted-foreground">MCP v2 server tools &amp; execution</CardDescription>
@@ -367,82 +623,146 @@ export default function Home() {
                                 <span className="font-bold text-foreground">Synthesis Canvas</span>
                                 <Badge variant="soft">Ready</Badge>
                             </div>
+                            {byokKey && (
+                                <Badge variant="outline" className="text-[10px] text-primary border-primary/40 font-mono">
+                                    BYOK: {byokProvider.toUpperCase()}
+                                </Badge>
+                            )}
                         </div>
 
-                        <Card className="shadow-xs">
-                            <CardHeader className="p-4 pb-2">
-                                <CardTitle className="text-sm font-heading font-bold text-foreground">Autonomous Systems Intelligence</CardTitle>
-                                <CardDescription className="text-xs text-muted-foreground">
-                                    Real-time LangGraph agent output, streaming markdown verdicts, and architecture diagrams.
-                                </CardDescription>
-                            </CardHeader>
-                            <CardContent className="p-4 pt-2">
-                                <div className="p-4 rounded-xl bg-secondary/40 border border-border text-xs text-muted-foreground leading-relaxed">
-                                    Canvas active. Awaiting architectural inquiry or simulation trigger.
+                        {/* Quota Depleted Lead Magnet Alert */}
+                        {!byokKey && quotaRemaining <= 0 && (
+                            <div className="p-4 rounded-xl border border-amber-500/30 bg-amber-500/10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs">
+                                <div>
+                                    <p className="font-bold text-foreground">Demo Token Quota Reached</p>
+                                    <p className="text-muted-foreground text-[11px] mt-0.5">
+                                        Use your own API key to continue querying without limits, or book a custom architecture build.
+                                    </p>
                                 </div>
-                            </CardContent>
-                        </Card>
+                                <div className="flex items-center gap-2 shrink-0">
+                                    <Button
+                                        size="sm"
+                                        variant="outline"
+                                        onClick={() => setByokModalOpen(true)}
+                                        className="text-xs font-semibold rounded-xl h-8 gap-1"
+                                    >
+                                        <KeyRound className="h-3.5 w-3.5" />
+                                        <span>Use My Key</span>
+                                    </Button>
+                                    <Button
+                                        size="sm"
+                                        variant="default"
+                                        onClick={() => setHireMeModalOpen(true)}
+                                        className="text-xs font-bold rounded-xl h-8 gap-1"
+                                    >
+                                        <Briefcase className="h-3.5 w-3.5" />
+                                        <span>Hire Me</span>
+                                    </Button>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Messages Thread */}
+                        {messages.length === 0 ? (
+                            <Card className="shadow-xs border-border">
+                                <CardHeader className="p-4 pb-2">
+                                    <CardTitle className="text-sm font-heading font-bold text-foreground flex items-center gap-2">
+                                        <Sparkles className="h-4 w-4 text-primary" />
+                                        Autonomous Systems Intelligence
+                                    </CardTitle>
+                                    <CardDescription className="text-xs text-muted-foreground">
+                                        RAG-augmented reasoning against weekly AI model benchmarks (BenchLM, OpenRouter, CursorBench).
+                                    </CardDescription>
+                                </CardHeader>
+                                <CardContent className="p-4 pt-2 space-y-3">
+                                    <div className="p-3.5 rounded-xl bg-secondary/40 border border-border text-xs text-muted-foreground leading-relaxed">
+                                        Ask benchmark comparisons, context lengths, token costs, or agentic coding leaderboard rankings.
+                                    </div>
+                                    <div className="flex flex-wrap gap-2 pt-1">
+                                        {[
+                                            'How does Claude Sonnet 5 compare on CursorBench at High effort?',
+                                            'What are the leaked specs for Grok 4.7 and Gemini 4?',
+                                            'Compare OpenRouter pricing & throughput for DeepSeek V4.1 Flash vs Gemini 3.8'
+                                        ].map((promptText) => (
+                                            <button
+                                                key={promptText}
+                                                type="button"
+                                                onClick={() => setPrompt(promptText)}
+                                                className="text-[11px] px-3 py-1.5 rounded-lg border border-border/80 bg-card hover:bg-secondary text-foreground text-left transition-colors cursor-pointer"
+                                            >
+                                                &ldquo;{promptText}&rdquo;
+                                            </button>
+                                        ))}
+                                    </div>
+                                </CardContent>
+                            </Card>
+                        ) : (
+                            <div className="space-y-4">
+                                {messages.map((msg) => (
+                                    <div key={msg.id} className={`flex gap-3 text-xs leading-relaxed ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                                        {msg.role === 'assistant' && (
+                                            <div className="h-7 w-7 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center text-primary shrink-0 mt-0.5">
+                                                <Bot className="h-4 w-4" />
+                                            </div>
+                                        )}
+                                        <div
+                                            className={`p-3.5 rounded-2xl max-w-2xl whitespace-pre-wrap ${
+                                                msg.role === 'user'
+                                                    ? 'bg-primary text-primary-foreground font-medium rounded-tr-xs'
+                                                    : 'bg-card border border-border text-foreground shadow-2xs rounded-tl-xs'
+                                            }`}
+                                        >
+                                            {msg.content || (
+                                                <div className="flex items-center gap-1.5 text-muted-foreground">
+                                                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                                    <span>Synthesizing response...</span>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
                     </div>
 
+                    {/* Chat Input Form */}
                     <form onSubmit={handleSubmit} role="search" aria-label="Architecture inquiry input" className="p-4 bg-card border-t border-border shrink-0">
                         <div className="relative flex items-center">
                             <Input
                                 value={prompt}
                                 onChange={(e) => setPrompt(e.target.value)}
-                                placeholder="Ask architectural question or paste RFC snippet..."
+                                placeholder="Ask architectural question or query benchmark knowledge base..."
+                                disabled={isStreaming}
                                 className="pr-24 min-h-[44px] text-xs rounded-xl bg-secondary/40 border-border text-foreground focus-visible:bg-card"
                             />
                             <Button
                                 type="submit"
                                 size="sm"
                                 variant="default"
+                                disabled={isStreaming || !prompt.trim()}
                                 aria-label="Send query"
                                 className="absolute right-1.5 h-8 px-4 text-xs rounded-lg gap-1.5 font-bold"
                             >
-                                <span>Send</span>
-                                <Send className="h-3 w-3" aria-hidden="true" />
+                                {isStreaming ? (
+                                    <Loader2 className="h-3 w-3 animate-spin" aria-hidden="true" />
+                                ) : (
+                                    <>
+                                        <span>Send</span>
+                                        <Send className="h-3 w-3" aria-hidden="true" />
+                                    </>
+                                )}
                             </Button>
                         </div>
                     </form>
                 </main>
 
                 {/* 4. Observability Panel (Right) */}
-                <aside
-                    role="complementary"
-                    aria-label="Agent Telemetry & Observability"
-                    className="w-80 lg:w-84 bg-card border-l border-border flex flex-col shrink-0 overflow-y-auto p-4 space-y-4"
-                >
-                    <div className="flex items-center justify-between pb-2 border-b border-border">
-                        <h2 className="flex items-center gap-1.5 text-xs font-heading font-bold text-foreground">
-                            <Activity className="h-3.5 w-3.5 text-primary" aria-hidden="true" />
-                            <span>Observability</span>
-                        </h2>
-                    </div>
-
-                    <Card className="shadow-2xs">
-                        <CardHeader className="p-3 pb-2">
-                            <CardTitle className="text-xs font-heading">DAG Telemetry</CardTitle>
-                            <CardDescription className="text-xs text-muted-foreground">LangGraph cycle state</CardDescription>
-                        </CardHeader>
-                        <CardContent className="p-3 pt-0">
-                            <p className="text-xs text-muted-foreground">Execution graphs and node telemetry activate in Phase 4 &amp; 7.</p>
-                        </CardContent>
-                    </Card>
-
-                    <Card className="shadow-2xs">
-                        <CardHeader className="p-3 pb-2">
-                            <CardTitle className="text-xs font-heading flex items-center gap-1.5">
-                                <Terminal className="h-3.5 w-3.5 text-primary" aria-hidden="true" />
-                                <span>Wire Logs</span>
-                            </CardTitle>
-                            <CardDescription className="text-xs text-muted-foreground">Real-time protocol streaming</CardDescription>
-                        </CardHeader>
-                        <CardContent className="p-3 pt-0">
-                            <p className="text-xs text-muted-foreground">SSE streaming trace logs activate in Phase 7.</p>
-                        </CardContent>
-                    </Card>
-                </aside>
+                <ObservabilityPanel metrics={metrics} logs={logs} />
             </div>
+
+            {/* Modals */}
+            <HireMeModal open={hireMeModalOpen} onOpenChange={setHireMeModalOpen} />
+            <ByokModal open={byokModalOpen} onOpenChange={setByokModalOpen} />
         </div>
     );
 }

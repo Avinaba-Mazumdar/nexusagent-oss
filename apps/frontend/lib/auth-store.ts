@@ -6,6 +6,10 @@ const STORAGE_KEY_TOKEN = 'nexusagent_token';
 const STORAGE_KEY_USER = 'nexusagent_user';
 const STORAGE_KEY_QUOTA = 'nexusagent_quota';
 const STORAGE_KEY_DEVICE_ID = 'nexusagent_device_id';
+const STORAGE_KEY_BYOK_KEY = 'nexusagent_byok_key';
+const STORAGE_KEY_BYOK_PROVIDER = 'nexusagent_byok_provider';
+
+export type ByokProvider = 'google' | 'openrouter';
 
 function getOrCreateDeviceId(): string {
     if (typeof window === 'undefined') return '';
@@ -30,10 +34,15 @@ interface AuthState {
     isGuestLoading: boolean;
     isGoogleLoading: boolean;
     error: string | null;
+    byokKey: string | null;
+    byokProvider: ByokProvider;
     setIsGoogleLoading: (loading: boolean) => void;
     loginGuest: () => Promise<boolean>;
     loginGoogle: (credential: string) => Promise<boolean>;
     logout: () => void;
+    setByokKey: (key: string | null, provider?: ByokProvider) => void;
+    clearByokKey: () => void;
+    setQuotaRemaining: (quota: number) => void;
     initAuth: () => Promise<void>;
 }
 
@@ -46,8 +55,32 @@ export const useAuthStore = create<AuthState>((set) => ({
     isGuestLoading: false,
     isGoogleLoading: false,
     error: null,
+    byokKey: null,
+    byokProvider: 'google',
 
     setIsGoogleLoading: (isGoogleLoading: boolean) => set({ isGoogleLoading }),
+    setQuotaRemaining: (quotaRemaining: number) => set({ quotaRemaining }),
+
+    setByokKey: (key: string | null, provider: ByokProvider = 'google') => {
+        if (typeof window !== 'undefined') {
+            if (key) {
+                localStorage.setItem(STORAGE_KEY_BYOK_KEY, key);
+                localStorage.setItem(STORAGE_KEY_BYOK_PROVIDER, provider);
+            } else {
+                localStorage.removeItem(STORAGE_KEY_BYOK_KEY);
+                localStorage.removeItem(STORAGE_KEY_BYOK_PROVIDER);
+            }
+        }
+        set({ byokKey: key, byokProvider: provider });
+    },
+
+    clearByokKey: () => {
+        if (typeof window !== 'undefined') {
+            localStorage.removeItem(STORAGE_KEY_BYOK_KEY);
+            localStorage.removeItem(STORAGE_KEY_BYOK_PROVIDER);
+        }
+        set({ byokKey: null, byokProvider: 'google' });
+    },
 
     initAuth: async () => {
         if (typeof window === 'undefined') return;
@@ -55,6 +88,12 @@ export const useAuthStore = create<AuthState>((set) => ({
             const token = localStorage.getItem(STORAGE_KEY_TOKEN);
             const userStr = localStorage.getItem(STORAGE_KEY_USER);
             const quota = localStorage.getItem(STORAGE_KEY_QUOTA);
+            const byokKey = localStorage.getItem(STORAGE_KEY_BYOK_KEY);
+            const byokProvider = (localStorage.getItem(STORAGE_KEY_BYOK_PROVIDER) as ByokProvider) || 'google';
+
+            if (byokKey) {
+                set({ byokKey, byokProvider });
+            }
 
             if (!token || !userStr) {
                 return;

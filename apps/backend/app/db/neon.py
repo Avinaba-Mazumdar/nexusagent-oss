@@ -199,9 +199,36 @@ class NeonDatabase:
             val = await conn.fetchval(query, user_id, client_ip)
             return val is not None
 
+    async def search_seeded_chunks(self, query_embedding: list[float], limit: int = 3) -> list[dict]:
+        """Perform cosine similarity search on seeded knowledge base chunks."""
+        if not self.pool:
+            raise RuntimeError("Neon database is not connected.")
+        query = """
+            SELECT c.id, c.content, c.metadata, d.filename,
+                   1 - (c.embedding <=> $1::vector) AS similarity
+            FROM document_chunks c
+            JOIN documents d ON c.document_id = d.id
+            WHERE d.is_seeded = TRUE
+            ORDER BY c.embedding <=> $1::vector ASC
+            LIMIT $2;
+        """
+        async with self.pool.acquire() as conn:
+            rows = await conn.fetch(query, query_embedding, limit)
+            return [dict(r) for r in rows]
+
+    async def get_seeded_documents(self) -> list[dict]:
+        """Fetch list of active seeded benchmark documents."""
+        if not self.pool:
+            raise RuntimeError("Neon database is not connected.")
+        query = "SELECT id, filename, total_chunks, uploaded_at FROM documents WHERE is_seeded = TRUE ORDER BY filename ASC;"
+        async with self.pool.acquire() as conn:
+            rows = await conn.fetch(query)
+            return [dict(r) for r in rows]
+
 
 neon_db = NeonDatabase()
 
 
 async def get_db() -> NeonDatabase:
     return neon_db
+

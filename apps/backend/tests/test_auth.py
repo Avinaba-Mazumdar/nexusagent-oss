@@ -275,7 +275,8 @@ async def test_hourly_rate_limit_replenishment():
     assert bucket.tokens_remaining == 5
 
     # Simulate manual depletion & setting timestamp in the past (2 hours ago)
-    async with neon_db.pool.acquire() as conn:
+    pool = neon_db.get_pool()
+    async with pool.acquire() as conn:
         past_time = datetime.now(UTC) - timedelta(hours=2)
         await conn.execute(
             """

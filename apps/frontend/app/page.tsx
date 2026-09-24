@@ -687,7 +687,7 @@ export default function Home() {
                             <CardDescription className="text-xs text-muted-foreground">Pre-indexed AI benchmarks (Neon pgvector)</CardDescription>
                         </CardHeader>
                         <CardContent className="p-3 pt-0 space-y-2">
-                            <div className="space-y-1.5 max-h-[140px] overflow-y-auto">
+                            <div className="space-y-1.5 max-h-35 overflow-y-auto">
                                 {seededDocs.map((doc) => (
                                     <div
                                         key={doc.id}
@@ -849,7 +849,7 @@ export default function Home() {
                                 onChange={(e) => setPrompt(e.target.value)}
                                 placeholder="Ask architectural question or query benchmark knowledge base..."
                                 disabled={isStreaming}
-                                className="pr-24 min-h-[44px] text-xs rounded-xl bg-secondary/40 border-border text-foreground focus-visible:bg-card"
+                                className="pr-24 min-h-11 text-xs rounded-xl bg-secondary/40 border-border text-foreground focus-visible:bg-card"
                             />
                             <Button
                                 type="submit"

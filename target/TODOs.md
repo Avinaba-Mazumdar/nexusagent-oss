@@ -50,12 +50,12 @@
 - [x] Expose search endpoint `POST /api/rag/search`
       Verification: Query RFC text via search endpoint, verify top-K results return ranked chunks with similarity scores and line numbers.
 
-### Phase 6: AST Python Code Execution Sandbox
+### Phase 6: AST Python Code Execution Sandbox [Completed]
 
-- [ ] Create AST static analysis validator blocking dangerous nodes and builtins (`core/sandbox.py`)
-- [ ] Implement timeout-bounded subprocess execution runner (5.0s timeout)
-- [ ] Expose sandbox execution endpoint `POST /api/sandbox/run`
-- [ ] Add automated test suite for safe code and malicious injection attempts
+- [x] Create AST static analysis validator blocking dangerous nodes and builtins (`core/sandbox.py`)
+- [x] Implement timeout-bounded subprocess execution runner (5.0s timeout)
+- [x] Expose sandbox execution endpoint `POST /api/sandbox/run`
+- [x] Add automated test suite for safe code and malicious injection attempts
       Verification: Run safe math script and verify output; submit script with `import os` and assert AST rejects execution.
 
 ### Phase 7: LangGraph Agent DAG Pipeline

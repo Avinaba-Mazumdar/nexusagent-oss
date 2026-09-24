@@ -14,6 +14,7 @@ from app.routes.chat import router as chat_router
 from app.routes.documents import router as documents_router
 from app.routes.health import router as health_router
 from app.routes.rag import router as rag_router
+from app.routes.sandbox import router as sandbox_router
 
 logger = logging.getLogger("nexusagent.main")
 
@@ -74,6 +75,7 @@ app.include_router(health_router, prefix="/api")
 app.include_router(auth_router, prefix="/api")
 app.include_router(documents_router, prefix="/api")
 app.include_router(rag_router, prefix="/api")
+app.include_router(sandbox_router, prefix="/api")
 app.include_router(chat_router, prefix="/api")
 
 

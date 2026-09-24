@@ -1,6 +1,7 @@
 import json
 import logging
 from datetime import UTC, datetime, timedelta
+from typing import Any
 from uuid import UUID, uuid4
 
 import asyncpg
@@ -351,6 +352,11 @@ class NeonDatabase:
                 data = dict(r)
                 if isinstance(data.get("metadata"), str):
                     data["metadata"] = json.loads(data["metadata"])
+                if data.get("embedding") is not None and not isinstance(data["embedding"], list):
+                    try:
+                        data["embedding"] = [float(x) for x in data["embedding"]]
+                    except TypeError, ValueError:
+                        pass
                 chunks.append(DocumentChunk(**data))
             return chunks
 
@@ -371,6 +377,88 @@ class NeonDatabase:
             async with pool.acquire() as conn:
                 rows = await conn.fetch(query)
                 return [Document(**dict(r)) for r in rows]
+
+    async def search_chunks_dense(
+        self,
+        query_embedding: list[float],
+        user_id: UUID | None = None,
+        document_id: UUID | None = None,
+        limit: int = 20,
+    ) -> list[dict]:
+        """Dense cosine similarity search on document_chunks using pgvector HNSW index."""
+        pool = self.get_pool()
+        conditions = ["c.embedding IS NOT NULL"]
+        params: list[Any] = [query_embedding]
+        idx = 2
+
+        if document_id:
+            conditions.append(f"c.document_id = ${idx}")
+            params.append(document_id)
+            idx += 1
+        elif user_id:
+            conditions.append(f"(d.is_seeded = TRUE OR d.user_id = ${idx})")
+            params.append(user_id)
+            idx += 1
+        else:
+            conditions.append("d.is_seeded = TRUE")
+
+        params.append(limit)
+        limit_param = f"${idx}"
+
+        where_clause = " AND ".join(conditions)
+        query = f"""
+            SELECT c.id, c.document_id, c.chunk_index, c.content, c.metadata, d.filename,
+                   1 - (c.embedding <=> $1::vector) AS similarity
+            FROM document_chunks c
+            JOIN documents d ON c.document_id = d.id
+            WHERE {where_clause}
+            ORDER BY c.embedding <=> $1::vector ASC
+            LIMIT {limit_param};
+        """
+        async with pool.acquire() as conn:
+            rows = await conn.fetch(query, *params)
+            return [dict(r) for r in rows]
+
+    async def search_chunks_lexical(
+        self,
+        query: str,
+        user_id: UUID | None = None,
+        document_id: UUID | None = None,
+        limit: int = 20,
+    ) -> list[dict]:
+        """Lexical full-text search on document_chunks using Postgres tsvector GIN index."""
+        pool = self.get_pool()
+        conditions = ["c.search_vector @@ plainto_tsquery('english', $1)"]
+        params: list[Any] = [query]
+        idx = 2
+
+        if document_id:
+            conditions.append(f"c.document_id = ${idx}")
+            params.append(document_id)
+            idx += 1
+        elif user_id:
+            conditions.append(f"(d.is_seeded = TRUE OR d.user_id = ${idx})")
+            params.append(user_id)
+            idx += 1
+        else:
+            conditions.append("d.is_seeded = TRUE")
+
+        params.append(limit)
+        limit_param = f"${idx}"
+
+        where_clause = " AND ".join(conditions)
+        query_sql = f"""
+            SELECT c.id, c.document_id, c.chunk_index, c.content, c.metadata, d.filename,
+                   ts_rank_cd(c.search_vector, plainto_tsquery('english', $1)) AS rank_score
+            FROM document_chunks c
+            JOIN documents d ON c.document_id = d.id
+            WHERE {where_clause}
+            ORDER BY rank_score DESC
+            LIMIT {limit_param};
+        """
+        async with pool.acquire() as conn:
+            rows = await conn.fetch(query_sql, *params)
+            return [dict(r) for r in rows]
 
 
 neon_db = NeonDatabase()

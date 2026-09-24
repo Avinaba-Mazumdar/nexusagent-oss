@@ -65,6 +65,20 @@ class DocumentChunk(BaseModel):
     metadata: dict[str, Any] = Field(default_factory=dict)
     created_at: datetime = Field(default_factory=utc_now)
 
+    @field_validator("embedding", mode="before")
+    @classmethod
+    def convert_vector_to_list(cls, v: Any) -> list[float] | None:
+        if v is None:
+            return None
+        if hasattr(v, "tolist"):
+            return [float(x) for x in v.tolist()]
+        if hasattr(v, "to_numpy"):
+            return [float(x) for x in v.to_numpy().tolist()]
+        try:
+            return [float(x) for x in v]
+        except TypeError, ValueError:
+            return v
+
 
 class AgentConversation(BaseModel):
     model_config = ConfigDict(from_attributes=True)

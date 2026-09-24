@@ -13,6 +13,7 @@ from app.db.models import (
     User,
 )
 from app.db.neon import NeonDatabase, get_db
+from app.rag.embeddings import default_embedding_service
 from app.rag.parser import default_markdown_parser
 
 logger = logging.getLogger("nexusagent.documents")
@@ -193,7 +194,14 @@ async def upload_document(
         extra_metadata={"filename": filename},
     )
 
-    # 2. Persist Document record
+    # 2. Generate dense vector embeddings for all chunks
+    if chunks:
+        texts = [c.content for c in chunks]
+        embeddings = await default_embedding_service.get_embeddings(texts)
+        for chunk, emb in zip(chunks, embeddings):
+            chunk.embedding = emb
+
+    # 3. Persist Document record
     doc_record = Document(
         id=new_doc_id,
         user_id=current_user.id,
@@ -206,7 +214,7 @@ async def upload_document(
     )
     saved_doc = await db.create_document(doc_record)
 
-    # 3. Batch persist chunks into Neon document_chunks
+    # 4. Batch persist chunks with embeddings into Neon document_chunks
     if chunks:
         await db.insert_document_chunks(chunks)
 

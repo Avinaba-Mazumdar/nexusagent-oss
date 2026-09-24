@@ -42,12 +42,12 @@
 - [x] Persist parsed documents and chunks into Neon `documents` and `document_chunks`
       Verification: Upload sample RFC markdown, verify database contains document record and chunk rows with line metadata.
 
-### Phase 5: Vector Embeddings & Hybrid Search
+### Phase 5: Vector Embeddings & Hybrid Search [Completed]
 
-- [ ] Implement dense embedding generation using pgvector HNSW index
-- [ ] Implement full-text BM25 lexical search using Postgres `tsvector` GIN index
-- [ ] Implement Reciprocal Rank Fusion (RRF) ranking algorithm (`rag/hybrid_search.py`)
-- [ ] Expose search endpoint `POST /api/rag/search`
+- [x] Implement dense embedding generation using pgvector HNSW index
+- [x] Implement full-text BM25 lexical search using Postgres `tsvector` GIN index
+- [x] Implement Reciprocal Rank Fusion (RRF) ranking algorithm (`rag/hybrid_search.py`)
+- [x] Expose search endpoint `POST /api/rag/search`
       Verification: Query RFC text via search endpoint, verify top-K results return ranked chunks with similarity scores and line numbers.
 
 ### Phase 6: AST Python Code Execution Sandbox

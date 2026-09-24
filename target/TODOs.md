@@ -58,12 +58,12 @@
 - [x] Add automated test suite for safe code and malicious injection attempts
       Verification: Run safe math script and verify output; submit script with `import os` and assert AST rejects execution.
 
-### Phase 7: LangGraph Agent DAG Pipeline
+### Phase 7: LangGraph Agent DAG Pipeline [Completed]
 
-- [ ] Define strongly-typed `AgentState` schema (`agent/state.py`)
-- [ ] Implement planner, retriever, and synthesizer nodes (`agent/graph.py`)
-- [ ] Implement reflection critic node with loop-back condition (capped at 10 iterations)
-- [ ] Wire hybrid search and sandbox tools into agent graph
+- [x] Define strongly-typed `AgentState` schema (`agent/state.py`)
+- [x] Implement planner, retriever, and synthesizer nodes (`agent/graph.py`)
+- [x] Implement reflection critic node with loop-back condition (capped at 10 iterations)
+- [x] Wire hybrid search and sandbox tools into agent graph
       Verification: Invoke agent via test script, assert graph executes state transitions (plan -> retrieve -> reflect -> synthesize).
 
 ### Phase 8: Real-Time SSE Streaming & Observability

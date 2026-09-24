@@ -27,6 +27,15 @@ export interface GuestPassResponse {
     bucketCapacity: number;
 }
 
+export interface TokenResponse {
+    accessToken: string;
+    tokenType: string;
+    expiresIn: number;
+    user: UserSession;
+    quotaRemaining?: number;
+    bucketCapacity?: number;
+}
+
 export interface QuotaStatus {
     tokensRemaining: number;
     bucketCapacity: number;

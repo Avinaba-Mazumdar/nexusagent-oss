@@ -204,6 +204,8 @@ class TokenResponse(BaseModel):
     tokenType: str = "bearer"
     expiresIn: int
     user: UserSession
+    quotaRemaining: int = 25
+    bucketCapacity: int = 25
 
 
 class DocumentMetadataWire(BaseModel):

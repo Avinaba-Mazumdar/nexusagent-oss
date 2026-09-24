@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import type { UserSession, GuestPassResponse } from '@nexusagent/contracts';
+import type { UserSession, GuestPassResponse, TokenResponse } from '@nexusagent/contracts';
 import { apiClient, getCookie, setCookie, removeCookie, setAuthTokenGetter, setOnUnauthorizedCallback } from './api-client';
 
 const STORAGE_KEY_TOKEN = 'nexusagent_token';
@@ -49,9 +49,13 @@ interface AuthState {
 }
 
 export const useAuthStore = create<AuthState>((set, get) => {
-    // Configure interceptor callbacks
-    setAuthTokenGetter(() => get().token || (typeof window !== 'undefined' ? localStorage.getItem(STORAGE_KEY_TOKEN) || getCookie(STORAGE_KEY_TOKEN) : null));
-    setOnUnauthorizedCallback(() => get().logout());
+    // Register token getter with apiClient so every outbound fetch automatically attaches Authorization header
+    setAuthTokenGetter(() => get().token);
+
+    // Register 401 callback to smoothly reset session if server revokes or expires JWT token
+    setOnUnauthorizedCallback(() => {
+        get().logout();
+    });
 
     return {
         user: null,
@@ -65,8 +69,16 @@ export const useAuthStore = create<AuthState>((set, get) => {
         byokKey: null,
         byokProvider: 'google',
 
-        setIsGoogleLoading: (isGoogleLoading: boolean) => set({ isGoogleLoading }),
-        setQuotaRemaining: (quotaRemaining: number) => set({ quotaRemaining }),
+        setIsGoogleLoading: (loading: boolean) => {
+            set({ isGoogleLoading: loading });
+        },
+
+        setQuotaRemaining: (quota: number) => {
+            if (typeof window !== 'undefined') {
+                localStorage.setItem(STORAGE_KEY_QUOTA, quota.toString());
+            }
+            set({ quotaRemaining: quota });
+        },
 
         setByokKey: (key: string | null, provider: ByokProvider = 'google') => {
             if (typeof window !== 'undefined') {
@@ -182,15 +194,15 @@ export const useAuthStore = create<AuthState>((set, get) => {
         loginGoogle: async (credential: string) => {
             set({ isGoogleLoading: true, isLoading: true, error: null });
             try {
-                const data = await apiClient<{ accessToken: string; user: UserSession }>('/api/auth/google', {
+                const data = await apiClient<TokenResponse>('/api/auth/google', {
                     method: 'POST',
                     body: JSON.stringify({ credential })
                 });
 
                 const token = data.accessToken;
                 const user = data.user;
-                const quotaRemaining = 25;
-                const bucketCapacity = 25;
+                const quotaRemaining = data.quotaRemaining ?? 25;
+                const bucketCapacity = data.bucketCapacity ?? 25;
 
                 if (typeof window !== 'undefined') {
                     localStorage.setItem(STORAGE_KEY_TOKEN, token);
@@ -219,15 +231,15 @@ export const useAuthStore = create<AuthState>((set, get) => {
         loginEmail: async (email: string, password: string) => {
             set({ isLoading: true, error: null });
             try {
-                const data = await apiClient<{ accessToken: string; user: UserSession }>('/api/auth/login', {
+                const data = await apiClient<TokenResponse>('/api/auth/login', {
                     method: 'POST',
                     body: JSON.stringify({ email, password })
                 });
 
                 const token = data.accessToken;
                 const user = data.user;
-                const quotaRemaining = 25;
-                const bucketCapacity = 25;
+                const quotaRemaining = data.quotaRemaining ?? 25;
+                const bucketCapacity = data.bucketCapacity ?? 25;
 
                 if (typeof window !== 'undefined') {
                     localStorage.setItem(STORAGE_KEY_TOKEN, token);
@@ -255,15 +267,15 @@ export const useAuthStore = create<AuthState>((set, get) => {
         registerEmail: async (email: string, password: string, name: string) => {
             set({ isLoading: true, error: null });
             try {
-                const data = await apiClient<{ accessToken: string; user: UserSession }>('/api/auth/register', {
+                const data = await apiClient<TokenResponse>('/api/auth/register', {
                     method: 'POST',
                     body: JSON.stringify({ email, password, name })
                 });
 
                 const token = data.accessToken;
                 const user = data.user;
-                const quotaRemaining = 25;
-                const bucketCapacity = 25;
+                const quotaRemaining = data.quotaRemaining ?? 25;
+                const bucketCapacity = data.bucketCapacity ?? 25;
 
                 if (typeof window !== 'undefined') {
                     localStorage.setItem(STORAGE_KEY_TOKEN, token);

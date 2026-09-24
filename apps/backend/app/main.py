@@ -1,5 +1,8 @@
+import logging
 from contextlib import asynccontextmanager
+from pathlib import Path
 
+import asyncpg
 import uvicorn
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -11,11 +14,31 @@ from app.routes.chat import router as chat_router
 from app.routes.documents import router as documents_router
 from app.routes.health import router as health_router
 
+logger = logging.getLogger("nexusagent.main")
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Lifecycle manager for Neon PostgreSQL 18 connection pool."""
-    await neon_db.connect()
+    """Lifecycle manager for Neon PostgreSQL 18 connection pool & migrations."""
+    connected = await neon_db.connect()
+    if connected:
+        migration_candidates = [
+            Path("migrations/20260901000000_core_schema.sql"),
+            Path(__file__).resolve().parent.parent.parent.parent
+            / "migrations"
+            / "20260901000000_core_schema.sql",
+        ]
+        mig_file = next((p for p in migration_candidates if p.is_file()), None)
+        if mig_file:
+            try:
+                sql = mig_file.read_text(encoding="utf-8")
+                await neon_db.execute_migration(sql)
+                logger.info(f"Applied core schema migration from {mig_file.name}")
+            except (asyncpg.PostgresError, OSError) as e:
+                logger.error(f"Failed to execute startup migration: {e}")
+        else:
+            logger.warning("Core schema migration file not found during startup.")
+
     yield
     await neon_db.disconnect()
 
@@ -26,12 +49,20 @@ app = FastAPI(
     description="NexusAgent - Production-Grade Autonomous Orchestration Engine with Neon PostgreSQL 18 & LangGraph.",
     docs_url="/docs",
     redoc_url="/redoc",
+    openapi_url="/openapi.json",
     lifespan=lifespan,
 )
 
+# Standard permissive CORS setup for OSS development & local frontends
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.CORS_ORIGINS,
+    allow_origins=[
+        "http://localhost:3000",
+        "http://localhost:3001",
+        "http://127.0.0.1:3000",
+        "http://127.0.0.1:3001",
+        "https://nexusagent-oss.vercel.app",
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -40,31 +71,25 @@ app.add_middleware(
 app.include_router(health_router)
 app.include_router(health_router, prefix="/api")
 app.include_router(auth_router, prefix="/api")
-app.include_router(chat_router, prefix="/api")
 app.include_router(documents_router, prefix="/api")
+app.include_router(chat_router, prefix="/api")
 
 
 @app.get("/", tags=["Root"])
 async def root():
-    """Root endpoint welcoming clients and referencing documentation."""
     return {
-        "message": f"Welcome to {settings.APP_NAME}",
+        "message": "Welcome to NexusAgent - Autonomous Orchestration Engine is operational.",
         "version": settings.VERSION,
-        "docs_url": "/docs",
+        "docs": "/docs",
+        "health": "/api/health",
         "health_check": "/health",
-        "database": "Neon PostgreSQL 18",
     }
 
 
-def start():
-    """Entrypoint for running the server."""
+if __name__ == "__main__":
     uvicorn.run(
         "app.main:app",
-        host=settings.HOST,
+        host="0.0.0.0",
         port=settings.PORT,
         reload=settings.DEBUG,
     )
-
-
-if __name__ == "__main__":
-    start()

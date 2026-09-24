@@ -60,7 +60,7 @@ async def register(
     if existing_user:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
-            detail="User with this email already exists",
+            detail="A user with this email address already exists.",
         )
 
     client_ip = get_client_ip(request)
@@ -78,6 +78,12 @@ async def register(
     )
     created_user = await db.create_user(new_user)
 
+    bucket = await db.get_or_create_rate_limit(
+        user_id=created_user.id,
+        client_ip=client_ip,
+        default_tokens=25,
+    )
+
     token_str, expires_in = create_access_token(
         data={"sub": str(created_user.id), "role": "user", "is_guest": False},
         expires_delta=timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES),
@@ -88,6 +94,8 @@ async def register(
         tokenType="bearer",
         expiresIn=expires_in,
         user=user_to_session(created_user),
+        quotaRemaining=bucket.tokens_remaining,
+        bucketCapacity=bucket.bucket_capacity,
     )
 
 
@@ -116,6 +124,12 @@ async def login(
     client_ip = get_client_ip(request)
     await db.update_user_last_seen(user.id, client_ip)
 
+    bucket = await db.get_or_create_rate_limit(
+        user_id=user.id,
+        client_ip=client_ip,
+        default_tokens=25,
+    )
+
     token_str, expires_in = create_access_token(
         data={"sub": str(user.id), "role": "user", "is_guest": user.is_guest},
         expires_delta=timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES),
@@ -126,6 +140,8 @@ async def login(
         tokenType="bearer",
         expiresIn=expires_in,
         user=user_to_session(user),
+        quotaRemaining=bucket.tokens_remaining,
+        bucketCapacity=bucket.bucket_capacity,
     )
 
 
@@ -146,7 +162,7 @@ async def google_auth(
         client_ip=client_ip,
     )
 
-    await db.get_or_create_rate_limit(
+    bucket = await db.get_or_create_rate_limit(
         user_id=user.id,
         client_ip=client_ip,
         default_tokens=25,
@@ -162,6 +178,8 @@ async def google_auth(
         tokenType="bearer",
         expiresIn=expires_in,
         user=user_to_session(user),
+        quotaRemaining=bucket.tokens_remaining,
+        bucketCapacity=bucket.bucket_capacity,
     )
 
 
@@ -194,9 +212,18 @@ async def get_current_user_profile(
 
 @router.post("/refresh", response_model=TokenResponse)
 async def refresh_token(
+    request: Request,
     current_user: User = Depends(get_current_user),
+    db: NeonDatabase = Depends(get_db),
 ):
     """Refresh JWT access token for currently authenticated session."""
+    client_ip = get_client_ip(request)
+    bucket = await db.get_or_create_rate_limit(
+        user_id=current_user.id,
+        client_ip=client_ip,
+        default_tokens=settings.GUEST_QUOTA_DEFAULT if current_user.is_guest else 25,
+    )
+
     token_str, expires_in = create_access_token(
         data={
             "sub": str(current_user.id),
@@ -211,4 +238,6 @@ async def refresh_token(
         tokenType="bearer",
         expiresIn=expires_in,
         user=user_to_session(current_user),
+        quotaRemaining=bucket.tokens_remaining,
+        bucketCapacity=bucket.bucket_capacity,
     )

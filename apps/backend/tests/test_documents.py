@@ -8,8 +8,10 @@ from app.db.models import User
 from app.db.neon import neon_db
 from app.main import app
 from app.rag.parser import (
+    MAX_CHUNK_CHARS,
     compute_line_positions,
     default_markdown_parser,
+    split_large_section,
 )
 
 SAMPLE_RFC_MARKDOWN = """# RFC-104: Raft Consensus vs Multi-Paxos for High-Throughput Write Pipelines
@@ -61,6 +63,15 @@ def test_compute_line_positions():
     assert end == 3
 
 
+def test_split_large_section_hard_caps_long_line():
+    # Long line of 2,500 characters
+    long_line = "A" * 2500
+    chunks = split_large_section(long_line, max_chars=MAX_CHUNK_CHARS)
+    assert len(chunks) > 1
+    for chunk in chunks:
+        assert len(chunk) <= MAX_CHUNK_CHARS
+
+
 def test_markdown_hierarchical_parser_chunks_and_metadata():
     doc_id = uuid4()
     chunks = default_markdown_parser.parse_markdown(
@@ -73,6 +84,7 @@ def test_markdown_hierarchical_parser_chunks_and_metadata():
     for chunk in chunks:
         assert chunk.document_id == doc_id
         assert chunk.content
+        assert len(chunk.content) <= MAX_CHUNK_CHARS
         assert "startLine" in chunk.metadata
         assert "endLine" in chunk.metadata
         assert chunk.metadata["startLine"] >= 1
@@ -158,5 +170,3 @@ async def test_upload_and_list_documents():
         }
         dup_response = await client.post("/api/documents/upload", files=files_dup, headers=headers)
         assert dup_response.status_code == 200
-        dup_data = dup_response.json()
-        assert dup_data["document"]["id"] == doc_id

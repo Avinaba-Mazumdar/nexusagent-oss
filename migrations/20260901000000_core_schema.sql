@@ -54,7 +54,7 @@ CREATE TABLE IF NOT EXISTS document_chunks (
     document_id UUID NOT NULL REFERENCES documents(id) ON DELETE CASCADE,
     chunk_index INT NOT NULL,
     content TEXT NOT NULL,
-    embedding VECTOR(1536), -- Dense vector representation
+    embedding VECTOR(768), -- Dense vector representation (768-d Google text-embedding-004)
     search_vector TSVECTOR GENERATED ALWAYS AS (to_tsvector('english', content)) STORED,
     metadata JSONB NOT NULL DEFAULT '{}'::jsonb,
     created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP

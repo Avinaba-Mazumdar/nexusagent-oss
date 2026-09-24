@@ -47,6 +47,22 @@ def split_large_section(
     current_len = 0
 
     for line in lines:
+        # If single line itself exceeds max_chars, flush current chunk and split line with overlap
+        if len(line) > max_chars:
+            if current_chunk:
+                combined = "".join(current_chunk).strip()
+                if combined:
+                    chunks.append(combined)
+                current_chunk = []
+                current_len = 0
+
+            step = max(1, max_chars - overlap)
+            for idx in range(0, len(line), step):
+                slice_part = line[idx : idx + max_chars].strip()
+                if slice_part:
+                    chunks.append(slice_part)
+            continue
+
         if current_len + len(line) > max_chars and current_chunk:
             combined = "".join(current_chunk).strip()
             if combined:

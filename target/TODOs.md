@@ -34,12 +34,12 @@
 - [x] Auth token persistence (cookies/localStorage) & API client interceptor
       Verification: Click "Guest Sign In" in UI -> Header updates with active user session and quota badge; test Google sign-in flow.
 
-### Phase 4: Document Ingestion & Parsing
+### Phase 4: Document Ingestion & Parsing [Completed]
 
-- [ ] Build document upload endpoint (`POST /api/documents/upload`)
-- [ ] Implement LlamaIndex markdown hierarchical parser (`rag/parser.py`)
-- [ ] Split content into 800-char chunks with line-level section metadata
-- [ ] Persist parsed documents and chunks into Neon `documents` and `document_chunks`
+- [x] Build document upload endpoint (`POST /api/documents/upload`)
+- [x] Implement LlamaIndex markdown hierarchical parser (`rag/parser.py`)
+- [x] Split content into 800-char chunks with line-level section metadata
+- [x] Persist parsed documents and chunks into Neon `documents` and `document_chunks`
       Verification: Upload sample RFC markdown, verify database contains document record and chunk rows with line metadata.
 
 ### Phase 5: Vector Embeddings & Hybrid Search

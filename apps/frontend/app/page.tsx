@@ -41,6 +41,9 @@ export default function Home() {
     const [isDarkTheme, setIsDarkTheme] = React.useState(false);
     const [, setGisLoaded] = React.useState(false);
     const [hireMeModalOpen, setHireMeModalOpen] = React.useState(false);
+    const [isUploading, setIsUploading] = React.useState(false);
+    const [uploadError, setUploadError] = React.useState<string | null>(null);
+    const fileInputRef = React.useRef<HTMLInputElement | null>(null);
     const [byokModalOpen, setByokModalOpen] = React.useState(false);
     const [seededDocs, setSeededDocs] = React.useState<SeededDoc[]>([]);
     const [isStreaming, setIsStreaming] = React.useState(false);
@@ -120,30 +123,73 @@ export default function Home() {
         }
     }, [initAuth]);
 
-    // Fetch seeded benchmark documents on mount
-    React.useEffect(() => {
-        async function fetchDocs() {
-            try {
-                const res = await fetch(`${API_BASE}/api/chat/documents`);
-                if (res.ok) {
-                    const data = await res.json();
-                    if (data.documents) {
-                        setSeededDocs(data.documents);
-                    }
+    // Fetch documents on mount and whenever authentication token changes
+    const fetchDocs = React.useCallback(async () => {
+        try {
+            const endpoint = token ? `${API_BASE}/api/documents` : `${API_BASE}/api/chat/documents`;
+            const headers: Record<string, string> = {};
+            if (token) headers['Authorization'] = `Bearer ${token}`;
+
+            const res = await fetch(endpoint, { headers });
+            if (res.ok) {
+                const data = await res.json();
+                if (data.documents) {
+                    setSeededDocs(data.documents);
+                    return;
                 }
-            } catch {
-                // Fallback docs
-                setSeededDocs([
-                    { id: '1', filename: 'benchlm_evals.md', total_chunks: 5 },
-                    { id: '2', filename: 'cursor_bench.md', total_chunks: 4 },
-                    { id: '3', filename: 'openrouter_metrics.md', total_chunks: 5 },
-                    { id: '4', filename: 'leaks_rumours.md', total_chunks: 11 },
-                    { id: '5', filename: 'artificial_analysis.md', total_chunks: 4 }
-                ]);
             }
+        } catch {
+            // Graceful fallback
         }
+        setSeededDocs([
+            { id: '1', filename: 'benchlm_evals.md', total_chunks: 5 },
+            { id: '2', filename: 'cursor_bench.md', total_chunks: 4 },
+            { id: '3', filename: 'openrouter_metrics.md', total_chunks: 5 },
+            { id: '4', filename: 'leaks_rumours.md', total_chunks: 11 },
+            { id: '5', filename: 'artificial_analysis.md', total_chunks: 4 }
+        ]);
+    }, [token]);
+
+    React.useEffect(() => {
         fetchDocs();
-    }, []);
+    }, [fetchDocs]);
+
+    const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+        const file = event.target.files?.[0];
+        if (!file) return;
+
+        if (!token) {
+            setDialogOpen(true);
+            return;
+        }
+
+        setIsUploading(true);
+        setUploadError(null);
+        const formData = new FormData();
+        formData.append('file', file);
+
+        try {
+            const res = await fetch(`${API_BASE}/api/documents/upload`, {
+                method: 'POST',
+                headers: {
+                    Authorization: `Bearer ${token}`
+                },
+                body: formData
+            });
+
+            if (!res.ok) {
+                const errData = await res.json().catch(() => ({}));
+                throw new Error(errData.detail || `Upload failed with status ${res.status}`);
+            }
+
+            await fetchDocs();
+            if (fileInputRef.current) fileInputRef.current.value = '';
+        } catch (err) {
+            setUploadError(err instanceof Error ? err.message : 'Upload failed');
+        } finally {
+            setIsUploading(false);
+        }
+    };
 
     const gsiInitializedRef = React.useRef(false);
     const handleCredentialRef = React.useRef<((credential: string) => Promise<void>) | null>(null);
@@ -704,19 +750,44 @@ export default function Home() {
                                 ))}
                             </div>
 
-                            {/* Lead Magnet CTA: Upload Custom Data */}
+                            {/* Hidden native file input for Markdown documents */}
+                            <input
+                                ref={fileInputRef}
+                                type="file"
+                                accept=".md,.markdown,.txt"
+                                onChange={handleFileUpload}
+                                className="hidden"
+                                aria-label="Upload Markdown or RFC document"
+                            />
+
+                            {/* Document Upload Button */}
                             <Button
                                 variant="default"
                                 size="sm"
-                                onClick={() => setHireMeModalOpen(true)}
+                                disabled={isUploading}
+                                onClick={() => {
+                                    if (!token) {
+                                        setDialogOpen(true);
+                                    } else {
+                                        fileInputRef.current?.click();
+                                    }
+                                }}
                                 className="w-full justify-center gap-1.5 text-xs font-bold rounded-xl mt-2 shadow-2xs h-9"
                             >
-                                <UploadCloud className="h-3.5 w-3.5" />
-                                <span>Upload Custom Data</span>
+                                {isUploading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <UploadCloud className="h-3.5 w-3.5" />}
+                                <span>{isUploading ? 'Parsing & Indexing...' : 'Upload Markdown (.md)'}</span>
                             </Button>
-                            <p className="text-[10px] text-muted-foreground text-center">
-                                Bi-weekly benchmark index. Click upload to inquire for custom pipeline build.
-                            </p>
+
+                            {uploadError && <p className="text-[10px] text-destructive text-center font-medium">{uploadError}</p>}
+
+                            {/* Lead Magnet Link */}
+                            <button
+                                type="button"
+                                onClick={() => setHireMeModalOpen(true)}
+                                className="w-full text-center text-[10px] text-muted-foreground hover:text-primary transition-colors cursor-pointer pt-0.5"
+                            >
+                                Need custom ETL pipelines? Inquire with author &rarr;
+                            </button>
                         </CardContent>
                     </Card>
 

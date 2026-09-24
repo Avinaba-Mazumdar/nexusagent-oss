@@ -43,12 +43,13 @@ class Document(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     id: UUID = Field(default_factory=uuid4)
+    user_id: UUID | None = None
     filename: str
-    file_path: str
-    file_size_bytes: int
     mime_type: str = "text/markdown"
     sha256_hash: str
-    chunk_count: int = 0
+    total_chunks: int = 0
+    storage_path: str | None = None
+    is_seeded: bool = False
     uploaded_at: datetime = Field(default_factory=utc_now)
 
 
@@ -203,3 +204,30 @@ class TokenResponse(BaseModel):
     tokenType: str = "bearer"
     expiresIn: int
     user: UserSession
+
+
+class DocumentMetadataWire(BaseModel):
+    id: str
+    userId: str | None = None
+    filename: str
+    mimeType: str
+    sha256Hash: str
+    totalChunks: int
+    storagePath: str | None = None
+    isSeeded: bool
+    uploadedAt: str
+
+
+class DocumentChunkWire(BaseModel):
+    id: str
+    documentId: str
+    chunkIndex: int
+    content: str
+    metadata: dict[str, Any]
+    createdAt: str
+
+
+class DocumentUploadResponseWire(BaseModel):
+    document: DocumentMetadataWire
+    chunksCount: int
+    previewChunks: list[DocumentChunkWire]

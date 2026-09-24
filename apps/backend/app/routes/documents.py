@@ -1,0 +1,239 @@
+import hashlib
+import logging
+from uuid import UUID, uuid4
+
+from fastapi import APIRouter, Depends, File, HTTPException, Request, UploadFile, status
+
+from app.core.auth import get_current_user
+from app.db.models import (
+    Document,
+    DocumentChunkWire,
+    DocumentMetadataWire,
+    DocumentUploadResponseWire,
+    User,
+)
+from app.db.neon import NeonDatabase, get_db
+from app.rag.parser import default_markdown_parser
+
+logger = logging.getLogger("nexusagent.documents")
+
+router = APIRouter(prefix="/documents", tags=["Document Ingestion & Vault"])
+
+ALLOWED_MIME_TYPES = {
+    "text/markdown",
+    "text/plain",
+    "application/x-markdown",
+}
+ALLOWED_EXTENSIONS = {".md", ".markdown", ".txt"}
+MAX_FILE_BYTES = 5 * 1024 * 1024  # 5 MB per document
+
+
+def get_client_ip(request: Request) -> str:
+    """Extract client IP from headers or client connection."""
+    forwarded = request.headers.get("X-Forwarded-For")
+    if forwarded:
+        return forwarded.split(",")[0].strip()
+    return request.client.host if request.client else "127.0.0.1"
+
+
+@router.get("", response_model=dict[str, list[DocumentMetadataWire]])
+async def list_documents(
+    current_user: User = Depends(get_current_user),
+    db: NeonDatabase = Depends(get_db),
+):
+    """
+    List all documents accessible to the current user (seeded documents + user uploads).
+    """
+    docs = await db.list_all_documents(user_id=current_user.id)
+    wires = [
+        DocumentMetadataWire(
+            id=str(d.id),
+            userId=str(d.user_id) if d.user_id else None,
+            filename=d.filename,
+            mimeType=d.mime_type,
+            sha256Hash=d.sha256_hash,
+            totalChunks=d.total_chunks,
+            storagePath=d.storage_path,
+            isSeeded=d.is_seeded,
+            uploadedAt=d.uploaded_at.isoformat(),
+        )
+        for d in docs
+    ]
+    return {"documents": wires}
+
+
+@router.get("/{document_id}/chunks", response_model=dict[str, list[DocumentChunkWire]])
+async def get_document_chunks(
+    document_id: str,
+    current_user: User = Depends(get_current_user),
+    db: NeonDatabase = Depends(get_db),
+):
+    """
+    Fetch chunks for a specific document with line-level section metadata.
+    """
+    try:
+        doc_uuid = UUID(document_id)
+    except ValueError:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid document UUID format",
+        )
+
+    doc = await db.get_document_by_id(doc_uuid)
+    if not doc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Document not found",
+        )
+
+    # Tenancy check: User can view seeded docs or their own uploads
+    if not doc.is_seeded and doc.user_id != current_user.id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You do not have permission to view this document's chunks",
+        )
+
+    chunks = await db.get_document_chunks(doc_uuid)
+    chunk_wires = [
+        DocumentChunkWire(
+            id=str(c.id),
+            documentId=str(c.document_id),
+            chunkIndex=c.chunk_index,
+            content=c.content,
+            metadata=c.metadata,
+            createdAt=c.created_at.isoformat(),
+        )
+        for c in chunks
+    ]
+    return {"chunks": chunk_wires}
+
+
+@router.post("/upload", response_model=DocumentUploadResponseWire)
+async def upload_document(
+    file: UploadFile = File(...),
+    current_user: User = Depends(get_current_user),
+    db: NeonDatabase = Depends(get_db),
+):
+    """
+    Upload and parse markdown or RFC documents.
+    Enforces file size ceiling (5MB), computes SHA-256 hash, runs LlamaIndex hierarchical parser,
+    and batch persists document record and chunk rows into Neon PostgreSQL.
+    """
+    filename = file.filename or "uploaded_document.md"
+    ext = "." + filename.rsplit(".", 1)[-1].lower() if "." in filename else ""
+
+    if ext not in ALLOWED_EXTENSIONS and file.content_type not in ALLOWED_MIME_TYPES:
+        raise HTTPException(
+            status_code=status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
+            detail="Only Markdown and RFC text files (.md, .markdown, .txt) are supported",
+        )
+
+    raw_bytes = await file.read()
+    if len(raw_bytes) > MAX_FILE_BYTES:
+        raise HTTPException(
+            status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+            detail=f"File exceeds maximum allowed size of {MAX_FILE_BYTES // (1024 * 1024)}MB",
+        )
+
+    if not raw_bytes:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Uploaded file is empty",
+        )
+
+    try:
+        content_text = raw_bytes.decode("utf-8")
+    except UnicodeDecodeError:
+        try:
+            content_text = raw_bytes.decode("latin-1")
+        except UnicodeDecodeError:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Unable to decode file content as text",
+            )
+
+    sha256_hash = hashlib.sha256(raw_bytes).hexdigest()
+
+    # Deduplication check: If same content was already uploaded by user
+    existing_doc = await db.get_document_by_hash(sha256_hash, user_id=current_user.id)
+    if existing_doc:
+        existing_chunks = await db.get_document_chunks(existing_doc.id)
+        preview = [
+            DocumentChunkWire(
+                id=str(c.id),
+                documentId=str(c.document_id),
+                chunkIndex=c.chunk_index,
+                content=c.content,
+                metadata=c.metadata,
+                createdAt=c.created_at.isoformat(),
+            )
+            for c in existing_chunks[:5]
+        ]
+        return DocumentUploadResponseWire(
+            document=DocumentMetadataWire(
+                id=str(existing_doc.id),
+                userId=str(existing_doc.user_id) if existing_doc.user_id else None,
+                filename=existing_doc.filename,
+                mimeType=existing_doc.mime_type,
+                sha256Hash=existing_doc.sha256_hash,
+                totalChunks=existing_doc.total_chunks,
+                storagePath=existing_doc.storage_path,
+                isSeeded=existing_doc.is_seeded,
+                uploadedAt=existing_doc.uploaded_at.isoformat(),
+            ),
+            chunksCount=existing_doc.total_chunks,
+            previewChunks=preview,
+        )
+
+    # 1. Parse document into hierarchical chunks
+    new_doc_id = uuid4()
+    chunks = default_markdown_parser.parse_markdown(
+        markdown_text=content_text,
+        document_id=new_doc_id,
+        extra_metadata={"filename": filename},
+    )
+
+    # 2. Persist Document record
+    doc_record = Document(
+        id=new_doc_id,
+        user_id=current_user.id,
+        filename=filename,
+        mime_type=file.content_type or "text/markdown",
+        sha256_hash=sha256_hash,
+        total_chunks=len(chunks),
+        storage_path=None,
+        is_seeded=False,
+    )
+    saved_doc = await db.create_document(doc_record)
+
+    # 3. Batch persist chunks into Neon document_chunks
+    if chunks:
+        await db.insert_document_chunks(chunks)
+
+    preview_wires = [
+        DocumentChunkWire(
+            id=str(c.id),
+            documentId=str(c.document_id),
+            chunkIndex=c.chunk_index,
+            content=c.content,
+            metadata=c.metadata,
+            createdAt=c.created_at.isoformat(),
+        )
+        for c in chunks[:5]
+    ]
+
+    return DocumentUploadResponseWire(
+        document=DocumentMetadataWire(
+            id=str(saved_doc.id),
+            userId=str(saved_doc.user_id) if saved_doc.user_id else None,
+            filename=saved_doc.filename,
+            mimeType=saved_doc.mime_type,
+            sha256Hash=saved_doc.sha256_hash,
+            totalChunks=saved_doc.total_chunks,
+            storagePath=saved_doc.storage_path,
+            isSeeded=saved_doc.is_seeded,
+            uploadedAt=saved_doc.uploaded_at.isoformat(),
+        ),
+        chunksCount=len(chunks),
+        previewChunks=preview_wires,
+    )

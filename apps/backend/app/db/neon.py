@@ -1,3 +1,4 @@
+import json
 import logging
 from datetime import UTC, datetime, timedelta
 from uuid import UUID, uuid4
@@ -6,7 +7,7 @@ import asyncpg
 from pgvector.asyncpg import register_vector
 
 from app.config import settings
-from app.db.models import RateLimitBucket, User
+from app.db.models import Document, DocumentChunk, RateLimitBucket, User
 
 logger = logging.getLogger("nexusagent.db.neon")
 
@@ -261,6 +262,115 @@ class NeonDatabase:
         async with pool.acquire() as conn:
             rows = await conn.fetch(query)
             return [dict(r) for r in rows]
+
+    async def create_document(self, document: Document) -> Document:
+        """Insert a new document record into Neon documents table."""
+        pool = self.get_pool()
+        query = """
+            INSERT INTO documents (id, user_id, filename, mime_type, sha256_hash, total_chunks, storage_path, is_seeded, uploaded_at)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+            RETURNING id, user_id, filename, mime_type, sha256_hash, total_chunks, storage_path, is_seeded, uploaded_at;
+        """
+        async with pool.acquire() as conn:
+            row = await conn.fetchrow(
+                query,
+                document.id,
+                document.user_id,
+                document.filename,
+                document.mime_type,
+                document.sha256_hash,
+                document.total_chunks,
+                document.storage_path,
+                document.is_seeded,
+                document.uploaded_at,
+            )
+            return Document(**dict(row))
+
+    async def insert_document_chunks(self, chunks: list[DocumentChunk]) -> int:
+        """Batch insert document chunks into Neon document_chunks table."""
+        if not chunks:
+            return 0
+        pool = self.get_pool()
+        query = """
+            INSERT INTO document_chunks (id, document_id, chunk_index, content, embedding, metadata, created_at)
+            VALUES ($1, $2, $3, $4, $5, $6::jsonb, $7);
+        """
+        records = [
+            (
+                c.id,
+                c.document_id,
+                c.chunk_index,
+                c.content,
+                c.embedding,
+                json.dumps(c.metadata),
+                c.created_at,
+            )
+            for c in chunks
+        ]
+        async with pool.acquire() as conn:
+            await conn.executemany(query, records)
+        return len(chunks)
+
+    async def get_document_by_id(self, document_id: UUID) -> Document | None:
+        """Fetch document by primary UUID."""
+        pool = self.get_pool()
+        query = "SELECT * FROM documents WHERE id = $1;"
+        async with pool.acquire() as conn:
+            row = await conn.fetchrow(query, document_id)
+            return Document(**dict(row)) if row else None
+
+    async def get_document_by_hash(
+        self, sha256_hash: str, user_id: UUID | None = None
+    ) -> Document | None:
+        """Fetch document by unique SHA-256 hash and optional user_id."""
+        pool = self.get_pool()
+        if user_id:
+            query = "SELECT * FROM documents WHERE sha256_hash = $1 AND user_id = $2 LIMIT 1;"
+            async with pool.acquire() as conn:
+                row = await conn.fetchrow(query, sha256_hash, user_id)
+                return Document(**dict(row)) if row else None
+        else:
+            query = "SELECT * FROM documents WHERE sha256_hash = $1 LIMIT 1;"
+            async with pool.acquire() as conn:
+                row = await conn.fetchrow(query, sha256_hash)
+                return Document(**dict(row)) if row else None
+
+    async def get_document_chunks(self, document_id: UUID) -> list[DocumentChunk]:
+        """Fetch all chunks for a document ordered by chunk_index."""
+        pool = self.get_pool()
+        query = """
+            SELECT id, document_id, chunk_index, content, embedding, metadata, created_at
+            FROM document_chunks
+            WHERE document_id = $1
+            ORDER BY chunk_index ASC;
+        """
+        async with pool.acquire() as conn:
+            rows = await conn.fetch(query, document_id)
+            chunks: list[DocumentChunk] = []
+            for r in rows:
+                data = dict(r)
+                if isinstance(data.get("metadata"), str):
+                    data["metadata"] = json.loads(data["metadata"])
+                chunks.append(DocumentChunk(**data))
+            return chunks
+
+    async def list_all_documents(self, user_id: UUID | None = None) -> list[Document]:
+        """List documents visible to the user (all seeded documents + user's uploaded documents)."""
+        pool = self.get_pool()
+        if user_id:
+            query = """
+                SELECT * FROM documents
+                WHERE is_seeded = TRUE OR user_id = $1
+                ORDER BY uploaded_at DESC;
+            """
+            async with pool.acquire() as conn:
+                rows = await conn.fetch(query, user_id)
+                return [Document(**dict(r)) for r in rows]
+        else:
+            query = "SELECT * FROM documents WHERE is_seeded = TRUE ORDER BY uploaded_at DESC;"
+            async with pool.acquire() as conn:
+                rows = await conn.fetch(query)
+                return [Document(**dict(r)) for r in rows]
 
 
 neon_db = NeonDatabase()

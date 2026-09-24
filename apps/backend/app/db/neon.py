@@ -1,5 +1,5 @@
 import logging
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from uuid import UUID, uuid4
 
 import asyncpg
@@ -160,14 +160,30 @@ class NeonDatabase:
     async def get_or_create_rate_limit(
         self, user_id: UUID, client_ip: str, default_tokens: int = 5
     ) -> RateLimitBucket:
-        """Get or initialize rate limit bucket for user and IP."""
+        """Get or initialize rate limit bucket for user and IP, replenishing hourly if expired."""
         if not self.pool:
             raise RuntimeError("Neon database is not connected.")
+        now = datetime.now(UTC)
         select_query = "SELECT * FROM rate_limit_buckets WHERE user_id = $1 AND client_ip = $2;"
         async with self.pool.acquire() as conn:
             row = await conn.fetchrow(select_query, user_id, client_ip)
             if row:
-                return RateLimitBucket(**dict(row))
+                bucket = RateLimitBucket(**dict(row))
+                last_rep = bucket.last_replenished_at
+                if last_rep.tzinfo is None:
+                    last_rep = last_rep.replace(tzinfo=UTC)
+                if (now - last_rep) >= timedelta(hours=1):
+                    replenish_query = """
+                        UPDATE rate_limit_buckets
+                        SET tokens_remaining = bucket_capacity,
+                            last_replenished_at = $3
+                        WHERE user_id = $1 AND client_ip = $2
+                        RETURNING *;
+                    """
+                    updated_row = await conn.fetchrow(replenish_query, user_id, client_ip, now)
+                    if updated_row:
+                        return RateLimitBucket(**dict(updated_row))
+                return bucket
 
             insert_query = """
                 INSERT INTO rate_limit_buckets (user_id, client_ip, tokens_remaining, bucket_capacity, last_replenished_at)
@@ -181,25 +197,50 @@ class NeonDatabase:
                 client_ip,
                 default_tokens,
                 default_tokens,
-                datetime.now(UTC),
+                now,
             )
             return RateLimitBucket(**dict(row))
 
     async def decrement_rate_limit(self, user_id: UUID, client_ip: str) -> bool:
-        """Decrement token bucket by 1 if tokens remaining > 0."""
+        """Decrement token bucket by 1 if tokens remaining > 0, replenishing first if hourly window elapsed."""
         if not self.pool:
             raise RuntimeError("Neon database is not connected.")
-        query = """
-            UPDATE rate_limit_buckets
-            SET tokens_remaining = tokens_remaining - 1
-            WHERE user_id = $1 AND client_ip = $2 AND tokens_remaining > 0
-            RETURNING tokens_remaining;
-        """
+        now = datetime.now(UTC)
         async with self.pool.acquire() as conn:
+            bucket_row = await conn.fetchrow(
+                "SELECT tokens_remaining, bucket_capacity, last_replenished_at FROM rate_limit_buckets WHERE user_id = $1 AND client_ip = $2;",
+                user_id,
+                client_ip,
+            )
+            if bucket_row:
+                last_rep = bucket_row["last_replenished_at"]
+                if last_rep.tzinfo is None:
+                    last_rep = last_rep.replace(tzinfo=UTC)
+                if (now - last_rep) >= timedelta(hours=1):
+                    await conn.execute(
+                        """
+                        UPDATE rate_limit_buckets
+                        SET tokens_remaining = bucket_capacity,
+                            last_replenished_at = $3
+                        WHERE user_id = $1 AND client_ip = $2;
+                        """,
+                        user_id,
+                        client_ip,
+                        now,
+                    )
+
+            query = """
+                UPDATE rate_limit_buckets
+                SET tokens_remaining = tokens_remaining - 1
+                WHERE user_id = $1 AND client_ip = $2 AND tokens_remaining > 0
+                RETURNING tokens_remaining;
+            """
             val = await conn.fetchval(query, user_id, client_ip)
             return val is not None
 
-    async def search_seeded_chunks(self, query_embedding: list[float], limit: int = 3) -> list[dict]:
+    async def search_seeded_chunks(
+        self, query_embedding: list[float], limit: int = 3
+    ) -> list[dict]:
         """Perform cosine similarity search on seeded knowledge base chunks."""
         if not self.pool:
             raise RuntimeError("Neon database is not connected.")
@@ -230,5 +271,5 @@ neon_db = NeonDatabase()
 
 
 async def get_db() -> NeonDatabase:
+    """FastAPI dependency for accessing database singleton."""
     return neon_db
-

@@ -14,6 +14,9 @@ from app.db.neon import NeonDatabase, get_db
 pwd_context = CryptContext(schemes=["argon2"], deprecated="auto")
 security_bearer = HTTPBearer(auto_error=False)
 
+# Constant-time dummy hash to mitigate user enumeration timing attacks on failed logins
+DUMMY_ARGON2_HASH = "$argon2id$v=19$m=65536,t=3,p=4$c29tZXNhbHQ$P2T9k55E4jXNnO6aL5Q9rw"
+
 
 def hash_password(password: str) -> str:
     """Hash password using Argon2."""
@@ -21,7 +24,7 @@ def hash_password(password: str) -> str:
 
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
-    """Verify password against Argon2 hash."""
+    """Verify password against Argon2 hash with timing attack resistance."""
     return pwd_context.verify(plain_password, hashed_password)
 
 
@@ -130,9 +133,8 @@ async def get_current_user_optional(
         if not user_id_str:
             return None
         return await db.get_user_by_id(UUID(user_id_str))
-    except Exception:
+    except jwt.PyJWTError, ValueError, HTTPException:
         return None
-
 
 
 async def issue_guest_pass(
@@ -194,19 +196,28 @@ async def issue_guest_pass(
 
 
 async def verify_google_token(credential: str) -> dict:
-    """Verify Google ID token (credential) via Google tokeninfo endpoint or mock bypass."""
-    if credential.startswith("mock-google-token:") or (
-        settings.USE_SIMULATION_FALLBACK and credential.startswith("test-")
-    ):
-        parts = credential.split(":")
-        email = parts[1] if len(parts) > 1 else "architect@nexusagent.internal"
-        name = parts[2] if len(parts) > 2 else "Test Architect"
-        return {
-            "email": email,
-            "name": name,
-            "picture": None,
-            "sub": "mock-google-sub-12345",
-        }
+    """Verify Google ID token (credential) via Google tokeninfo endpoint or mock bypass.
+
+    In production mode, mock Google tokens are strictly rejected with HTTP 401.
+    """
+    is_mock = credential.startswith(("mock-google-token:", "test-"))
+    if is_mock:
+        allowed_environments = ("development", "test", "testing")
+        if settings.USE_SIMULATION_FALLBACK and settings.ENVIRONMENT in allowed_environments:
+            parts = credential.split(":")
+            email = parts[1] if len(parts) > 1 else "architect@nexusagent.internal"
+            name = parts[2] if len(parts) > 2 else "Test Architect"
+            return {
+                "email": email,
+                "name": name,
+                "picture": None,
+                "sub": f"mock-google-sub-{email}",
+            }
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Mock Google authentication is disabled in production mode (ASI-01 Defense).",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
 
     url = f"https://oauth2.googleapis.com/tokeninfo?id_token={credential}"
     try:

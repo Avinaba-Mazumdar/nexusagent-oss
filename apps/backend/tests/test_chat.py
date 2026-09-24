@@ -29,7 +29,6 @@ async def test_get_seeded_documents():
         assert "artificial_analysis.md" in filenames
 
 
-
 @pytest.mark.asyncio
 async def test_stream_chat_byok():
     transport = ASGITransport(app=app)

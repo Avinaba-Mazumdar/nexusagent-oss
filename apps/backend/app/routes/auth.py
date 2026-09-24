@@ -5,6 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request, status
 
 from app.config import settings
 from app.core.auth import (
+    DUMMY_ARGON2_HASH,
     create_access_token,
     get_current_user,
     hash_password,
@@ -66,9 +67,9 @@ async def register(
     now = datetime.now(UTC)
     new_user = User(
         id=uuid4(),
-        email=payload.email.lower().strip(),
+        email=payload.email,
         hashed_password=hash_password(payload.password),
-        name=payload.name.strip(),
+        name=payload.name,
         avatar_url=None,
         is_guest=False,
         client_ip=client_ip,
@@ -96,9 +97,11 @@ async def login(
     request: Request,
     db: NeonDatabase = Depends(get_db),
 ):
-    """Authenticate email and password and return access token."""
-    user = await db.get_user_by_email(payload.email.lower().strip())
+    """Authenticate email and password and return access token with timing-attack defense."""
+    user = await db.get_user_by_email(payload.email)
     if not user or not user.hashed_password:
+        # Perform constant-time verification with dummy hash to prevent user enumeration
+        verify_password(payload.password, DUMMY_ARGON2_HASH)
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid email or password",

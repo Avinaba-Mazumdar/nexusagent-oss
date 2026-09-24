@@ -1,19 +1,21 @@
-import json
-import time
 import hashlib
-from typing import AsyncGenerator
+import json
+import logging
+import time
+from collections.abc import AsyncGenerator
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, Header, Request, status
-from fastapi.responses import StreamingResponse
-from pydantic import BaseModel
 import httpx
 import numpy as np
+from fastapi import APIRouter, Depends, Header, HTTPException, Request, status
+from fastapi.responses import StreamingResponse
+from pydantic import BaseModel
 
-from app.config import settings
 from app.core.auth import get_current_user_optional
 from app.db.models import User
 from app.db.neon import NeonDatabase, get_db
+
+logger = logging.getLogger("nexusagent.chat")
 
 router = APIRouter(prefix="/chat", tags=["Agent Chat & RAG"])
 
@@ -65,8 +67,8 @@ async def get_embedding(text: str, api_key: str | None = None) -> list[float]:
                     values = data.get("embedding", {}).get("values", [])
                     if len(values) == 768:
                         return values
-        except Exception:
-            pass
+        except (httpx.HTTPError, KeyError, ValueError) as exc:
+            logger.debug("Failed to retrieve Google embedding: %s", exc)
     return get_pseudo_embedding(text)
 
 
@@ -106,11 +108,13 @@ async def stream_chat(
             )
 
     # 1. RAG Vector Retrieval
-    query_emb = await get_embedding(payload.message, byok_key if is_byok and byok_provider == "google" else None)
+    query_emb = await get_embedding(
+        payload.message, byok_key if is_byok and byok_provider == "google" else None
+    )
     chunks = await db.search_seeded_chunks(query_emb, limit=3)
 
     # 2. SSE Generator
-    async def sse_stream() -> AsyncGenerator[str, None]:
+    async def sse_stream() -> AsyncGenerator[str]:
         start_time = time.perf_counter()
 
         # Emit Router stage
@@ -126,8 +130,10 @@ async def stream_chat(
         yield f"data: {json.dumps({'stage': 'INFERENCE', 'message': 'Generating architectural response with RAG grounding...'})}\n\n"
 
         # Synthesize context
-        context_text = "\n\n---\n\n".join([f"Source: {c['filename']}\n{c['content']}" for c in chunks])
-        
+        context_text = "\n\n---\n\n".join(
+            [f"Source: {c['filename']}\n{c['content']}" for c in chunks]
+        )
+
         # Stream response text chunks
         simulated_response = (
             f"Based on the latest indexed benchmark data:\n\n"
@@ -144,8 +150,8 @@ async def stream_chat(
             )
         else:
             simulated_response += (
-                f"Our benchmark index currently covers BenchLM intelligence rankings, OpenRouter throughput/pricing, "
-                f"and CursorBench coding accuracy. You can bring your own key (BYOK) for unconstrained queries."
+                "Our benchmark index currently covers BenchLM intelligence rankings, OpenRouter throughput/pricing, "
+                "and CursorBench coding accuracy. You can bring your own key (BYOK) for unconstrained queries."
             )
 
         words = simulated_response.split(" ")

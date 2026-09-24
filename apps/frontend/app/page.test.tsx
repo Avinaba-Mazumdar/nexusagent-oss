@@ -1,9 +1,16 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, vi, beforeEach } from 'vitest';
+import { useAuthStore } from '@/lib/auth-store';
 import Home from './page';
 
 describe('Home Page - Layout and Header Controls', () => {
+    beforeEach(() => {
+        localStorage.clear();
+        document.cookie = 'nexusagent_token=; path=/; max-age=0';
+        useAuthStore.getState().logout();
+    });
+
     it('renders the 4 primary layout elements without versions, quotas, or zone tags', () => {
         render(<Home />);
 
@@ -38,6 +45,7 @@ describe('Home Page - Layout and Header Controls', () => {
         expect(screen.getByRole('heading', { name: 'Sign In' })).toBeInTheDocument();
         expect(screen.getByRole('button', { name: /google sign in/i })).toBeInTheDocument();
         expect(screen.getByRole('button', { name: /guest sign in/i })).toBeInTheDocument();
+        expect(screen.getByRole('tab', { name: /email account/i })).toBeInTheDocument();
     });
 
     it('authenticates guest, displays session header with quota, and signs out', async () => {
@@ -94,6 +102,54 @@ describe('Home Page - Layout and Header Controls', () => {
 
         expect(await screen.findByRole('button', { name: /sign in/i })).toBeInTheDocument();
         expect(screen.queryByRole('button', { name: /user profile menu/i })).not.toBeInTheDocument();
+
+        global.fetch = originalFetch;
+    });
+
+    it('authenticates with email and password via Email Account tab', async () => {
+        const mockAuthResponse = {
+            accessToken: 'argon2.jwt.token',
+            tokenType: 'bearer',
+            expiresIn: 86400,
+            user: {
+                id: '44444444-4444-4444-4444-444444444444',
+                email: 'architect@nexusagent.internal',
+                name: 'Principal Engineer',
+                avatarUrl: null,
+                isGuest: false,
+                createdAt: '2026-09-13T00:00:00Z',
+                lastSeenAt: '2026-09-13T00:00:00Z'
+            }
+        };
+
+        const originalFetch = global.fetch;
+        global.fetch = vi.fn().mockResolvedValue({
+            ok: true,
+            json: async () => mockAuthResponse
+        } as unknown as Response);
+
+        const user = userEvent.setup();
+        render(<Home />);
+
+        // Open Dialog
+        await user.click(screen.getByRole('button', { name: /sign in/i }));
+
+        // Switch to Email tab
+        await user.click(screen.getByRole('tab', { name: /email account/i }));
+
+        // Fill form
+        await user.type(screen.getByPlaceholderText('architect@nexusagent.internal'), 'architect@nexusagent.internal');
+        await user.type(screen.getByPlaceholderText('••••••••'), 'Password123!');
+
+        // Submit form
+        await user.click(screen.getByRole('button', { name: /sign in with password/i }));
+
+        // Header shows avatar button for authenticated user
+        const profileBtn = await screen.findByRole('button', { name: /user profile menu/i });
+        expect(profileBtn).toBeInTheDocument();
+
+        // Verify cookie persistence
+        expect(document.cookie).toContain('nexusagent_token=argon2.jwt.token');
 
         global.fetch = originalFetch;
     });

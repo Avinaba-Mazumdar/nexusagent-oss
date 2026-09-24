@@ -1,12 +1,16 @@
+import re
 from datetime import UTC, datetime
 from typing import Any
 from uuid import UUID, uuid4
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 
 def utc_now() -> datetime:
     return datetime.now(UTC)
+
+
+EMAIL_REGEX = re.compile(r"^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$")
 
 
 class User(BaseModel):
@@ -39,13 +43,12 @@ class Document(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     id: UUID = Field(default_factory=uuid4)
-    user_id: UUID
     filename: str
-    mime_type: str
+    file_path: str
+    file_size_bytes: int
+    mime_type: str = "text/markdown"
     sha256_hash: str
-    total_chunks: int = 0
-    storage_path: str | None = None
-    is_seeded: bool = False
+    chunk_count: int = 0
     uploaded_at: datetime = Field(default_factory=utc_now)
 
 
@@ -148,18 +151,51 @@ class QuotaStatus(BaseModel):
 
 
 class LoginRequest(BaseModel):
-    email: str
-    password: str
+    email: str = Field(..., max_length=255)
+    password: str = Field(..., min_length=1, max_length=128)
+
+    @field_validator("email")
+    @classmethod
+    def validate_login_email(cls, v: str) -> str:
+        clean = v.strip().lower()
+        if not EMAIL_REGEX.match(clean):
+            raise ValueError("Invalid email format")
+        return clean
 
 
 class RegisterRequest(BaseModel):
-    email: str
-    password: str
-    name: str
+    email: str = Field(..., max_length=255)
+    password: str = Field(..., min_length=8, max_length=128)
+    name: str = Field(..., min_length=1, max_length=100)
+
+    @field_validator("email")
+    @classmethod
+    def validate_register_email(cls, v: str) -> str:
+        clean = v.strip().lower()
+        if not EMAIL_REGEX.match(clean):
+            raise ValueError("Invalid email format")
+        return clean
+
+    @field_validator("name")
+    @classmethod
+    def validate_register_name(cls, v: str) -> str:
+        clean = re.sub(r"[\x00-\x1f\x7f-\x9f]", "", v.strip())
+        if not clean:
+            raise ValueError("Name cannot be empty or contain only control characters")
+        return clean
+
+    @field_validator("password")
+    @classmethod
+    def validate_password_strength(cls, v: str) -> str:
+        if len(v) < 8:
+            raise ValueError("Password must be at least 8 characters long")
+        if len(v) > 128:
+            raise ValueError("Password cannot exceed 128 characters")
+        return v
 
 
 class GoogleAuthRequest(BaseModel):
-    credential: str
+    credential: str = Field(..., min_length=10, max_length=4096)
 
 
 class TokenResponse(BaseModel):

@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import type { UserSession, GuestPassResponse } from '@nexusagent/contracts';
+import { apiClient, getCookie, setCookie, removeCookie, setAuthTokenGetter, setOnUnauthorizedCallback } from './api-client';
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 const STORAGE_KEY_TOKEN = 'nexusagent_token';
 const STORAGE_KEY_USER = 'nexusagent_user';
 const STORAGE_KEY_QUOTA = 'nexusagent_quota';
@@ -39,6 +39,8 @@ interface AuthState {
     setIsGoogleLoading: (loading: boolean) => void;
     loginGuest: () => Promise<boolean>;
     loginGoogle: (credential: string) => Promise<boolean>;
+    loginEmail: (email: string, password: string) => Promise<boolean>;
+    registerEmail: (email: string, password: string, name: string) => Promise<boolean>;
     logout: () => void;
     setByokKey: (key: string | null, provider?: ByokProvider) => void;
     clearByokKey: () => void;
@@ -46,202 +48,263 @@ interface AuthState {
     initAuth: () => Promise<void>;
 }
 
-export const useAuthStore = create<AuthState>((set) => ({
-    user: null,
-    token: null,
-    quotaRemaining: 5,
-    bucketCapacity: 5,
-    isLoading: false,
-    isGuestLoading: false,
-    isGoogleLoading: false,
-    error: null,
-    byokKey: null,
-    byokProvider: 'google',
+export const useAuthStore = create<AuthState>((set, get) => {
+    // Configure interceptor callbacks
+    setAuthTokenGetter(() => get().token || (typeof window !== 'undefined' ? localStorage.getItem(STORAGE_KEY_TOKEN) || getCookie(STORAGE_KEY_TOKEN) : null));
+    setOnUnauthorizedCallback(() => get().logout());
 
-    setIsGoogleLoading: (isGoogleLoading: boolean) => set({ isGoogleLoading }),
-    setQuotaRemaining: (quotaRemaining: number) => set({ quotaRemaining }),
+    return {
+        user: null,
+        token: null,
+        quotaRemaining: 5,
+        bucketCapacity: 5,
+        isLoading: false,
+        isGuestLoading: false,
+        isGoogleLoading: false,
+        error: null,
+        byokKey: null,
+        byokProvider: 'google',
 
-    setByokKey: (key: string | null, provider: ByokProvider = 'google') => {
-        if (typeof window !== 'undefined') {
-            if (key) {
-                localStorage.setItem(STORAGE_KEY_BYOK_KEY, key);
-                localStorage.setItem(STORAGE_KEY_BYOK_PROVIDER, provider);
-            } else {
+        setIsGoogleLoading: (isGoogleLoading: boolean) => set({ isGoogleLoading }),
+        setQuotaRemaining: (quotaRemaining: number) => set({ quotaRemaining }),
+
+        setByokKey: (key: string | null, provider: ByokProvider = 'google') => {
+            if (typeof window !== 'undefined') {
+                if (key) {
+                    localStorage.setItem(STORAGE_KEY_BYOK_KEY, key);
+                    localStorage.setItem(STORAGE_KEY_BYOK_PROVIDER, provider);
+                } else {
+                    localStorage.removeItem(STORAGE_KEY_BYOK_KEY);
+                    localStorage.removeItem(STORAGE_KEY_BYOK_PROVIDER);
+                }
+            }
+            set({ byokKey: key, byokProvider: provider });
+        },
+
+        clearByokKey: () => {
+            if (typeof window !== 'undefined') {
                 localStorage.removeItem(STORAGE_KEY_BYOK_KEY);
                 localStorage.removeItem(STORAGE_KEY_BYOK_PROVIDER);
             }
-        }
-        set({ byokKey: key, byokProvider: provider });
-    },
+            set({ byokKey: null, byokProvider: 'google' });
+        },
 
-    clearByokKey: () => {
-        if (typeof window !== 'undefined') {
-            localStorage.removeItem(STORAGE_KEY_BYOK_KEY);
-            localStorage.removeItem(STORAGE_KEY_BYOK_PROVIDER);
-        }
-        set({ byokKey: null, byokProvider: 'google' });
-    },
-
-    initAuth: async () => {
-        if (typeof window === 'undefined') return;
-        try {
-            const token = localStorage.getItem(STORAGE_KEY_TOKEN);
-            const userStr = localStorage.getItem(STORAGE_KEY_USER);
-            const quota = localStorage.getItem(STORAGE_KEY_QUOTA);
-            const byokKey = localStorage.getItem(STORAGE_KEY_BYOK_KEY);
-            const byokProvider = (localStorage.getItem(STORAGE_KEY_BYOK_PROVIDER) as ByokProvider) || 'google';
-
-            if (byokKey) {
-                set({ byokKey, byokProvider });
-            }
-
-            if (!token || !userStr) {
-                return;
-            }
-
-            const user = JSON.parse(userStr) as UserSession;
-            set({
-                token,
-                user,
-                quotaRemaining: quota ? parseInt(quota, 10) : 5
-            });
-
-            // Server-side session validation against Neon PostgreSQL
+        initAuth: async () => {
+            if (typeof window === 'undefined') return;
             try {
-                const res = await fetch(`${API_BASE}/api/auth/me`, {
-                    headers: {
-                        Authorization: `Bearer ${token}`
-                    }
+                const token = localStorage.getItem(STORAGE_KEY_TOKEN) || getCookie(STORAGE_KEY_TOKEN);
+                const userStr = localStorage.getItem(STORAGE_KEY_USER);
+                const quota = localStorage.getItem(STORAGE_KEY_QUOTA);
+                const byokKey = localStorage.getItem(STORAGE_KEY_BYOK_KEY);
+                const byokProvider = (localStorage.getItem(STORAGE_KEY_BYOK_PROVIDER) as ByokProvider) || 'google';
+
+                if (byokKey) {
+                    set({ byokKey, byokProvider });
+                }
+
+                if (!token || !userStr) {
+                    return;
+                }
+
+                const user = JSON.parse(userStr) as UserSession;
+                set({
+                    token,
+                    user,
+                    quotaRemaining: quota ? parseInt(quota, 10) : 5
                 });
 
-                if (res.ok) {
-                    const data = await res.json();
+                // Server-side session validation against Neon PostgreSQL via API client
+                try {
+                    const data = await apiClient<{
+                        user: UserSession;
+                        quota?: { tokensRemaining: number; bucketCapacity: number };
+                    }>('/api/auth/me');
+
                     const validatedUser = data.user;
                     const validatedQuota = data.quota?.tokensRemaining ?? 5;
                     const validatedCapacity = data.quota?.bucketCapacity ?? 5;
 
                     localStorage.setItem(STORAGE_KEY_USER, JSON.stringify(validatedUser));
                     localStorage.setItem(STORAGE_KEY_QUOTA, validatedQuota.toString());
+                    setCookie(STORAGE_KEY_TOKEN, token);
 
                     set({
                         user: validatedUser,
                         quotaRemaining: validatedQuota,
                         bucketCapacity: validatedCapacity
                     });
-                } else if (res.status === 401 || res.status === 403 || res.status === 404) {
-                    // Stale session: record deleted from database or token revoked
-                    useAuthStore.getState().logout();
+                } catch {
+                    // Handled by 401 interceptor or offline resilience
                 }
             } catch {
-                // Network unreachable; retain cached session for offline resilience
+                get().logout();
             }
-        } catch {
-            // Storage access failed or JSON invalid, fallback to logged out
-            useAuthStore.getState().logout();
-        }
-    },
+        },
 
-    loginGuest: async () => {
-        set({ isGuestLoading: true, isLoading: true, error: null });
-        try {
-            const deviceId = getOrCreateDeviceId();
-            const res = await fetch(`${API_BASE}/api/auth/guest`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ deviceId: deviceId || undefined })
-            });
+        loginGuest: async () => {
+            set({ isGuestLoading: true, isLoading: true, error: null });
+            try {
+                const deviceId = getOrCreateDeviceId();
+                const data = await apiClient<GuestPassResponse>('/api/auth/guest', {
+                    method: 'POST',
+                    body: JSON.stringify({ deviceId: deviceId || undefined })
+                });
 
-            if (!res.ok) {
-                throw new Error(`Failed to create guest pass: ${res.statusText}`);
+                const token = data.tokens.accessToken;
+                const user = data.user;
+                const quotaRemaining = data.quotaRemaining;
+                const bucketCapacity = data.bucketCapacity;
+
+                if (typeof window !== 'undefined') {
+                    localStorage.setItem(STORAGE_KEY_TOKEN, token);
+                    localStorage.setItem(STORAGE_KEY_USER, JSON.stringify(user));
+                    localStorage.setItem(STORAGE_KEY_QUOTA, quotaRemaining.toString());
+                    setCookie(STORAGE_KEY_TOKEN, token);
+                }
+
+                set({
+                    token,
+                    user,
+                    quotaRemaining,
+                    bucketCapacity,
+                    isGuestLoading: false,
+                    isLoading: false,
+                    error: null
+                });
+                return true;
+            } catch (err) {
+                const message = err instanceof Error ? err.message : 'Unknown error during guest sign-in';
+                set({ isGuestLoading: false, isLoading: false, error: message });
+                return false;
             }
+        },
 
-            const data: GuestPassResponse = await res.json();
-            const token = data.tokens.accessToken;
-            const user = data.user;
-            const quotaRemaining = data.quotaRemaining;
-            const bucketCapacity = data.bucketCapacity;
+        loginGoogle: async (credential: string) => {
+            set({ isGoogleLoading: true, isLoading: true, error: null });
+            try {
+                const data = await apiClient<{ accessToken: string; user: UserSession }>('/api/auth/google', {
+                    method: 'POST',
+                    body: JSON.stringify({ credential })
+                });
 
+                const token = data.accessToken;
+                const user = data.user;
+                const quotaRemaining = 25;
+                const bucketCapacity = 25;
+
+                if (typeof window !== 'undefined') {
+                    localStorage.setItem(STORAGE_KEY_TOKEN, token);
+                    localStorage.setItem(STORAGE_KEY_USER, JSON.stringify(user));
+                    localStorage.setItem(STORAGE_KEY_QUOTA, quotaRemaining.toString());
+                    setCookie(STORAGE_KEY_TOKEN, token);
+                }
+
+                set({
+                    token,
+                    user,
+                    quotaRemaining,
+                    bucketCapacity,
+                    isGoogleLoading: false,
+                    isLoading: false,
+                    error: null
+                });
+                return true;
+            } catch (err) {
+                const message = err instanceof Error ? err.message : 'Unknown error during Google sign-in';
+                set({ isGoogleLoading: false, isLoading: false, error: message });
+                return false;
+            }
+        },
+
+        loginEmail: async (email: string, password: string) => {
+            set({ isLoading: true, error: null });
+            try {
+                const data = await apiClient<{ accessToken: string; user: UserSession }>('/api/auth/login', {
+                    method: 'POST',
+                    body: JSON.stringify({ email, password })
+                });
+
+                const token = data.accessToken;
+                const user = data.user;
+                const quotaRemaining = 25;
+                const bucketCapacity = 25;
+
+                if (typeof window !== 'undefined') {
+                    localStorage.setItem(STORAGE_KEY_TOKEN, token);
+                    localStorage.setItem(STORAGE_KEY_USER, JSON.stringify(user));
+                    localStorage.setItem(STORAGE_KEY_QUOTA, quotaRemaining.toString());
+                    setCookie(STORAGE_KEY_TOKEN, token);
+                }
+
+                set({
+                    token,
+                    user,
+                    quotaRemaining,
+                    bucketCapacity,
+                    isLoading: false,
+                    error: null
+                });
+                return true;
+            } catch (err) {
+                const message = err instanceof Error ? err.message : 'Failed email sign-in';
+                set({ isLoading: false, error: message });
+                return false;
+            }
+        },
+
+        registerEmail: async (email: string, password: string, name: string) => {
+            set({ isLoading: true, error: null });
+            try {
+                const data = await apiClient<{ accessToken: string; user: UserSession }>('/api/auth/register', {
+                    method: 'POST',
+                    body: JSON.stringify({ email, password, name })
+                });
+
+                const token = data.accessToken;
+                const user = data.user;
+                const quotaRemaining = 25;
+                const bucketCapacity = 25;
+
+                if (typeof window !== 'undefined') {
+                    localStorage.setItem(STORAGE_KEY_TOKEN, token);
+                    localStorage.setItem(STORAGE_KEY_USER, JSON.stringify(user));
+                    localStorage.setItem(STORAGE_KEY_QUOTA, quotaRemaining.toString());
+                    setCookie(STORAGE_KEY_TOKEN, token);
+                }
+
+                set({
+                    token,
+                    user,
+                    quotaRemaining,
+                    bucketCapacity,
+                    isLoading: false,
+                    error: null
+                });
+                return true;
+            } catch (err) {
+                const message = err instanceof Error ? err.message : 'Failed registration';
+                set({ isLoading: false, error: message });
+                return false;
+            }
+        },
+
+        logout: () => {
             if (typeof window !== 'undefined') {
-                localStorage.setItem(STORAGE_KEY_TOKEN, token);
-                localStorage.setItem(STORAGE_KEY_USER, JSON.stringify(user));
-                localStorage.setItem(STORAGE_KEY_QUOTA, quotaRemaining.toString());
+                localStorage.removeItem(STORAGE_KEY_TOKEN);
+                localStorage.removeItem(STORAGE_KEY_USER);
+                localStorage.removeItem(STORAGE_KEY_QUOTA);
+                removeCookie(STORAGE_KEY_TOKEN);
             }
-
             set({
-                token,
-                user,
-                quotaRemaining,
-                bucketCapacity,
+                user: null,
+                token: null,
+                quotaRemaining: 5,
+                bucketCapacity: 5,
                 isGuestLoading: false,
-                isLoading: false,
-                error: null
-            });
-            return true;
-        } catch (err) {
-            const message = err instanceof Error ? err.message : 'Unknown error during guest sign-in';
-            set({ isGuestLoading: false, isLoading: false, error: message });
-            return false;
-        }
-    },
-
-    loginGoogle: async (credential: string) => {
-        set({ isGoogleLoading: true, isLoading: true, error: null });
-        try {
-            const res = await fetch(`${API_BASE}/api/auth/google`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ credential })
-            });
-
-            if (!res.ok) {
-                const errorData = await res.json().catch(() => null);
-                throw new Error(errorData?.detail || `Failed Google authentication: ${res.statusText}`);
-            }
-
-            const data = await res.json();
-            const token = data.accessToken;
-            const user = data.user;
-            const quotaRemaining = 25;
-            const bucketCapacity = 25;
-
-            if (typeof window !== 'undefined') {
-                localStorage.setItem(STORAGE_KEY_TOKEN, token);
-                localStorage.setItem(STORAGE_KEY_USER, JSON.stringify(user));
-                localStorage.setItem(STORAGE_KEY_QUOTA, quotaRemaining.toString());
-            }
-
-            set({
-                token,
-                user,
-                quotaRemaining,
-                bucketCapacity,
                 isGoogleLoading: false,
                 isLoading: false,
                 error: null
             });
-            return true;
-        } catch (err) {
-            const message = err instanceof Error ? err.message : 'Unknown error during Google sign-in';
-            set({ isGoogleLoading: false, isLoading: false, error: message });
-            return false;
         }
-    },
-
-    logout: () => {
-        if (typeof window !== 'undefined') {
-            localStorage.removeItem(STORAGE_KEY_TOKEN);
-            localStorage.removeItem(STORAGE_KEY_USER);
-            localStorage.removeItem(STORAGE_KEY_QUOTA);
-        }
-        set({
-            user: null,
-            token: null,
-            quotaRemaining: 5,
-            bucketCapacity: 5,
-            isGuestLoading: false,
-            isGoogleLoading: false,
-            isLoading: false,
-            error: null
-        });
-    }
-}));
+    };
+});

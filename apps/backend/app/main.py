@@ -42,7 +42,6 @@ app.include_router(auth_router, prefix="/api")
 app.include_router(chat_router, prefix="/api")
 
 
-
 @app.get("/", tags=["Root"])
 async def root():
     """Root endpoint welcoming clients and referencing documentation."""

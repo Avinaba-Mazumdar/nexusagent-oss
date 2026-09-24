@@ -12,6 +12,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Input } from '@/components/ui/input';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Switch } from '@/components/ui/switch';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAuthStore } from '@/lib/auth-store';
 import { HireMeModal } from '@/components/hire-me-modal';
 import { ByokModal } from '@/components/byok-modal';
@@ -44,6 +45,14 @@ export default function Home() {
     const [seededDocs, setSeededDocs] = React.useState<SeededDoc[]>([]);
     const [isStreaming, setIsStreaming] = React.useState(false);
     const [messages, setMessages] = React.useState<ChatItem[]>([]);
+
+    // Email/password form state
+    const [isRegisterMode, setIsRegisterMode] = React.useState(false);
+    const [emailInput, setEmailInput] = React.useState('');
+    const [passwordInput, setPasswordInput] = React.useState('');
+    const [nameInput, setNameInput] = React.useState('');
+    const [isEmailLoading, setIsEmailLoading] = React.useState(false);
+    const [formError, setFormError] = React.useState<string | null>(null);
 
     const [metrics, setMetrics] = React.useState<TelemetryMetrics>({
         activeModel: 'gemini-2.5-flash',
@@ -83,6 +92,8 @@ export default function Home() {
         byokProvider,
         loginGuest,
         loginGoogle,
+        loginEmail,
+        registerEmail,
         logout,
         initAuth,
         setQuotaRemaining
@@ -187,6 +198,44 @@ export default function Home() {
         },
         [googleClientId, initGsi]
     );
+
+    const handleEmailSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setFormError(null);
+
+        const email = emailInput.trim();
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(email)) {
+            setFormError('Please enter a valid email address.');
+            return;
+        }
+
+        if (passwordInput.length < 8) {
+            setFormError('Password must be at least 8 characters long.');
+            return;
+        }
+
+        setIsEmailLoading(true);
+        try {
+            let ok = false;
+            if (isRegisterMode) {
+                ok = await registerEmail(email, passwordInput, nameInput.trim() || email.split('@')[0]);
+            } else {
+                ok = await loginEmail(email, passwordInput);
+            }
+            if (ok) {
+                setDialogOpen(false);
+                setEmailInput('');
+                setPasswordInput('');
+                setNameInput('');
+            } else {
+                const latestError = useAuthStore.getState().error;
+                setFormError(latestError || 'Authentication failed. Please verify credentials.');
+            }
+        } finally {
+            setIsEmailLoading(false);
+        }
+    };
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -464,80 +513,147 @@ export default function Home() {
                                     <span>Sign In</span>
                                 </Button>
                             </DialogTrigger>
-                            <DialogContent className="sm:max-w-xs">
+                            <DialogContent className="sm:max-w-sm">
                                 <DialogHeader>
                                     <DialogTitle>Sign In</DialogTitle>
                                     <DialogDescription className="text-xs">Sign in to your account or continue as a guest.</DialogDescription>
                                 </DialogHeader>
-                                <div className="flex flex-col gap-2.5 pt-2">
-                                    {/* Google Sign In */}
-                                    <div className="relative w-full">
+                                <Tabs defaultValue="quick" className="w-full pt-1">
+                                    <TabsList className="grid w-full grid-cols-2 h-9 mb-2">
+                                        <TabsTrigger value="quick">1-Click / Google</TabsTrigger>
+                                        <TabsTrigger value="email">Email Account</TabsTrigger>
+                                    </TabsList>
+                                    <TabsContent value="quick" className="flex flex-col gap-2.5 pt-1">
+                                        {/* Google Sign In */}
+                                        <div className="relative w-full">
+                                            <Button
+                                                type="button"
+                                                variant="outline"
+                                                disabled={isGoogleLoading || isGuestLoading}
+                                                onClick={async () => {
+                                                    setIsGoogleLoading(true);
+                                                    const ok = await loginGoogle('mock-google-token:developer@nexusagent.internal:Lead Systems Architect');
+                                                    setIsGoogleLoading(false);
+                                                    if (ok) setDialogOpen(false);
+                                                }}
+                                                className="w-full justify-center gap-2 text-xs font-medium border-border hover:bg-secondary rounded-xl h-10 shadow-xs"
+                                                title="Sign in with Google"
+                                            >
+                                                {isGoogleLoading ? (
+                                                    <Loader2 className="h-3.5 w-3.5 animate-spin text-primary" aria-hidden="true" />
+                                                ) : (
+                                                    <svg className="h-4 w-4 shrink-0" viewBox="0 0 24 24" aria-hidden="true">
+                                                        <path
+                                                            fill="#4285F4"
+                                                            d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+                                                        />
+                                                        <path
+                                                            fill="#34A853"
+                                                            d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+                                                        />
+                                                        <path
+                                                            fill="#FBBC05"
+                                                            d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"
+                                                        />
+                                                        <path
+                                                            fill="#EA4335"
+                                                            d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"
+                                                        />
+                                                    </svg>
+                                                )}
+                                                <span>{isGoogleLoading ? 'Signing in with Google...' : 'Google Sign In'}</span>
+                                            </Button>
+
+                                            {!isGoogleLoading && (
+                                                <div
+                                                    ref={renderGoogleButton}
+                                                    className="absolute inset-0 opacity-[0.001] cursor-pointer overflow-hidden rounded-xl flex items-center justify-center z-10"
+                                                    title="Sign in with Google"
+                                                />
+                                            )}
+                                        </div>
+
+                                        {/* Guest Sign In */}
                                         <Button
-                                            type="button"
-                                            variant="outline"
-                                            disabled={isGoogleLoading || isGuestLoading}
+                                            variant="secondary"
+                                            disabled={isGuestLoading || isGoogleLoading}
                                             onClick={async () => {
-                                                setIsGoogleLoading(true);
-                                                const ok = await loginGoogle('mock-google-token:developer@nexusagent.internal:Lead Systems Architect');
-                                                setIsGoogleLoading(false);
+                                                const ok = await loginGuest();
                                                 if (ok) setDialogOpen(false);
                                             }}
-                                            className="w-full justify-center gap-2 text-xs font-medium border-border hover:bg-secondary rounded-xl h-10 shadow-xs"
-                                            title="Sign in with Google"
+                                            className="w-full justify-center gap-2 text-xs font-medium rounded-xl h-10"
                                         >
-                                            {isGoogleLoading ? (
-                                                <Loader2 className="h-3.5 w-3.5 animate-spin text-primary" aria-hidden="true" />
+                                            {isGuestLoading ? (
+                                                <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" />
                                             ) : (
-                                                <svg className="h-4 w-4 shrink-0" viewBox="0 0 24 24" aria-hidden="true">
-                                                    <path
-                                                        fill="#4285F4"
-                                                        d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
-                                                    />
-                                                    <path
-                                                        fill="#34A853"
-                                                        d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
-                                                    />
-                                                    <path
-                                                        fill="#FBBC05"
-                                                        d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"
-                                                    />
-                                                    <path
-                                                        fill="#EA4335"
-                                                        d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"
-                                                    />
-                                                </svg>
+                                                <User className="h-3.5 w-3.5" aria-hidden="true" />
                                             )}
-                                            <span>{isGoogleLoading ? 'Signing in with Google...' : 'Google Sign In'}</span>
+                                            <span>{isGuestLoading ? 'Creating Guest Pass...' : 'Guest Sign In'}</span>
                                         </Button>
-
-                                        {!isGoogleLoading && (
-                                            <div
-                                                ref={renderGoogleButton}
-                                                className="absolute inset-0 opacity-[0.001] cursor-pointer overflow-hidden rounded-xl flex items-center justify-center z-10"
-                                                title="Sign in with Google"
-                                            />
-                                        )}
-                                    </div>
-
-                                    {/* Guest Sign In */}
-                                    <Button
-                                        variant="secondary"
-                                        disabled={isGuestLoading || isGoogleLoading}
-                                        onClick={async () => {
-                                            const ok = await loginGuest();
-                                            if (ok) setDialogOpen(false);
-                                        }}
-                                        className="w-full justify-center gap-2 text-xs font-medium rounded-xl h-10"
-                                    >
-                                        {isGuestLoading ? (
-                                            <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" />
-                                        ) : (
-                                            <User className="h-3.5 w-3.5" aria-hidden="true" />
-                                        )}
-                                        <span>{isGuestLoading ? 'Creating Guest Pass...' : 'Guest Sign In'}</span>
-                                    </Button>
-                                    {error && <p className="text-[11px] text-destructive text-center pt-1">{error}</p>}
-                                </div>
+                                    </TabsContent>
+                                    <TabsContent value="email" className="pt-1">
+                                        <form onSubmit={handleEmailSubmit} className="space-y-2.5">
+                                            {isRegisterMode && (
+                                                <div className="space-y-1">
+                                                    <label className="text-[11px] font-medium text-foreground">Full Name</label>
+                                                    <Input
+                                                        type="text"
+                                                        placeholder="Staff Architect"
+                                                        value={nameInput}
+                                                        onChange={(e) => setNameInput(e.target.value)}
+                                                        required
+                                                        className="h-8 text-xs rounded-lg"
+                                                    />
+                                                </div>
+                                            )}
+                                            <div className="space-y-1">
+                                                <label className="text-[11px] font-medium text-foreground">Email Address</label>
+                                                <Input
+                                                    type="email"
+                                                    placeholder="architect@nexusagent.internal"
+                                                    value={emailInput}
+                                                    onChange={(e) => setEmailInput(e.target.value)}
+                                                    required
+                                                    className="h-8 text-xs rounded-lg"
+                                                />
+                                            </div>
+                                            <div className="space-y-1">
+                                                <label className="text-[11px] font-medium text-foreground">Password</label>
+                                                <Input
+                                                    type="password"
+                                                    placeholder="••••••••"
+                                                    value={passwordInput}
+                                                    onChange={(e) => setPasswordInput(e.target.value)}
+                                                    required
+                                                    className="h-8 text-xs rounded-lg"
+                                                />
+                                            </div>
+                                            {formError && <p className="text-[11px] text-destructive">{formError}</p>}
+                                            <Button type="submit" disabled={isEmailLoading} className="w-full text-xs font-semibold h-9 rounded-xl mt-1">
+                                                {isEmailLoading ? (
+                                                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                                ) : isRegisterMode ? (
+                                                    'Create Account'
+                                                ) : (
+                                                    'Sign In with Password'
+                                                )}
+                                            </Button>
+                                            <div className="text-center pt-1">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => {
+                                                        setIsRegisterMode(!isRegisterMode);
+                                                        setFormError(null);
+                                                    }}
+                                                    className="text-[11px] text-primary hover:underline cursor-pointer bg-transparent border-0 p-0"
+                                                >
+                                                    {isRegisterMode ? 'Already have an account? Sign in' : "Don't have an account? Register"}
+                                                </button>
+                                            </div>
+                                        </form>
+                                    </TabsContent>
+                                </Tabs>
+                                {error && <p className="text-[11px] text-destructive text-center pt-1">{error}</p>}
                             </DialogContent>
                         </Dialog>
                     )}

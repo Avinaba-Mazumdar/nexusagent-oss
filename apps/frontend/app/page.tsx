@@ -17,6 +17,7 @@ import { useAuthStore } from '@/lib/auth-store';
 import { HireMeModal } from '@/components/hire-me-modal';
 import { ByokModal } from '@/components/byok-modal';
 import { ObservabilityPanel, type LogEntry, type TelemetryMetrics } from '@/components/observability-panel';
+import { useAgentStream } from '@/hooks/useAgentStream';
 
 interface ChatItem {
     id: string;
@@ -46,7 +47,6 @@ export default function Home() {
     const fileInputRef = React.useRef<HTMLInputElement | null>(null);
     const [byokModalOpen, setByokModalOpen] = React.useState(false);
     const [seededDocs, setSeededDocs] = React.useState<SeededDoc[]>([]);
-    const [isStreaming, setIsStreaming] = React.useState(false);
     const [messages, setMessages] = React.useState<ChatItem[]>([]);
 
     // Email/password form state
@@ -81,6 +81,11 @@ export default function Home() {
             message: 'Connected Neon pgvector index (benchlm, openrouter, cursorbench)'
         }
     ]);
+
+    const agentStream = useAgentStream({
+        onLog: (entry) => setLogs((prev) => [...prev, entry]),
+        onMetricUpdate: (updater) => setMetrics(updater)
+    });
 
     const {
         user,
@@ -286,7 +291,7 @@ export default function Home() {
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         const query = prompt.trim();
-        if (!query || isStreaming) return;
+        if (!query || agentStream.isStreaming) return;
 
         // Check if demo quota is exhausted and not BYOK
         if (!byokKey && quotaRemaining <= 0) {
@@ -297,111 +302,42 @@ export default function Home() {
         const userMsgId = `u-${Date.now()}`;
         const assistantMsgId = `a-${Date.now()}`;
 
-        setMessages((prev) => [...prev, { id: userMsgId, role: 'user', content: query }, { id: assistantMsgId, role: 'assistant', content: '' }]);
+        setMessages((prev) => [
+            ...prev,
+            { id: userMsgId, role: 'user', content: query },
+            { id: assistantMsgId, role: 'assistant', content: '' }
+        ]);
         setPrompt('');
-        setIsStreaming(true);
 
-        const addLog = (stage: LogEntry['stage'], message: string) => {
-            setLogs((prev) => [
-                ...prev,
-                {
-                    id: `log-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
-                    timestamp: new Date().toLocaleTimeString(),
-                    stage,
-                    message
-                }
-            ]);
-        };
+        // Decrement remaining quota if not BYOK
+        if (!byokKey && quotaRemaining > 0) {
+            setQuotaRemaining(quotaRemaining - 1);
+        }
 
         try {
-            const headers: Record<string, string> = {
-                'Content-Type': 'application/json'
-            };
-            if (token) {
-                headers['Authorization'] = `Bearer ${token}`;
-            }
-            if (byokKey) {
-                headers['X-User-API-Key'] = byokKey;
-                headers['X-User-Provider'] = byokProvider;
-            }
-
-            const res = await fetch(`${API_BASE}/api/chat`, {
-                method: 'POST',
-                headers,
-                body: JSON.stringify({
-                    message: query,
-                    byok_key: byokKey || undefined,
-                    byok_provider: byokProvider
-                })
+            const result = await agentStream.startStream({
+                query,
+                token
             });
 
-            if (res.status === 429) {
-                const errJson = await res.json().catch(() => null);
-                const detail = errJson?.detail || 'Demo rate limit reached. Bring your own key or contact for custom build.';
-                setMessages((prev) => prev.map((m) => (m.id === assistantMsgId ? { ...m, content: `⚠️ ${detail}` } : m)));
-                addLog('ROUTER', '429 RateLimitExceeded: Free-tier bucket exhausted.');
-                setIsStreaming(false);
-                return;
+            if (result?.response) {
+                setMessages((prev) =>
+                    prev.map((m) =>
+                        m.id === assistantMsgId
+                            ? {
+                                  ...m,
+                                  content: result.response,
+                                  citations: result.citations?.map((c) => c.filename)
+                              }
+                            : m
+                    )
+                );
             }
-
-            if (!res.ok || !res.body) {
-                throw new Error(`Chat error (${res.statusText})`);
-            }
-
-            // Decrement remaining quota if not BYOK
-            if (!byokKey && quotaRemaining > 0) {
-                setQuotaRemaining(quotaRemaining - 1);
-            }
-
-            const reader = res.body.getReader();
-            const decoder = new TextDecoder();
-            let accumulatedText = '';
-
-            while (true) {
-                const { done, value } = await reader.read();
-                if (done) break;
-
-                const textChunk = decoder.decode(value, { stream: true });
-                const lines = textChunk.split('\n');
-
-                for (const line of lines) {
-                    if (line.startsWith('data: ')) {
-                        try {
-                            const data = JSON.parse(line.slice(6));
-                            if (data.stage === 'ROUTER') {
-                                addLog('ROUTER', data.message);
-                                setMetrics((m) => ({ ...m, activeModel: data.model, isByok: Boolean(data.isByok) }));
-                            } else if (data.stage === 'RAG') {
-                                addLog('RAG', data.message);
-                            } else if (data.stage === 'INFERENCE') {
-                                addLog('INFERENCE', data.message);
-                            } else if (data.stage === 'STREAM' && data.token) {
-                                accumulatedText += data.token;
-                                setMessages((prev) => prev.map((m) => (m.id === assistantMsgId ? { ...m, content: accumulatedText } : m)));
-                            } else if (data.stage === 'METRICS') {
-                                setMetrics((m) => ({
-                                    ...m,
-                                    promptTokens: data.promptTokens,
-                                    completionTokens: data.completionTokens,
-                                    totalTokens: data.totalTokens,
-                                    latencyMs: data.latencyMs,
-                                    activeModel: data.activeModel,
-                                    isByok: data.isByok
-                                }));
-                                addLog('STREAM', `Completed: ${data.totalTokens} tokens burned in ${data.latencyMs}ms (${data.activeModel})`);
-                            }
-                        } catch {
-                            // Non-JSON line or keep-alive
-                        }
-                    }
-                }
-            }
-        } catch (err: any) {
-            const errorText = err?.message || 'Failed to connect to inference stream.';
-            setMessages((prev) => prev.map((m) => (m.id === assistantMsgId ? { ...m, content: `Error: ${errorText}` } : m)));
-            addLog('STREAM', `Error: ${errorText}`);
-        } finally {
-            setIsStreaming(false);
+        } catch (err: unknown) {
+            const errorText = err instanceof Error ? err.message : 'Failed to execute agent stream.';
+            setMessages((prev) =>
+                prev.map((m) => (m.id === assistantMsgId ? { ...m, content: `Error: ${errorText}` } : m))
+            );
         }
     };
 
@@ -899,12 +835,26 @@ export default function Home() {
                                                     : 'bg-card border border-border text-foreground shadow-2xs rounded-tl-xs'
                                             }`}
                                         >
-                                            {msg.content || (
-                                                <div className="flex items-center gap-1.5 text-muted-foreground">
-                                                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                                                    <span>Synthesizing response...</span>
-                                                </div>
-                                            )}
+                                            {msg.content ||
+                                                (agentStream.isStreaming &&
+                                                msg.id === messages[messages.length - 1]?.id ? (
+                                                    agentStream.streamedResponse || (
+                                                        <div className="flex items-center gap-1.5 text-muted-foreground">
+                                                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                                            <span>
+                                                                Executing DAG [
+                                                                {agentStream.currentNode?.toUpperCase() ||
+                                                                    'PLANNER'}
+                                                                ]...
+                                                            </span>
+                                                        </div>
+                                                    )
+                                                ) : (
+                                                    <div className="flex items-center gap-1.5 text-muted-foreground">
+                                                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                                        <span>Synthesizing response...</span>
+                                                    </div>
+                                                ))}
                                         </div>
                                     </div>
                                 ))}
@@ -913,24 +863,29 @@ export default function Home() {
                     </div>
 
                     {/* Chat Input Form */}
-                    <form onSubmit={handleSubmit} role="search" aria-label="Architecture inquiry input" className="p-4 bg-card border-t border-border shrink-0">
+                    <form
+                        onSubmit={handleSubmit}
+                        role="search"
+                        aria-label="Architecture inquiry input"
+                        className="p-4 bg-card border-t border-border shrink-0"
+                    >
                         <div className="relative flex items-center">
                             <Input
                                 value={prompt}
                                 onChange={(e) => setPrompt(e.target.value)}
                                 placeholder="Ask architectural question or query benchmark knowledge base..."
-                                disabled={isStreaming}
+                                disabled={agentStream.isStreaming}
                                 className="pr-24 min-h-11 text-xs rounded-xl bg-secondary/40 border-border text-foreground focus-visible:bg-card"
                             />
                             <Button
                                 type="submit"
                                 size="sm"
                                 variant="default"
-                                disabled={isStreaming || !prompt.trim()}
+                                disabled={agentStream.isStreaming || !prompt.trim()}
                                 aria-label="Send query"
                                 className="absolute right-1.5 h-8 px-4 text-xs rounded-lg gap-1.5 font-bold"
                             >
-                                {isStreaming ? (
+                                {agentStream.isStreaming ? (
                                     <Loader2 className="h-3 w-3 animate-spin" aria-hidden="true" />
                                 ) : (
                                     <>
@@ -944,7 +899,14 @@ export default function Home() {
                 </main>
 
                 {/* 4. Observability Panel (Right) */}
-                <ObservabilityPanel metrics={metrics} logs={logs} />
+                <ObservabilityPanel
+                    metrics={metrics}
+                    logs={logs}
+                    currentNode={agentStream.currentNode}
+                    plan={agentStream.plan}
+                    reflectionScore={agentStream.reflectionScore}
+                    isStreaming={agentStream.isStreaming}
+                />
             </div>
 
             {/* Modals */}

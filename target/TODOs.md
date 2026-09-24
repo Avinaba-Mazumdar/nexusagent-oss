@@ -66,12 +66,12 @@
 - [x] Wire hybrid search and sandbox tools into agent graph
       Verification: Invoke agent via test script, assert graph executes state transitions (plan -> retrieve -> reflect -> synthesize).
 
-### Phase 8: Real-Time SSE Streaming & Observability
+### Phase 8: Real-Time SSE Streaming & Observability [Completed]
 
-- [ ] Implement FastAPI Server-Sent Events endpoint `POST /api/agent/stream`
-- [ ] Stream structured events (`plan`, `node_start`, `tool_call`, `tool_result`, `token`, `done`)
-- [ ] Build Next.js SSE client hook (`hooks/useAgentStream.ts`)
-- [ ] Implement reactive execution DAG tracker in observability panel
+- [x] Implement FastAPI Server-Sent Events endpoint `POST /api/agent/stream`
+- [x] Stream structured events (`plan`, `node_start`, `tool_call`, `tool_result`, `token`, `done`)
+- [x] Build Next.js SSE client hook (`hooks/useAgentStream.ts`)
+- [x] Implement reactive execution DAG tracker in observability panel
       Verification: Trigger streaming query from UI or curl, verify incremental SSE tokens and node status events arrive in real-time.
 
 ### Phase 9: Interactive Canvas & Diagram Rendering

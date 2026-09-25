@@ -373,6 +373,19 @@ export default function Home() {
                         <span>{byokKey ? 'BYOK Active' : 'Bring Your Own Key'}</span>
                     </Button>
 
+                    {/* Pre-loaded Guest / User Quota Badge */}
+                    {user && (
+                        <div
+                            className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-secondary/50 border border-border text-xs font-medium"
+                            title={`${quotaRemaining} of ${bucketCapacity} query quota remaining`}
+                            data-testid="quota-badge"
+                        >
+                            <span className={`h-2 w-2 rounded-full ${quotaRemaining > 0 ? 'bg-emerald-500 animate-pulse' : 'bg-destructive'}`} />
+                            <span className="font-mono font-bold text-foreground">{quotaRemaining}/{bucketCapacity}</span>
+                            <span className="text-[11px] text-muted-foreground">{user.isGuest ? 'Free Pass' : 'Quota'}</span>
+                        </div>
+                    )}
+
                     {user ? (
                         <Popover open={popoverOpen} onOpenChange={setPopoverOpen}>
                             <PopoverTrigger asChild>
@@ -488,18 +501,30 @@ export default function Home() {
                             </PopoverContent>
                         </Popover>
                     ) : (
-                        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-                            <DialogTrigger asChild>
-                                <Button size="sm" variant="default" className="text-xs font-bold gap-1.5 rounded-xl">
-                                    <LogIn className="h-3.5 w-3.5" aria-hidden="true" />
-                                    <span>Sign In</span>
-                                </Button>
-                            </DialogTrigger>
-                            <DialogContent className="sm:max-w-sm">
-                                <DialogHeader>
-                                    <DialogTitle>Sign In</DialogTitle>
-                                    <DialogDescription className="text-xs">Sign in to your account or continue as a guest.</DialogDescription>
-                                </DialogHeader>
+                        <div className="flex items-center gap-2">
+                            <Button
+                                size="sm"
+                                variant="secondary"
+                                disabled={isGuestLoading}
+                                onClick={loginGuest}
+                                className="hidden sm:inline-flex text-xs font-semibold gap-1.5 rounded-xl h-9"
+                                title="1-Click Instant Guest Access"
+                            >
+                                {isGuestLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <User className="h-3.5 w-3.5" />}
+                                <span>1-Click Guest</span>
+                            </Button>
+                            <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+                                <DialogTrigger asChild>
+                                    <Button size="sm" variant="default" className="text-xs font-bold gap-1.5 rounded-xl h-9">
+                                        <LogIn className="h-3.5 w-3.5" aria-hidden="true" />
+                                        <span>Sign In</span>
+                                    </Button>
+                                </DialogTrigger>
+                                <DialogContent className="sm:max-w-sm">
+                                    <DialogHeader>
+                                        <DialogTitle>Sign In</DialogTitle>
+                                        <DialogDescription className="text-xs">Sign in to your account or continue as a guest.</DialogDescription>
+                                    </DialogHeader>
                                 <Tabs defaultValue="quick" className="w-full pt-1">
                                     <TabsList className="grid w-full grid-cols-2 h-9 mb-2">
                                         <TabsTrigger value="quick">1-Click / Google</TabsTrigger>
@@ -638,7 +663,8 @@ export default function Home() {
                                 {error && <p className="text-[11px] text-destructive text-center pt-1">{error}</p>}
                             </DialogContent>
                         </Dialog>
-                    )}
+                    </div>
+                )}
                 </div>
             </header>
 
@@ -808,9 +834,10 @@ export default function Home() {
                                     </div>
                                     <div className="flex flex-wrap gap-2 pt-1">
                                         {[
+                                            'Compare Raft vs Multi-Paxos quorum invariants (RFC-104)',
+                                            'Analyze Neon serverless storage architecture, Safekeepers, and Pageserver LSM tree',
                                             'How does Claude Sonnet 5 compare on CursorBench at High effort?',
-                                            'What are the leaked specs for Grok 4.7 and Gemini 4?',
-                                            'Compare OpenRouter pricing & throughput for DeepSeek V4.1 Flash vs Gemini 3.8'
+                                            'Calculate batch commit sizing for 14,000 IOPS on Neon WAL Safekeepers'
                                         ].map((promptText) => (
                                             <button
                                                 key={promptText}

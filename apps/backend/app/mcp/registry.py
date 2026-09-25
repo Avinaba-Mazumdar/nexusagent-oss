@@ -128,8 +128,8 @@ class McpRegistry:
     async def read_resource(uri: str) -> dict[str, Any]:
         """Read resource content by URI."""
         filename_map = {
-            "rfc://104-raft-consensus": "RFC-104-Raft.md",
-            "rfc://neon-storage-architecture": "neon_storage.md",
+            "rfc://104-raft-consensus": "rfc_104_consensus.md",
+            "rfc://neon-storage-architecture": "neon_storage_architecture.md",
             "benchmark://benchlm-2026": "benchlm_evals.md",
             "benchmark://cursorbench-coding": "cursor_bench.md",
         }

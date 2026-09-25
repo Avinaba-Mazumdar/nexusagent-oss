@@ -338,7 +338,38 @@ async def synthesizer_node(state: AgentState) -> AgentState:
             if res.get("stdout"):
                 parts.append(f"```text\n{res['stdout']}\n```\n")
 
-    diagram = """```mermaid
+    query_lower = state.query.lower()
+    if (
+        "neon" in query_lower
+        or "storage" in query_lower
+        or "safekeeper" in query_lower
+        or "pageserver" in query_lower
+    ):
+        diagram = """```mermaid
+flowchart TD
+    Client["Application Client"] -->|SQL Query| Compute["Stateless Compute Node (microVM)"]
+    Compute -->|Stream WAL (Fastpath)| SK1["Safekeeper 1 (AZ-1)"]
+    Compute -->|Stream WAL| SK2["Safekeeper 2 (AZ-2)"]
+    Compute -->|Stream WAL| SK3["Safekeeper 3 (AZ-3)"]
+    SK1 -->|Paxos Quorum Ack (<4.2ms)| Compute
+    SK2 -->|Paxos Quorum Ack| Compute
+    SK1 -.->|Async Timeline Feed| PS["Pageserver LSM Storage Engine"]
+    PS -.->|Immutable Base Layers| S3["AWS S3 / Cloudflare R2 Archive"]
+```"""
+    elif (
+        "cursor" in query_lower
+        or "bench" in query_lower
+        or "sonnet" in query_lower
+        or "model" in query_lower
+    ):
+        diagram = """```mermaid
+flowchart LR
+    Claude["Claude 3.7 Sonnet (High Effort)"] -->|CursorBench: 82.4%| TopTier["Leaderboard Tier 1"]
+    Gemini["Gemini 2.5 Flash"] -->|CursorBench: 78.1%| FastTier["Leaderboard Tier 1 (Fast)"]
+    DeepSeek["DeepSeek R1 / V3"] -->|CursorBench: 76.5%| OpenTier["Open Weights Tier"]
+```"""
+    else:
+        diagram = """```mermaid
 flowchart TD
     Client["Client Application"] -->|Write Request| Leader["Raft Leader Node"]
     Leader -->|Replicate Log| Follower1["Follower 1 (AZ-1)"]

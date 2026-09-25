@@ -100,10 +100,10 @@
 - [x] Add immutable audit logging to `tool_audit_logs` table
       Verification: Trigger tool requiring approval, verify agent suspends until approved; exceed rate limit and verify HTTP 429.
 
-### Phase 12: Deterministic Showcase & 1-Click Guest Experience
+### Phase 12: Deterministic Showcase & 1-Click Guest Experience [Completed]
 
-- [ ] Bundle pre-seeded RFCs (`RFC-104` Raft vs Multi-Paxos, Neon Storage Architecture)
-- [ ] Implement deterministic cached execution simulator for zero-cost demos
-- [ ] Polish 1-Click Guest experience with pre-loaded quota badge
-- [ ] Run end-to-end demo flow validation
+- [x] Bundle pre-seeded RFCs (`RFC-104` Raft vs Multi-Paxos, Neon Storage Architecture)
+- [x] Implement deterministic cached execution simulator for zero-cost demos
+- [x] Polish 1-Click Guest experience with pre-loaded quota badge
+- [x] Run end-to-end demo flow validation
       Verification: Open app in guest mode with zero API keys, run demo scenario, verify instant cached DAG trace and rendered diagram.

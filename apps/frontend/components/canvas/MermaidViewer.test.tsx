@@ -1,0 +1,64 @@
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { describe, expect, it, vi, beforeEach } from 'vitest';
+import { MermaidViewer } from './MermaidViewer';
+
+vi.mock('mermaid', () => ({
+    default: {
+        initialize: vi.fn(),
+        render: vi.fn().mockImplementation(async (id: string, code: string) => {
+            if (code.includes('invalid_syntax')) {
+                throw new Error('Parse error on line 1');
+            }
+            return {
+                svg: `<svg data-testid="mock-mermaid-svg" id="${id}"><text>Architecture Diagram</text></svg>`
+            };
+        })
+    }
+}));
+
+describe('MermaidViewer Component', () => {
+    const validChart = `
+flowchart TD
+    Client["Client App"] --> Leader["Raft Leader"]
+`;
+
+    beforeEach(() => {
+        vi.clearAllMocks();
+    });
+
+    it('renders diagram title and toolbar controls', async () => {
+        render(<MermaidViewer chart={validChart} title="Consensus Topology" />);
+
+        expect(screen.getByText('Consensus Topology')).toBeInTheDocument();
+        expect(screen.getByText('Mermaid.js SVG')).toBeInTheDocument();
+        expect(screen.getByLabelText('Zoom diagram in')).toBeInTheDocument();
+        expect(screen.getByLabelText('Zoom diagram out')).toBeInTheDocument();
+        expect(screen.getByLabelText('Reset zoom and position')).toBeInTheDocument();
+
+        await waitFor(() => {
+            expect(screen.getByTestId('mock-mermaid-svg')).toBeInTheDocument();
+        });
+    });
+
+    it('toggles raw syntax view when code button is clicked', async () => {
+        render(<MermaidViewer chart={validChart} />);
+
+        await waitFor(() => {
+            expect(screen.getByTestId('mock-mermaid-svg')).toBeInTheDocument();
+        });
+
+        const toggleBtn = screen.getByLabelText('View diagram source');
+        fireEvent.click(toggleBtn);
+
+        expect(screen.getByText(/flowchart TD/)).toBeInTheDocument();
+    });
+
+    it('handles diagram render error gracefully without crashing', async () => {
+        render(<MermaidViewer chart="invalid_syntax" />);
+
+        await waitFor(() => {
+            expect(screen.getByText(/Diagram parsing in progress or syntax error/)).toBeInTheDocument();
+            expect(screen.getByText(/Parse error on line 1/)).toBeInTheDocument();
+        });
+    });
+});

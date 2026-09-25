@@ -18,12 +18,14 @@ import { HireMeModal } from '@/components/hire-me-modal';
 import { ByokModal } from '@/components/byok-modal';
 import { ObservabilityPanel, type LogEntry, type TelemetryMetrics } from '@/components/observability-panel';
 import { useAgentStream } from '@/hooks/useAgentStream';
+import { MarkdownRenderer } from '@/components/canvas';
+import type { Citation } from '@nexusagent/contracts';
 
 interface ChatItem {
     id: string;
     role: 'user' | 'assistant';
     content: string;
-    citations?: string[];
+    citations?: Citation[];
 }
 
 interface SeededDoc {
@@ -48,6 +50,7 @@ export default function Home() {
     const [byokModalOpen, setByokModalOpen] = React.useState(false);
     const [seededDocs, setSeededDocs] = React.useState<SeededDoc[]>([]);
     const [messages, setMessages] = React.useState<ChatItem[]>([]);
+    const [selectedCitationDoc, setSelectedCitationDoc] = React.useState<string | null>(null);
 
     // Email/password form state
     const [isRegisterMode, setIsRegisterMode] = React.useState(false);
@@ -324,7 +327,7 @@ export default function Home() {
                             ? {
                                   ...m,
                                   content: result.response,
-                                  citations: result.citations?.map((c) => c.filename)
+                                  citations: result.citations
                               }
                             : m
                     )
@@ -665,20 +668,33 @@ export default function Home() {
                         </CardHeader>
                         <CardContent className="p-3 pt-0 space-y-2">
                             <div className="space-y-1.5 max-h-35 overflow-y-auto">
-                                {seededDocs.map((doc) => (
-                                    <div
-                                        key={doc.id}
-                                        className="flex items-center justify-between p-2 rounded-lg bg-secondary/40 border border-border/70 text-[11px]"
-                                    >
-                                        <div className="flex items-center gap-1.5 truncate">
-                                            <FileText className="h-3.5 w-3.5 text-primary shrink-0" />
-                                            <span className="truncate font-mono text-foreground">{doc.filename}</span>
+                                {seededDocs.map((doc) => {
+                                    const isSelected = Boolean(selectedCitationDoc && doc.filename.toLowerCase().includes(selectedCitationDoc.toLowerCase()));
+                                    return (
+                                        <div
+                                            key={doc.id}
+                                            className={`flex items-center justify-between p-2 rounded-lg border text-[11px] transition-all ${
+                                                isSelected ? 'bg-primary/15 border-primary shadow-xs ring-1 ring-primary' : 'bg-secondary/40 border-border/70'
+                                            }`}
+                                        >
+                                            <div className="flex items-center gap-1.5 truncate">
+                                                <FileText className={`h-3.5 w-3.5 shrink-0 ${isSelected ? 'text-primary font-bold' : 'text-primary'}`} />
+                                                <span className={`truncate font-mono ${isSelected ? 'text-primary font-bold' : 'text-foreground'}`}>
+                                                    {doc.filename}
+                                                </span>
+                                            </div>
+                                            {isSelected ? (
+                                                <Badge variant="default" className="text-[9px] px-1 py-0 shrink-0 font-mono">
+                                                    Source
+                                                </Badge>
+                                            ) : (
+                                                <Badge variant="outline" className="text-[9px] px-1 py-0 shrink-0">
+                                                    {doc.total_chunks} chunks
+                                                </Badge>
+                                            )}
                                         </div>
-                                        <Badge variant="outline" className="text-[9px] px-1 py-0 shrink-0">
-                                            {doc.total_chunks} chunks
-                                        </Badge>
-                                    </div>
-                                ))}
+                                    );
+                                })}
                             </div>
 
                             {/* Hidden native file input for Markdown documents */}
@@ -826,29 +842,42 @@ export default function Home() {
                                             </div>
                                         )}
                                         <div
-                                            className={`p-3.5 rounded-2xl max-w-2xl whitespace-pre-wrap ${
+                                            className={`p-3.5 rounded-2xl max-w-2xl ${
                                                 msg.role === 'user'
-                                                    ? 'bg-primary text-primary-foreground font-medium rounded-tr-xs'
-                                                    : 'bg-card border border-border text-foreground shadow-2xs rounded-tl-xs'
+                                                    ? 'bg-primary text-primary-foreground font-medium rounded-tr-xs whitespace-pre-wrap'
+                                                    : 'bg-card border border-border text-foreground shadow-2xs rounded-tl-xs w-full'
                                             }`}
                                         >
-                                            {msg.content ||
-                                                (agentStream.isStreaming && msg.id === messages[messages.length - 1]?.id ? (
-                                                    agentStream.streamedResponse || (
-                                                        <div className="flex items-center gap-1.5 text-muted-foreground">
-                                                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                                                            <span>
-                                                                Executing DAG [{agentStream.currentNode?.toUpperCase() || 'PLANNER'}
-                                                                ]...
-                                                            </span>
-                                                        </div>
-                                                    )
+                                            {msg.role === 'user' ? (
+                                                msg.content
+                                            ) : msg.content ? (
+                                                <MarkdownRenderer
+                                                    content={msg.content}
+                                                    citations={msg.citations}
+                                                    isDark={isDarkTheme}
+                                                    onCitationClick={(cite) => setSelectedCitationDoc(cite.filename)}
+                                                />
+                                            ) : agentStream.isStreaming && msg.id === messages[messages.length - 1]?.id ? (
+                                                agentStream.streamedResponse ? (
+                                                    <MarkdownRenderer
+                                                        content={agentStream.streamedResponse}
+                                                        isStreaming={true}
+                                                        citations={agentStream.citations}
+                                                        isDark={isDarkTheme}
+                                                        onCitationClick={(cite) => setSelectedCitationDoc(cite.filename)}
+                                                    />
                                                 ) : (
                                                     <div className="flex items-center gap-1.5 text-muted-foreground">
                                                         <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                                                        <span>Synthesizing response...</span>
+                                                        <span>Executing DAG [{agentStream.currentNode?.toUpperCase() || 'PLANNER'}]...</span>
                                                     </div>
-                                                ))}
+                                                )
+                                            ) : (
+                                                <div className="flex items-center gap-1.5 text-muted-foreground">
+                                                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                                    <span>Synthesizing response...</span>
+                                                </div>
+                                            )}
                                         </div>
                                     </div>
                                 ))}

@@ -76,12 +76,12 @@
 - [x] Implement reactive execution DAG tracker in observability panel
       Verification: Trigger streaming query from UI or curl, verify incremental SSE tokens and node status events arrive in real-time.
 
-### Phase 9: Interactive Canvas & Diagram Rendering
+### Phase 9: Interactive Canvas & Diagram Rendering [Completed]
 
-- [ ] Implement streaming Markdown renderer with code syntax highlighting
-- [ ] Integrate dynamic Mermaid.js SVG rendering with pan and zoom controls
-- [ ] Implement interactive Citation Pills with line jump and hover previews
-- [ ] Wire agent stream output to canvas viewer
+- [x] Implement streaming Markdown renderer with code syntax highlighting
+- [x] Integrate dynamic Mermaid.js SVG rendering with pan and zoom controls
+- [x] Implement interactive Citation Pills with line jump and hover previews
+- [x] Wire agent stream output to canvas viewer
       Verification: Stream response containing Mermaid code block and citations; verify SVG diagram renders and citation click highlights source.
 
 ### Phase 10: Model Context Protocol (MCP v2) Integration

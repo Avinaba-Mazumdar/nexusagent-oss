@@ -92,12 +92,12 @@
 - [x] Add client connection configuration for Claude Desktop and Cursor
       Verification: Connect Claude or run MCP Inspector UI, call `hybrid_rag_search`, verify valid JSON-RPC response.
 
-### Phase 11: Human-in-the-Loop & Security Controls
+### Phase 11: Human-in-the-Loop & Security Controls [Completed]
 
-- [ ] Implement HITL approval modal in UI and backend pause/resume endpoint (`/api/agent/approval`)
-- [ ] Implement prompt injection delimiters (`<untrusted_document_context>`) and UUID canary tokens
-- [ ] Implement token-bucket rate limiter for guest and registered users
-- [ ] Add immutable audit logging to `tool_audit_logs` table
+- [x] Implement HITL approval modal in UI and backend pause/resume endpoint (`/api/agent/approval`)
+- [x] Implement prompt injection delimiters (`<untrusted_document_context>`) and UUID canary tokens
+- [x] Implement token-bucket rate limiter for guest and registered users
+- [x] Add immutable audit logging to `tool_audit_logs` table
       Verification: Trigger tool requiring approval, verify agent suspends until approved; exceed rate limit and verify HTTP 429.
 
 ### Phase 12: Deterministic Showcase & 1-Click Guest Experience

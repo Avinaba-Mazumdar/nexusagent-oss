@@ -71,6 +71,13 @@ class AgentState(BaseModel):
     iteration_count: int = 0
     max_iterations: int = 10
 
+    # Security Guardrails & HITL
+    canary_token: str | None = None
+    injection_detected: bool = False
+    injection_reason: str | None = None
+    pending_approval: dict[str, Any] | None = None
+    hitl_approved: bool | None = None
+
     # Final Synthesis
     response: str = ""
     mermaid_diagrams: list[str] = Field(default_factory=list)

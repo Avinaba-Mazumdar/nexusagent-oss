@@ -20,6 +20,7 @@ import { ObservabilityPanel, type LogEntry, type TelemetryMetrics } from '@/comp
 import { useAgentStream } from '@/hooks/useAgentStream';
 import { MarkdownRenderer } from '@/components/canvas';
 import { McpInspector } from '@/components/mcp';
+import { ApprovalModal } from '@/components/approval';
 import type { Citation } from '@nexusagent/contracts';
 
 interface ChatItem {
@@ -921,6 +922,7 @@ export default function Home() {
             {/* Modals */}
             <HireMeModal open={hireMeModalOpen} onOpenChange={setHireMeModalOpen} />
             <ByokModal open={byokModalOpen} onOpenChange={setByokModalOpen} />
+            <ApprovalModal open={Boolean(agentStream.pendingApproval)} approval={agentStream.pendingApproval} onResolve={agentStream.resolveApproval} />
         </div>
     );
 }

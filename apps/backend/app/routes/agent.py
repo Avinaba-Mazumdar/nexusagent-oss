@@ -10,8 +10,9 @@ from pydantic import BaseModel, Field
 
 from app.agent.graph import AgentGraph, default_agent_graph
 from app.agent.state import AgentState
-from app.config import settings
 from app.core.auth import get_client_ip, get_current_user
+from app.core.hitl_coordinator import default_hitl_coordinator
+from app.core.rate_limiter import default_rate_limiter
 from app.db.models import User
 from app.db.neon import NeonDatabase, get_db
 
@@ -37,6 +38,12 @@ class AgentStreamRequestWire(BaseModel):
     )
 
 
+class HitlApprovalRequestWire(BaseModel):
+    approvalId: str = Field(..., description="Unique approval identifier")
+    sessionId: str = Field(..., description="Agent session ID")
+    decision: str = Field("approve", description="'approve' or 'reject'")
+
+
 def format_sse(event_type: str, data: dict) -> str:
     """Format structured payload into valid Server-Sent Event frame."""
     json_str = json.dumps(data, default=str)
@@ -53,6 +60,7 @@ async def generate_agent_stream(
     """
     Asynchronously run AgentGraph pipeline and yield SSE event chunks:
     plan -> node_start -> tool_call -> tool_result -> critic -> token -> done.
+    Concurrently surfaces approval_required events for HITL authorization without deadlocking.
     """
     initial_state = AgentState(
         session_id=session_id,
@@ -61,36 +69,152 @@ async def generate_agent_stream(
         document_id=document_id,
     )
 
-    yield format_sse(
-        "start",
-        {
-            "sessionId": session_id,
-            "query": query,
-            "timestamp": initial_state.created_at.isoformat(),
-        },
+    event_queue: asyncio.Queue[str | None] = asyncio.Queue()
+
+    # Pre-seed initial start event
+    await event_queue.put(
+        format_sse(
+            "start",
+            {
+                "sessionId": session_id,
+                "query": query,
+                "timestamp": initial_state.created_at.isoformat(),
+            },
+        )
     )
 
-    try:
-        final_state = initial_state
-        async for node_name, step_state in graph.stream_steps(initial_state):
-            final_state = step_state
+    async def hitl_approval_listener(data: dict):
+        """Immediately enqueue approval_required event down the SSE stream."""
+        await event_queue.put(format_sse("approval_required", data))
 
-            # 1. Yield node_start event
-            yield format_sse(
-                "node_start",
-                {
-                    "node": node_name,
-                    "sessionId": session_id,
-                    "iteration": step_state.iteration_count,
-                },
-            )
+    default_hitl_coordinator.register_notifier(session_id, hitl_approval_listener)
 
-            # 2. Yield node-specific events
-            if node_name == "planner":
-                yield format_sse(
-                    "plan",
+    async def run_pipeline():
+        try:
+            final_state = initial_state
+            async for node_name, step_state in graph.stream_steps(initial_state):
+                final_state = step_state
+
+                # 1. Yield node_start event
+                await event_queue.put(
+                    format_sse(
+                        "node_start",
+                        {
+                            "node": node_name,
+                            "sessionId": session_id,
+                            "iteration": step_state.iteration_count,
+                        },
+                    )
+                )
+
+                # 2. Yield node-specific events
+                if node_name == "planner":
+                    await event_queue.put(
+                        format_sse(
+                            "plan",
+                            {
+                                "sessionId": session_id,
+                                "plan": [
+                                    {
+                                        "stepNumber": s.step_number,
+                                        "description": s.description,
+                                        "status": s.status,
+                                        "tool": s.tool,
+                                    }
+                                    for s in step_state.plan
+                                ],
+                            },
+                        )
+                    )
+
+                elif node_name == "retriever":
+                    await event_queue.put(
+                        format_sse(
+                            "tool_result",
+                            {
+                                "tool": "hybrid_rag_search",
+                                "chunksRetrieved": len(step_state.retrieved_chunks),
+                                "citations": [
+                                    {
+                                        "id": c.id,
+                                        "chunkId": c.chunk_id,
+                                        "documentId": c.document_id,
+                                        "filename": c.filename,
+                                        "startLine": c.start_line,
+                                        "endLine": c.end_line,
+                                        "headerPath": c.header_path,
+                                        "preview": c.preview,
+                                    }
+                                    for c in step_state.citations
+                                ],
+                            },
+                        )
+                    )
+
+                elif node_name == "sandbox":
+                    for call, res in zip(step_state.tool_calls, step_state.tool_results):
+                        await event_queue.put(
+                            format_sse(
+                                "tool_call",
+                                {
+                                    "tool": "python_sandbox",
+                                    "code": call.get("code"),
+                                },
+                            )
+                        )
+                        await event_queue.put(
+                            format_sse(
+                                "tool_result",
+                                {
+                                    "tool": "python_sandbox",
+                                    "success": res.get("success"),
+                                    "stdout": res.get("stdout"),
+                                    "stderr": res.get("stderr"),
+                                    "durationMs": res.get("duration_ms"),
+                                },
+                            )
+                        )
+
+                elif node_name == "critic":
+                    await event_queue.put(
+                        format_sse(
+                            "critic",
+                            {
+                                "sessionId": session_id,
+                                "reflectionScore": step_state.reflection_score,
+                                "isGrounded": step_state.is_grounded,
+                                "needsReplan": step_state.needs_replan,
+                                "feedback": step_state.reflection_feedback,
+                                "iteration": step_state.iteration_count,
+                            },
+                        )
+                    )
+
+                elif node_name == "synthesizer":
+                    response_text = step_state.response
+                    words = response_text.split(" ")
+                    for i in range(0, len(words), 3):
+                        chunk = " ".join(words[i : i + 3]) + " "
+                        await event_queue.put(
+                            format_sse(
+                                "token",
+                                {
+                                    "sessionId": session_id,
+                                    "token": chunk,
+                                },
+                            )
+                        )
+                        await asyncio.sleep(0.01)
+
+            # 3. Final completion event
+            await event_queue.put(
+                format_sse(
+                    "done",
                     {
                         "sessionId": session_id,
+                        "query": query,
+                        "response": final_state.response,
+                        "nodeHistory": final_state.node_history,
                         "plan": [
                             {
                                 "stepNumber": s.step_number,
@@ -98,17 +222,8 @@ async def generate_agent_stream(
                                 "status": s.status,
                                 "tool": s.tool,
                             }
-                            for s in step_state.plan
+                            for s in final_state.plan
                         ],
-                    },
-                )
-
-            elif node_name == "retriever":
-                yield format_sse(
-                    "tool_result",
-                    {
-                        "tool": "hybrid_rag_search",
-                        "chunksRetrieved": len(step_state.retrieved_chunks),
                         "citations": [
                             {
                                 "id": c.id,
@@ -120,105 +235,39 @@ async def generate_agent_stream(
                                 "headerPath": c.header_path,
                                 "preview": c.preview,
                             }
-                            for c in step_state.citations
+                            for c in final_state.citations
                         ],
+                        "mermaidDiagrams": final_state.mermaid_diagrams,
+                        "reflectionScore": final_state.reflection_score,
+                        "isGrounded": final_state.is_grounded,
+                        "iterationCount": final_state.iteration_count,
+                        "isComplete": True,
+                        "completedAt": final_state.completed_at.isoformat()
+                        if final_state.completed_at
+                        else None,
                     },
                 )
+            )
 
-            elif node_name == "sandbox":
-                for call, res in zip(step_state.tool_calls, step_state.tool_results):
-                    yield format_sse(
-                        "tool_call",
-                        {
-                            "tool": "python_sandbox",
-                            "code": call.get("code"),
-                        },
-                    )
-                    yield format_sse(
-                        "tool_result",
-                        {
-                            "tool": "python_sandbox",
-                            "success": res.get("success"),
-                            "stdout": res.get("stdout"),
-                            "stderr": res.get("stderr"),
-                            "durationMs": res.get("duration_ms"),
-                        },
-                    )
+        except Exception as e:
+            logger.exception("Error during agent SSE streaming")
+            await event_queue.put(format_sse("error", {"error": str(e), "sessionId": session_id}))
+        finally:
+            default_hitl_coordinator.unregister_notifier(session_id)
+            await event_queue.put(None)
 
-            elif node_name == "critic":
-                yield format_sse(
-                    "critic",
-                    {
-                        "sessionId": session_id,
-                        "reflectionScore": step_state.reflection_score,
-                        "isGrounded": step_state.is_grounded,
-                        "needsReplan": step_state.needs_replan,
-                        "feedback": step_state.reflection_feedback,
-                        "iteration": step_state.iteration_count,
-                    },
-                )
+    pipeline_task = asyncio.create_task(run_pipeline())
 
-            elif node_name == "synthesizer":
-                # Progressive rendering: the deterministic synthesizer produces the full markdown
-                # answer in one step, so it is re-chunked here for incremental SSE delivery.
-                # No model token stream is being simulated or claimed.
-                response_text = step_state.response
-                words = response_text.split(" ")
-                for i in range(0, len(words), 3):
-                    chunk = " ".join(words[i : i + 3]) + " "
-                    yield format_sse(
-                        "token",
-                        {
-                            "sessionId": session_id,
-                            "token": chunk,
-                        },
-                    )
-                    await asyncio.sleep(0.01)
-
-        # 3. Final completion event
-        yield format_sse(
-            "done",
-            {
-                "sessionId": session_id,
-                "query": query,
-                "response": final_state.response,
-                "nodeHistory": final_state.node_history,
-                "plan": [
-                    {
-                        "stepNumber": s.step_number,
-                        "description": s.description,
-                        "status": s.status,
-                        "tool": s.tool,
-                    }
-                    for s in final_state.plan
-                ],
-                "citations": [
-                    {
-                        "id": c.id,
-                        "chunkId": c.chunk_id,
-                        "documentId": c.document_id,
-                        "filename": c.filename,
-                        "startLine": c.start_line,
-                        "endLine": c.end_line,
-                        "headerPath": c.header_path,
-                        "preview": c.preview,
-                    }
-                    for c in final_state.citations
-                ],
-                "mermaidDiagrams": final_state.mermaid_diagrams,
-                "reflectionScore": final_state.reflection_score,
-                "isGrounded": final_state.is_grounded,
-                "iterationCount": final_state.iteration_count,
-                "isComplete": True,
-                "completedAt": final_state.completed_at.isoformat()
-                if final_state.completed_at
-                else None,
-            },
-        )
-
-    except Exception as e:
-        logger.exception("Error during agent SSE streaming")
-        yield format_sse("error", {"error": str(e), "sessionId": session_id})
+    try:
+        while True:
+            chunk = await event_queue.get()
+            if chunk is None:
+                break
+            yield chunk
+    finally:
+        default_hitl_coordinator.unregister_notifier(session_id)
+        if not pipeline_task.done():
+            pipeline_task.cancel()
 
 
 @router.post("/stream")
@@ -232,24 +281,17 @@ async def stream_agent_execution(
 ):
     """
     Server-Sent Events (SSE) streaming endpoint for autonomous agent DAG execution.
-    Streams structured real-time events: plan, node_start, tool_call, tool_result, critic, token, done.
-
-    ASI-07: the token bucket is enforced server-side. Callers that present their own provider
-    credential via the `X-User-API-Key` header (BYOK) spend their own quota and bypass the bucket.
+    Enforces token-bucket rate limiter with automatic 429 and retry headers.
     """
     client_ip = get_client_ip(request)
 
-    if not byok_key:
-        default_tokens = settings.GUEST_QUOTA_DEFAULT if current_user.is_guest else 25
-        await db.get_or_create_rate_limit(current_user.id, client_ip, default_tokens=default_tokens)
-        if not await db.decrement_rate_limit(current_user.id, client_ip):
-            raise HTTPException(
-                status_code=status.HTTP_429_TOO_MANY_REQUESTS,
-                detail=(
-                    "Free-tier quota limit reached. Bring your own key (BYOK) to continue "
-                    "unconstrained or hire me for a custom build."
-                ),
-            )
+    # Token bucket rate limiting (Neon DB with memory tier fallback)
+    await default_rate_limiter.check_and_consume(
+        user_id=current_user.id,
+        client_ip=client_ip,
+        is_guest=current_user.is_guest,
+        byok_key=byok_key,
+    )
 
     doc_uuid: UUID | None = None
     if payload.documentId:
@@ -279,3 +321,40 @@ async def stream_agent_execution(
             "Content-Type": "text/event-stream; charset=utf-8",
         },
     )
+
+
+@router.post("/approval")
+async def resolve_hitl_approval(
+    payload: HitlApprovalRequestWire,
+    current_user: User = Depends(get_current_user),
+):
+    """
+    Resolve pending human-in-the-loop (HITL) authorization for paused tool execution.
+    """
+    resolved = default_hitl_coordinator.resolve_approval(
+        approval_id=payload.approvalId,
+        decision=payload.decision,
+        resolved_by=str(current_user.email or current_user.name),
+    )
+    if not resolved:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Approval ID not found or already completed/timed out.",
+        )
+    return {
+        "status": "resolved",
+        "approvalId": payload.approvalId,
+        "decision": payload.decision,
+    }
+
+
+@router.get("/audit-logs")
+async def get_tool_audit_logs(
+    limit: int = 50,
+    current_user: User = Depends(get_current_user),
+):
+    """
+    Retrieve immutable tool execution audit records from Neon DB and memory ring-buffer.
+    """
+    logs = default_hitl_coordinator.get_recent_audit_logs(limit=limit)
+    return {"logs": logs, "count": len(logs)}

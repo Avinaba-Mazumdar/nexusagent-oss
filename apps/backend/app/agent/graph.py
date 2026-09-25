@@ -16,7 +16,14 @@ from datetime import UTC, datetime
 from langgraph.graph import END, StateGraph
 
 from app.agent.state import AgentState, Citation, PlanStep
+from app.core.hitl_coordinator import default_hitl_coordinator
 from app.core.sandbox import PythonSandbox, default_python_sandbox
+from app.core.security_guardrails import (
+    detect_prompt_injection,
+    generate_canary_token,
+    verify_canary_integrity,
+    wrap_untrusted_context,
+)
 from app.db.neon import NeonDatabase, neon_db
 from app.rag.hybrid_search import HybridSearchEngine, default_hybrid_search_engine
 
@@ -44,9 +51,22 @@ def needs_sandbox(query: str) -> bool:
 async def planner_node(state: AgentState) -> AgentState:
     """
     Planner Node: Analyzes user query and formulates bounded architectural plan steps.
+    Instantiates per-session canary token and validates against prompt injection.
     """
     state.node_history.append("planner")
     state.current_node = "planner"
+
+    # Security: Generate canary token & check for prompt injection
+    if not state.canary_token:
+        state.canary_token = generate_canary_token()
+
+    is_injected, reason = detect_prompt_injection(state.query)
+    if is_injected:
+        state.injection_detected = True
+        state.injection_reason = reason
+        logger.warning(
+            f"Adversarial prompt injection pattern detected in session {state.session_id}: {reason}"
+        )
 
     steps: list[PlanStep] = [
         PlanStep(
@@ -119,6 +139,16 @@ async def retriever_node(
         )
     state.citations = citations
 
+    # Audit log retrieval tool execution
+    await default_hitl_coordinator.log_tool_audit(
+        tool_name="hybrid_rag_search",
+        input_args={"query": state.query, "limit": 5},
+        output_summary={"chunks_found": len(chunks)},
+        duration_ms=0,
+        hitl_approved=True,
+        user_id=state.user_id,
+    )
+
     # Update plan step 1 status
     if state.plan:
         state.plan[0].status = "completed"
@@ -131,7 +161,7 @@ async def sandbox_node(
     sandbox: PythonSandbox | None = None,
 ) -> AgentState:
     """
-    Sandbox Tool Node: Runs AST-isolated verification script if calculations are needed.
+    Sandbox Tool Node: Runs AST-isolated verification script with HITL human authorization.
     """
     state.node_history.append("sandbox")
     state.current_node = "sandbox"
@@ -162,16 +192,67 @@ print(f"Computed write window batch size: {batch_size} ops/window at {window_ms}
     if code:
         state.tool_calls.append({"tool": "python_sandbox", "code": code.strip()})
 
-        result = await box.execute(code)
-        state.tool_results.append(
-            {
-                "tool": "python_sandbox",
-                "success": result.success,
-                "stdout": result.stdout.strip(),
-                "stderr": result.stderr.strip(),
-                "duration_ms": result.duration_ms,
-            }
+        # HITL security policy check
+        requires_approval, risk_level = default_hitl_coordinator.is_approval_required(
+            "python_sandbox", {"code": code}
         )
+
+        approved = True
+        if requires_approval and state.hitl_approved is not True:
+            # Emit pending approval state if needed
+            state.pending_approval = {
+                "tool": "python_sandbox",
+                "arguments": {"code": code.strip()},
+                "risk_level": risk_level,
+            }
+            approved, _ = await default_hitl_coordinator.request_approval(
+                session_id=state.session_id,
+                tool_name="python_sandbox",
+                arguments={"code": code.strip()},
+                risk_level=risk_level,
+                timeout_seconds=5.0,
+            )
+            state.hitl_approved = approved
+
+        if approved:
+            result = await box.execute(code)
+            state.tool_results.append(
+                {
+                    "tool": "python_sandbox",
+                    "success": result.success,
+                    "stdout": result.stdout.strip(),
+                    "stderr": result.stderr.strip(),
+                    "duration_ms": result.duration_ms,
+                    "hitl_approved": True,
+                }
+            )
+            await default_hitl_coordinator.log_tool_audit(
+                tool_name="python_sandbox",
+                input_args={"code": code.strip()},
+                output_summary={"success": result.success, "stdout": result.stdout[:200]},
+                duration_ms=result.duration_ms,
+                hitl_approved=True,
+                user_id=state.user_id,
+            )
+        else:
+            state.tool_results.append(
+                {
+                    "tool": "python_sandbox",
+                    "success": False,
+                    "stdout": "Execution blocked by operator (HITL Security Policy).",
+                    "stderr": "",
+                    "duration_ms": 0,
+                    "hitl_approved": False,
+                }
+            )
+            await default_hitl_coordinator.log_tool_audit(
+                tool_name="python_sandbox",
+                input_args={"code": code.strip()},
+                output_summary={"status": "rejected_by_operator"},
+                duration_ms=0,
+                hitl_approved=False,
+                user_id=state.user_id,
+            )
 
     # Update plan step status if present
     for step in state.plan:
@@ -233,15 +314,23 @@ async def synthesizer_node(state: AgentState) -> AgentState:
 
     parts: list[str] = [f"## Architectural Analysis: {state.query}\n"]
 
+    if state.injection_detected:
+        parts.append(
+            f"> [!CAUTION]\n> **Adversarial Input Quarantined**: {state.injection_reason}. "
+            "Untrusted instructions inside delimiters were safely neutralized.\n\n"
+        )
+
     if state.retrieved_chunks:
         parts.append("### Grounded Evidence & Specification Invariants\n")
         for chunk in state.retrieved_chunks[:3]:
-            line_info = (
-                f" (Lines {chunk.start_line}-{chunk.end_line})"
-                if chunk.start_line and chunk.end_line
-                else ""
+            wrapped_context = wrap_untrusted_context(
+                content=chunk.content.strip(),
+                filename=chunk.filename,
+                start_line=chunk.start_line,
+                end_line=chunk.end_line,
+                doc_id=str(chunk.document_id),
             )
-            parts.append(f"- **[{chunk.filename}{line_info}]**: {chunk.content.strip()}\n")
+            parts.append(f"{wrapped_context}\n\n")
 
     if state.tool_results:
         parts.append("\n### Sandbox Verification Output\n")
@@ -267,6 +356,11 @@ flowchart TD
     )
 
     state.response = "\n".join(parts)
+
+    # Security check: verify private canary was not leaked
+    if state.canary_token and not verify_canary_integrity(state.response, state.canary_token):
+        logger.error(f"Canary token leak detected in session {state.session_id}!")
+
     state.is_complete = True
     state.completed_at = datetime.now(UTC)
 

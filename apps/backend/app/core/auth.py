@@ -18,12 +18,37 @@ security_bearer = HTTPBearer(auto_error=False)
 DUMMY_ARGON2_HASH = "$argon2id$v=19$m=65536,t=3,p=4$c29tZXNhbHQ$P2T9k55E4jXNnO6aL5Q9rw"
 
 
-def get_client_ip(request: Request) -> str:
-    """Extract client IP from X-Forwarded-For or the direct connection."""
-    forwarded = request.headers.get("X-Forwarded-For")
-    if forwarded:
-        return forwarded.split(",")[0].strip()
+def get_client_ip(request: Request, trust_proxy: bool | None = None) -> str:
+    """
+    Extract the client IP used for rate-limit keying.
+
+    Defaults to the direct socket address so clients cannot rotate quota by
+    spoofing ``X-Forwarded-For``. When ``TRUST_PROXY_HEADERS`` is enabled (the
+    deployment sits behind a trusted reverse proxy that overwrites the header),
+    the left-most ``X-Forwarded-For`` entry is used instead.
+    """
+    use_proxy = settings.TRUST_PROXY_HEADERS if trust_proxy is None else trust_proxy
+    if use_proxy:
+        forwarded = request.headers.get("X-Forwarded-For")
+        if forwarded:
+            return forwarded.split(",")[0].strip()
     return request.client.host if request.client else "127.0.0.1"
+
+
+def validate_byok_key(key: str | None) -> str | None:
+    """
+    Accept a BYOK key only when it matches an allowlisted provider prefix and a
+    plausible length. Returns the trimmed key, or None when the value is absent
+    or malformed (which routes the caller through the normal rate-limited tier).
+    """
+    if not key:
+        return None
+    stripped = key.strip()
+    if len(stripped) < 20 or len(stripped) > 200:
+        return None
+    if any(stripped.startswith(prefix) for prefix in settings.BYOK_PREFIXES):
+        return stripped
+    return None
 
 
 def hash_password(password: str) -> str:

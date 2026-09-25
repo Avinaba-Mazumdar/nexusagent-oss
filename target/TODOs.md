@@ -115,3 +115,13 @@
 - [x] New guards: unresolved approvals fail closed on timeout; test asserts production default stays human-paced
 - [x] `tool_audit_logs` writes retry once and log at error level before degrading to the memory ring
 - [x] Sandbox HITL policy capability-based (imports/functions/loops gate approval; trivial arithmetic runs free)
+
+### Security-Hardening Pass (Applied)
+
+- [x] MCP lockdown: `/api/mcp/{v1,sse,messages}` now require Bearer auth; `mcp_sql_audit` runs single-statement allowlisted queries in a read-only transaction with a mutating/privileged-function denylist (`setval`, `pg_advisory_lock`, `pg_read_file`, `pg_sleep`, …) and bounded timeout
+- [x] Mermaid XSS fix: `securityLevel: 'strict'` + SVG sanitizer (scripts, foreignObject, event handlers, `javascript:` URLs stripped) in `MermaidViewer`
+- [x] BYOK hardening: `X-User-API-Key` validated against a provider prefix/length allowlist (`validate_byok_key`); junk keys fall back to the rate-limited tier
+- [x] Quota keying: `get_client_ip` uses the socket IP unless `TRUST_PROXY_HEADERS=true` (X-Forwarded-For rotation no longer bypasses guest quota)
+- [x] HITL approval ownership: `resolve_approval` binds the approval to its owning session; cross-session resolution is rejected
+- [x] `/api/agent/audit-logs` reads persisted `tool_audit_logs` rows (memory ring only as fallback)
+- [x] Indirect injection defense: retriever scans retrieved chunks (`sanitize_retrieved_chunks`), drops injected content, prunes citations, surfaces an observability warning

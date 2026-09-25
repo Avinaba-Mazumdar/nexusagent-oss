@@ -14,6 +14,7 @@ from datetime import UTC, datetime
 from typing import Any
 from uuid import UUID, uuid4
 
+from app.config import settings
 from app.db.neon import NeonDatabase, neon_db
 
 logger = logging.getLogger("nexusagent.core.hitl")
@@ -72,7 +73,7 @@ class HitlCoordinator:
         tool_name: str,
         arguments: dict[str, Any],
         risk_level: str = "medium",
-        timeout_seconds: float = 30.0,
+        timeout_seconds: float = settings.HITL_APPROVAL_TIMEOUT_SECONDS,
     ) -> tuple[bool, str]:
         """
         Suspend execution until an operator approves/rejects the action or timeout occurs.
@@ -131,12 +132,27 @@ class HitlCoordinator:
         self._notifiers.pop(session_id, None)
 
     def resolve_approval(
-        self, approval_id: str, decision: str, resolved_by: str = "operator"
+        self,
+        approval_id: str,
+        decision: str,
+        resolved_by: str = "operator",
+        session_id: str | None = None,
     ) -> bool:
-        """Resolve a pending approval with 'approve' or 'reject'."""
+        """
+        Resolve a pending approval with 'approve' or 'reject'.
+
+        When ``session_id`` is provided it must match the approval's owning
+        session; this prevents cross-session approval tampering.
+        """
         pending = self._pending_approvals.get(approval_id)
         if not pending:
             logger.warning(f"Approval ID '{approval_id}' not found or already completed.")
+            return False
+        if session_id is not None and pending.session_id != session_id:
+            logger.warning(
+                f"Approval '{approval_id}' session mismatch: expected "
+                f"{pending.session_id}, got {session_id}."
+            )
             return False
 
         pending.decision = "approve" if decision.lower() == "approve" else "reject"
@@ -232,6 +248,44 @@ class HitlCoordinator:
     def get_recent_audit_logs(self, limit: int = 50) -> list[dict[str, Any]]:
         """Retrieve recent tool audit logs from memory ring-buffer."""
         return list(self._memory_audit_logs)[:limit]
+
+    async def fetch_audit_logs_from_db(self, limit: int = 50) -> list[dict[str, Any]]:
+        """
+        Read persisted audit rows from Neon ``tool_audit_logs`` (newest first).
+        Falls back to the in-memory ring when the database is unavailable.
+        """
+        if self.db and self.db.pool:
+            try:
+                rows = await self.db.fetch(
+                    """
+                    SELECT id, conversation_id, user_id, tool_name, mcp_server,
+                           input_args, output_summary, duration_ms, hitl_approved, executed_at
+                    FROM tool_audit_logs
+                    ORDER BY executed_at DESC
+                    LIMIT $1;
+                    """,
+                    limit,
+                )
+                return [
+                    {
+                        "id": str(r["id"]),
+                        "tool_name": r["tool_name"],
+                        "mcp_server": r["mcp_server"],
+                        "input_args": r["input_args"],
+                        "output_summary": r["output_summary"],
+                        "duration_ms": r["duration_ms"],
+                        "hitl_approved": r["hitl_approved"],
+                        "user_id": str(r["user_id"]) if r["user_id"] else None,
+                        "conversation_id": (
+                            str(r["conversation_id"]) if r["conversation_id"] else None
+                        ),
+                        "executed_at": r["executed_at"].isoformat() if r["executed_at"] else None,
+                    }
+                    for r in rows
+                ]
+            except Exception as exc:  # noqa: BLE001
+                logger.error(f"Failed to read tool_audit_logs from Neon; using memory ring: {exc}")
+        return self.get_recent_audit_logs(limit=limit)
 
 
 default_hitl_coordinator = HitlCoordinator()

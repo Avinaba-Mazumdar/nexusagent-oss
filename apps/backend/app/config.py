@@ -27,6 +27,13 @@ class Settings(BaseSettings):
     GUEST_TOKEN_EXPIRE_MINUTES: int = 60 * 24
     GUEST_QUOTA_DEFAULT: int = 5
     HITL_APPROVAL_TIMEOUT_SECONDS: float = 30.0
+    # Rate-limit keying: enable only when behind a trusted reverse proxy that
+    # overwrites X-Forwarded-For. Default keys quota on the socket IP so clients
+    # cannot rotate quota by header spoofing.
+    TRUST_PROXY_HEADERS: bool = False
+
+    # Accepted BYOK key prefixes (provider-recognizable formats only).
+    BYOK_PREFIXES: list[str] = ["sk-", "AIza"]
 
     OPENAI_API_KEY: str = ""
     ANTHROPIC_API_KEY: str = ""

@@ -12,10 +12,12 @@ import logging
 from collections.abc import AsyncGenerator
 from uuid import uuid4
 
-from fastapi import APIRouter, HTTPException, Query, Request, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from fastapi.responses import JSONResponse, StreamingResponse
 from pydantic import ValidationError
 
+from app.core.auth import get_current_user
+from app.db.models import User
 from app.mcp.protocol import (
     INTERNAL_ERROR,
     INVALID_PARAMS,
@@ -98,8 +100,14 @@ async def dispatch_mcp_method(req: JsonRpcRequest) -> JsonRpcResponse:
 
 
 @router.post("/v1", response_model=JsonRpcResponse)
-async def direct_jsonrpc_gateway(request: Request) -> JsonRpcResponse:
-    """Direct HTTP JSON-RPC 2.0 gateway accepting tools/list, tools/call, and resources/list."""
+async def direct_jsonrpc_gateway(
+    request: Request,
+    current_user: User = Depends(get_current_user),
+) -> JsonRpcResponse:
+    """
+    Direct HTTP JSON-RPC 2.0 gateway accepting tools/list, tools/call, and resources/list.
+    Requires authentication: tools/call reaches the production database and sandbox.
+    """
     try:
         body = await request.json()
     except (json.JSONDecodeError, ValueError) as e:
@@ -130,10 +138,12 @@ async def direct_jsonrpc_gateway(request: Request) -> JsonRpcResponse:
 async def mcp_sse_endpoint(
     request: Request,
     once: bool = False,
+    current_user: User = Depends(get_current_user),
 ) -> StreamingResponse:
     """
     MCP Server-Sent Events (SSE) stream initialization.
     Complies with MCP transport specification: emits 'endpoint' event with target URL for POST messages.
+    Requires authentication: MCP clients reach the production database via these routes.
     """
     session_id = uuid4().hex
     queue: asyncio.Queue[str] = asyncio.Queue()
@@ -178,6 +188,7 @@ async def mcp_sse_endpoint(
 async def mcp_messages_endpoint(
     request: Request,
     sessionId: str = Query(..., description="Active MCP SSE session ID"),
+    current_user: User = Depends(get_current_user),
 ):
     """
     Inbound JSON-RPC 2.0 message handler for active SSE client sessions.

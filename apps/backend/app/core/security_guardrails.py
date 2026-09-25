@@ -5,6 +5,8 @@ Protects autonomous agent context from indirect prompt injection and data exfilt
 
 import html
 import re
+from collections.abc import Sequence
+from typing import Any
 from uuid import uuid4
 
 # Prompt injection signatures (case-insensitive)
@@ -91,3 +93,41 @@ def verify_canary_integrity(output: str, canary_token: str) -> bool:
     if not canary_token:
         return True
     return canary_token not in output
+
+
+def sanitize_retrieved_chunks(
+    chunks: Sequence[Any],
+) -> tuple[list[Any], list[str], list[dict[str, str]]]:
+    """
+    Defense-in-depth for indirect prompt injection arriving inside retrieved documents.
+
+    For each retrieved chunk:
+      1. Escape delimiter-breakout attempts (``sanitize_untrusted_text``).
+      2. Wrap the content in ``<untrusted_document_context>`` boundaries.
+      3. Scan for instruction-style patterns; flagged chunks are dropped entirely.
+
+    Returns ``(sanitized_chunks, wrapped_contexts, flagged)`` where ``flagged``
+    entries carry the filename and the matched reason for observability.
+    """
+    sanitized_chunks: list[Any] = []
+    wrapped_contexts: list[str] = []
+    flagged: list[dict[str, str]] = []
+
+    for chunk in chunks:
+        clean = sanitize_untrusted_text(chunk.content)
+        injected, reason = detect_prompt_injection(clean)
+        if injected:
+            flagged.append({"filename": chunk.filename, "reason": reason or "injection pattern"})
+            continue
+        chunk.content = clean
+        sanitized_chunks.append(chunk)
+        wrapped_contexts.append(
+            wrap_untrusted_context(
+                clean,
+                filename=chunk.filename,
+                start_line=chunk.start_line,
+                end_line=chunk.end_line,
+            )
+        )
+
+    return sanitized_chunks, wrapped_contexts, flagged

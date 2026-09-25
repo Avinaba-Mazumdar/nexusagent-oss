@@ -10,11 +10,10 @@ from pydantic import BaseModel, Field
 
 from app.agent.graph import AgentGraph, default_agent_graph
 from app.agent.state import AgentState
-from app.core.auth import get_client_ip, get_current_user
+from app.core.auth import get_client_ip, get_current_user, validate_byok_key
 from app.core.hitl_coordinator import default_hitl_coordinator
 from app.core.rate_limiter import default_rate_limiter
 from app.db.models import User
-from app.db.neon import NeonDatabase, get_db
 
 logger = logging.getLogger("nexusagent.routes.agent")
 
@@ -275,7 +274,6 @@ async def stream_agent_execution(
     payload: AgentStreamRequestWire,
     request: Request,
     current_user: User = Depends(get_current_user),
-    db: NeonDatabase = Depends(get_db),
     byok_key: str | None = Header(None, alias="X-User-API-Key"),
     graph: AgentGraph = Depends(lambda: default_agent_graph),
 ):
@@ -284,6 +282,7 @@ async def stream_agent_execution(
     Enforces token-bucket rate limiter with automatic 429 and retry headers.
     """
     client_ip = get_client_ip(request)
+    byok_key = validate_byok_key(byok_key)
 
     # Token bucket rate limiting (Neon DB with memory tier fallback)
     await default_rate_limiter.check_and_consume(
@@ -335,6 +334,7 @@ async def resolve_hitl_approval(
         approval_id=payload.approvalId,
         decision=payload.decision,
         resolved_by=str(current_user.email or current_user.name),
+        session_id=payload.sessionId,
     )
     if not resolved:
         raise HTTPException(
@@ -354,7 +354,8 @@ async def get_tool_audit_logs(
     current_user: User = Depends(get_current_user),
 ):
     """
-    Retrieve immutable tool execution audit records from Neon DB and memory ring-buffer.
+    Retrieve immutable tool execution audit records (Neon ``tool_audit_logs``
+    first, in-memory ring fallback when the database is unavailable).
     """
-    logs = default_hitl_coordinator.get_recent_audit_logs(limit=limit)
+    logs = await default_hitl_coordinator.fetch_audit_logs_from_db(limit=limit)
     return {"logs": logs, "count": len(logs)}

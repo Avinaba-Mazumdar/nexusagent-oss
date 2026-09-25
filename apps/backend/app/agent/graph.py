@@ -22,6 +22,7 @@ from app.core.sandbox import PythonSandbox, default_python_sandbox
 from app.core.security_guardrails import (
     detect_prompt_injection,
     generate_canary_token,
+    sanitize_retrieved_chunks,
     verify_canary_integrity,
     wrap_untrusted_context,
 )
@@ -139,6 +140,22 @@ async def retriever_node(
             )
         )
     state.citations = citations
+
+    # Indirect-injection scan (defense-in-depth): drop retrieved chunks carrying
+    # instruction-style payloads before any downstream node or the synthesizer
+    # context builder sees them.
+    state.retrieved_chunks, _, flagged_chunks = sanitize_retrieved_chunks(state.retrieved_chunks)
+    if flagged_chunks:
+        state.injection_detected = True
+        state.injection_reason = "Indirect prompt injection in retrieved documents: " + "; ".join(
+            f"{f['filename']} ({f['reason']})" for f in flagged_chunks
+        )
+        logger.warning(
+            f"Dropped {len(flagged_chunks)} injected chunk(s) in session "
+            f"{state.session_id}: {flagged_chunks}"
+        )
+        kept_chunk_ids = {c.id for c in state.retrieved_chunks}
+        state.citations = [c for c in state.citations if c.chunk_id in kept_chunk_ids]
 
     # Audit log retrieval tool execution
     await default_hitl_coordinator.log_tool_audit(

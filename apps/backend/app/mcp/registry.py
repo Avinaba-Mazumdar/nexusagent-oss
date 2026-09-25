@@ -260,24 +260,74 @@ class McpRegistry:
                 isError=True,
             )
 
-        # Security check: Read-Only Enforcement
-        forbidden_pattern = (
-            r"\b(INSERT|UPDATE|DELETE|DROP|ALTER|TRUNCATE|CREATE|GRANT|REVOKE|EXECUTE|LOCK)\b"
-        )
-        if re.search(forbidden_pattern, query, re.IGNORECASE):
+        # Reject multi-statement payloads outright (e.g. "SELECT 1; DROP TABLE users").
+        statements = [s.strip() for s in query.split(";") if s.strip()]
+        if len(statements) != 1:
             return ToolCallResult(
                 content=[
                     ToolCallContent(
-                        text="Security Violation: Only read-only queries (SELECT, EXPLAIN, SHOW) are permitted in SQL audit mode."
+                        text="Security Violation: exactly one statement is permitted in SQL audit mode."
+                    )
+                ],
+                isError=True,
+            )
+        statement = statements[0]
+
+        # Security gate 1: statement-class allowlist (read-only heads only).
+        head_match = re.match(r"^\s*\(?\s*(\w+)", statement, re.IGNORECASE)
+        if not head_match or head_match.group(1).upper() not in {
+            "SELECT",
+            "EXPLAIN",
+            "SHOW",
+            "WITH",
+        }:
+            return ToolCallResult(
+                content=[
+                    ToolCallContent(
+                        text="Security Violation: mcp_sql_audit permits read-only statements "
+                        "(SELECT, EXPLAIN, SHOW, WITH ... SELECT) only."
                     )
                 ],
                 isError=True,
             )
 
-        # Execute query if database pool is available
+        # Security gate 2: deny mutating keywords and privileged helper functions
+        # anywhere in the statement (covers CTE bodies, subqueries, function args).
+        forbidden_pattern = re.compile(
+            r"\b(INSERT|UPDATE|DELETE|DROP|ALTER|TRUNCATE|CREATE|GRANT|REVOKE|EXECUTE|LOCK|"
+            r"COPY|CALL|SET|RESET|VACUUM|ANALYZE|COMMENT|DO|LISTEN|NOTIFY|LOAD|"
+            r"pg_terminate_backend|pg_advisory_lock|pg_advisory_xact_lock|pg_advisory_shared_lock|"
+            r"pg_sleep|pg_read_file|pg_read_binary_file|pg_ls_dir|lo_import|lo_export|"
+            r"dblink|setval|nextval|set_config)\b",
+            re.IGNORECASE,
+        )
+        forbidden_match = forbidden_pattern.search(statement)
+        if forbidden_match:
+            return ToolCallResult(
+                content=[
+                    ToolCallContent(
+                        text=f"Security Violation: forbidden token '{forbidden_match.group(0)}' "
+                        "detected. Only read-only queries are permitted in SQL audit mode."
+                    )
+                ],
+                isError=True,
+            )
+
+        try:
+            timeout_seconds = min(max(float(arguments.get("timeout", 5.0)), 1.0), 10.0)
+        except TypeError, ValueError:
+            timeout_seconds = 5.0
+
+        # Execute query if database pool is available — inside an explicitly
+        # read-only transaction so mutating functions fail at the database level
+        # even if a keyword gate above is ever bypassed.
         if neon_db.pool:
             try:
-                rows = await neon_db.fetch(query)
+                async with (
+                    neon_db.pool.acquire() as conn,
+                    conn.transaction(readonly=True),
+                ):
+                    rows = await conn.fetch(statement, timeout=timeout_seconds)
                 formatted_rows = [dict(r) for r in rows[:50]]
                 return ToolCallResult(
                     content=[

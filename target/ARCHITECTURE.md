@@ -74,18 +74,18 @@ Reviewers and hiring executives can explore NexusAgent instantly via **1-Click G
 
 ### 2.3 Backend Stack (`apps/backend` — FastAPI & Agent Engine)
 
-| Category                     | Technology / Library                | Version    | Engineering Rationale                                                                                    |
-| :--------------------------- | :---------------------------------- | :--------- | :------------------------------------------------------------------------------------------------------- |
-| **API Framework**            | **FastAPI** (`fastapi[standard]`)   | `^0.141.1` | High-throughput asynchronous routing, Pydantic v2 validation, native SSE streaming support.              |
-| **Agent DAG Orchestrator**   | **LangGraph**                       | `^1.2.11`  | Cyclical graph execution with strongly typed state, state checkpointing, and node-level streaming.       |
-| **LangChain Core**           | `langchain-core`                    | `^0.3.42`  | Base primitives, message abstractions, and prompt template management.                                   |
-| **RAG Ingestion & Chunking** | **LlamaIndex** (`llama-index-core`) | `^0.12.0`  | Markdown-aware node parsing, hierarchical section boundary preservation, and chunk metadata tags.        |
-| **Model Context Protocol**   | **mcp** (`mcp[cli]`)                | `^2.0.0`   | Official MCP Python SDK supporting stdio and SSE transport protocols.                                    |
-| **Database Driver**          | **asyncpg**                         | `^0.30.0`  | High-performance asynchronous binary driver connecting directly to Neon PostgreSQL 18 connection pooler. |
-| **Vector Driver**            | **pgvector** (`pgvector-python`)    | `^0.3.6`   | Native async integration with PostgreSQL pgvector extension for HNSW cosine distance queries.            |
-| **Validation & Schemas**     | **Pydantic**                        | `^2.10.6`  | Rust-backed `pydantic-core` delivering microsecond schema validation and JSON serialization.             |
-| **Rate Limiting**            | Custom Token-Bucket + Redis/Memory  | Native     | Sub-microsecond sliding token bucket tracking IP addresses and Guest UUIDs.                              |
-| **Authentication & Crypto**  | **PyJWT** + **Passlib** (`argon2`)  | `^2.10.1`  | Cryptographic JWT token issuance/verification, secure argon2 password hashing, and guest sessions.       |
+| Category                     | Technology / Library                | Version    | Engineering Rationale                                                                                           |
+| :--------------------------- | :---------------------------------- | :--------- | :-------------------------------------------------------------------------------------------------------------- |
+| **API Framework**            | **FastAPI** (`fastapi[standard]`)   | `^0.141.1` | High-throughput asynchronous routing, Pydantic v2 validation, native SSE streaming support.                     |
+| **Agent DAG Orchestrator**   | **LangGraph**                       | `^1.2.12`  | Cyclical graph execution with strongly typed `AgentState`, node-level `astream` updates, and bounded recursion. |
+| **LangChain Core**           | `langchain-core`                    | `^1.6.5`   | Base primitives, message abstractions, and prompt template management.                                          |
+| **RAG Ingestion & Chunking** | **LlamaIndex** (`llama-index-core`) | `^0.14.25` | Markdown-aware node parsing, hierarchical section boundary preservation, and chunk metadata tags.               |
+| **Model Context Protocol**   | **mcp** (`mcp[cli]`)                | `^2.0.0`   | Official MCP Python SDK supporting stdio and SSE transport protocols.                                           |
+| **Database Driver**          | **asyncpg**                         | `^0.30.0`  | High-performance asynchronous binary driver connecting directly to Neon PostgreSQL 18 connection pooler.        |
+| **Vector Driver**            | **pgvector** (`pgvector-python`)    | `^0.3.6`   | Native async integration with PostgreSQL pgvector extension for HNSW cosine distance queries.                   |
+| **Validation & Schemas**     | **Pydantic**                        | `^2.10.6`  | Rust-backed `pydantic-core` delivering microsecond schema validation and JSON serialization.                    |
+| **Rate Limiting**            | Custom Token-Bucket + Redis/Memory  | Native     | Sub-microsecond sliding token bucket tracking IP addresses and Guest UUIDs.                                     |
+| **Authentication & Crypto**  | **PyJWT** + **Passlib** (`argon2`)  | `^2.10.1`  | Cryptographic JWT token issuance/verification, secure argon2 password hashing, and guest sessions.              |
 
 ### 2.4 Persistence, Vector & Infrastructure
 
@@ -263,10 +263,13 @@ nexusagent-oss/
 │       │   ├── document.ts            # Chunk metadata and citation structures
 │       │   └── index.ts
 │       └── package.json
-├── data/
-│   └── seeded_documents/              # Pre-seeded RFCs for zero-friction evaluation
-│       ├── RFC-104-distributed-cache-consistency.md
-│       └── Neon-Serverless-Storage-Architecture.md
+├── knowledge_base/
+│   └── benchmarks/                    # Pre-seeded corpus for zero-friction evaluation
+│       ├── benchlm_evals.md
+│       ├── cursor_bench.md
+│       ├── openrouter_metrics.md
+│       ├── artificial_analysis.md
+│       └── leaks_rumours.md
 ├── target/
 │   ├── ARCHITECTURE.md                # System Architecture & Technical Specification
 │   ├── DESIGN.md                      # Next.js 16 + shadcn/ui Design System Specification
@@ -558,8 +561,8 @@ CREATE TABLE IF NOT EXISTS citations (
 
 ## 8. Concurrency, Race Conditions & CAP Theorem Analysis
 
-1. **Stateful Graph Checkpointing**:
-    - LangGraph uses in-memory or PostgreSQL state checkpointing keyed by `session_id`.
+1. **Graph State Lifetime**:
+    - Each LangGraph run executes against one in-memory `AgentState` instance keyed by `session_id`; a checkpointer (in-memory or PostgreSQL) is not enabled yet, so no run state is persisted between requests.
     - Parallel queries from the same session are queued sequentially to eliminate race conditions on `AgentState`.
 2. **Token-Bucket Concurrency**:
     - Atomic token deduction in FastAPI rate limiter using CAS (Compare-And-Swap) or Postgres `SELECT ... FOR UPDATE` ensuring guest limits cannot be bypassed via concurrent bursts.
@@ -717,11 +720,11 @@ WHERE is_guest = TRUE
 
 ## 13. Testing Workflows & Verification Matrix
 
-| Test Suite                          | Framework                      | Target Location                | Scope                                                                       |
-| :---------------------------------- | :----------------------------- | :----------------------------- | :-------------------------------------------------------------------------- |
-| **Frontend Unit & Component Tests** | Vitest + React Testing Library | `apps/frontend/**/*.test.tsx`  | shadcn/ui components, citation pills, Mermaid rendering, Zustand stores     |
-| **Frontend E2E & Flow Tests**       | Playwright                     | `apps/frontend/e2e/*.spec.ts`  | 1-Click guest flow, SSE streaming, DAG drawer, MCP inspector, mobile layout |
-| **Backend Unit & Logic Tests**      | pytest + pytest-asyncio        | `apps/backend/tests/unit/`     | AST sandbox security, rate limiter, LlamaIndex parser, RRF fusion           |
-| **Agent DAG & Reflection Tests**    | pytest                         | `apps/backend/tests/agent/`    | LangGraph node transitions, reflection routing, HITL interrupt/resume       |
-| **MCP v2 Protocol Tests**           | pytest                         | `apps/backend/tests/mcp/`      | JSON-RPC 2.0 conformance (`tools/list`, `tools/call`, `resources/list`)     |
-| **OWASP Security Audit Suites**     | pytest + bandit                | `apps/backend/tests/security/` | Prompt injection barriers, canary token leaks, sandbox breakout attempts    |
+| Test Suite                          | Framework                      | Target Location                 | Scope                                                                       |
+| :---------------------------------- | :----------------------------- | :------------------------------ | :-------------------------------------------------------------------------- |
+| **Frontend Unit & Component Tests** | Vitest + React Testing Library | `apps/frontend/**/*.test.tsx`   | shadcn/ui components, citation pills, Mermaid rendering, Zustand stores     |
+| **Frontend E2E & Flow Tests**       | Playwright                     | `apps/frontend/e2e/*.spec.ts`   | 1-Click guest flow, SSE streaming, DAG drawer, MCP inspector, mobile layout |
+| **Backend Unit & Logic Tests**      | pytest + pytest-asyncio        | `apps/backend/tests/`           | AST sandbox security, rate limiter, LlamaIndex parser, RRF fusion           |
+| **Agent DAG & Reflection Tests**    | pytest                         | `apps/backend/tests/`           | LangGraph node transitions, reflection routing, HITL interrupt/resume       |
+| **MCP v2 Protocol Tests**           | pytest                         | `apps/backend/tests/` (planned) | JSON-RPC 2.0 conformance (`tools/list`, `tools/call`, `resources/list`)     |
+| **OWASP Security Audit Suites**     | pytest + bandit                | `apps/backend/tests/` (planned) | Prompt injection barriers, canary token leaks, sandbox breakout attempts    |

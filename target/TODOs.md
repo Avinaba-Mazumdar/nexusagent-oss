@@ -7,6 +7,8 @@
 > 2. **Linted**: Zero linter errors or warnings (`pnpm lint` / `uv run ruff check`)
 > 3. **Formatted**: Code formatted cleanly (`pnpm format:check` / `uv run ruff format --check`)
 > 4. **Verified**: End-to-end functionality visually or functionally verified on running servers
+>
+> Backend gate: `uv run pytest` must be green **offline**. Tests needing a live Neon instance are marked `@pytest.mark.db` and skip (not fail) when `NEON_DATABASE_URL` is absent.
 
 ---
 

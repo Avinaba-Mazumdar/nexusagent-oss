@@ -302,11 +302,7 @@ export default function Home() {
         const userMsgId = `u-${Date.now()}`;
         const assistantMsgId = `a-${Date.now()}`;
 
-        setMessages((prev) => [
-            ...prev,
-            { id: userMsgId, role: 'user', content: query },
-            { id: assistantMsgId, role: 'assistant', content: '' }
-        ]);
+        setMessages((prev) => [...prev, { id: userMsgId, role: 'user', content: query }, { id: assistantMsgId, role: 'assistant', content: '' }]);
         setPrompt('');
 
         // Decrement remaining quota if not BYOK
@@ -317,7 +313,8 @@ export default function Home() {
         try {
             const result = await agentStream.startStream({
                 query,
-                token
+                token,
+                byokKey
             });
 
             if (result?.response) {
@@ -335,9 +332,7 @@ export default function Home() {
             }
         } catch (err: unknown) {
             const errorText = err instanceof Error ? err.message : 'Failed to execute agent stream.';
-            setMessages((prev) =>
-                prev.map((m) => (m.id === assistantMsgId ? { ...m, content: `Error: ${errorText}` } : m))
-            );
+            setMessages((prev) => prev.map((m) => (m.id === assistantMsgId ? { ...m, content: `Error: ${errorText}` } : m)));
         }
     };
 
@@ -642,7 +637,7 @@ export default function Home() {
                 </div>
             </header>
 
-            {/* 3-Zone Body */}
+            {/* 4-Zone Body: Workspace (left) + Synthesis Canvas (center) + Observability (right) */}
             <div className="flex-1 flex overflow-hidden">
                 {/* 2. Workspace Panel (Left) */}
                 <aside
@@ -733,7 +728,9 @@ export default function Home() {
                             <CardDescription className="text-xs text-muted-foreground">MCP v2 server tools &amp; execution</CardDescription>
                         </CardHeader>
                         <CardContent className="p-3 pt-0">
-                            <p className="text-xs text-muted-foreground">MCP tool controls and sandbox policies configure in Phase 4 &amp; 5.</p>
+                            <p className="text-xs text-muted-foreground">
+                                MCP v2 tool registration and HITL approval policies ship with the MCP integration milestone.
+                            </p>
                         </CardContent>
                     </Card>
                 </aside>
@@ -836,15 +833,12 @@ export default function Home() {
                                             }`}
                                         >
                                             {msg.content ||
-                                                (agentStream.isStreaming &&
-                                                msg.id === messages[messages.length - 1]?.id ? (
+                                                (agentStream.isStreaming && msg.id === messages[messages.length - 1]?.id ? (
                                                     agentStream.streamedResponse || (
                                                         <div className="flex items-center gap-1.5 text-muted-foreground">
                                                             <Loader2 className="h-3.5 w-3.5 animate-spin" />
                                                             <span>
-                                                                Executing DAG [
-                                                                {agentStream.currentNode?.toUpperCase() ||
-                                                                    'PLANNER'}
+                                                                Executing DAG [{agentStream.currentNode?.toUpperCase() || 'PLANNER'}
                                                                 ]...
                                                             </span>
                                                         </div>
@@ -863,12 +857,7 @@ export default function Home() {
                     </div>
 
                     {/* Chat Input Form */}
-                    <form
-                        onSubmit={handleSubmit}
-                        role="search"
-                        aria-label="Architecture inquiry input"
-                        className="p-4 bg-card border-t border-border shrink-0"
-                    >
+                    <form onSubmit={handleSubmit} role="search" aria-label="Architecture inquiry input" className="p-4 bg-card border-t border-border shrink-0">
                         <div className="relative flex items-center">
                             <Input
                                 value={prompt}

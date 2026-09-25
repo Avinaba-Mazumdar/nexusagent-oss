@@ -1,6 +1,19 @@
+"""LangGraph Agent DAG Execution Pipeline.
+
+Builds a real LangGraph ``StateGraph`` over the strongly-typed :class:`AgentState`:
+
+    planner -> retriever -> [python_sandbox] -> reflection critic -> (loop-back | synthesizer)
+
+Nodes are deterministic by design: with no third-party LLM key configured the agent runs in
+zero-cost Deterministic Simulator mode (keyword planning, hybrid RAG grounding, AST-sandbox
+arithmetic, template synthesis). No node fabricates model telemetry.
+"""
+
 import logging
 from collections.abc import AsyncIterator
 from datetime import UTC, datetime
+
+from langgraph.graph import END, StateGraph
 
 from app.agent.state import AgentState, Citation, PlanStep
 from app.core.sandbox import PythonSandbox, default_python_sandbox
@@ -8,6 +21,24 @@ from app.db.neon import NeonDatabase, neon_db
 from app.rag.hybrid_search import HybridSearchEngine, default_hybrid_search_engine
 
 logger = logging.getLogger("nexusagent.agent.graph")
+
+# Keywords that require an AST-sandboxed arithmetic verification step.
+SANDBOX_TRIGGERS = (
+    "latency",
+    "iops",
+    "throughput",
+    "calculate",
+    "quorum",
+    "math",
+    "verify",
+    "formula",
+)
+
+
+def needs_sandbox(query: str) -> bool:
+    """Return True when the query requires a sandboxed numeric verification step."""
+    query_lower = query.lower()
+    return any(trigger in query_lower for trigger in SANDBOX_TRIGGERS)
 
 
 async def planner_node(state: AgentState) -> AgentState:
@@ -17,33 +48,16 @@ async def planner_node(state: AgentState) -> AgentState:
     state.node_history.append("planner")
     state.current_node = "planner"
 
-    query_lower = state.query.lower()
-    steps: list[PlanStep] = []
-
-    # Step 1: Document & specification retrieval
-    steps.append(
+    steps: list[PlanStep] = [
         PlanStep(
             step_number=1,
             description=f"Perform hybrid dense & lexical search across RFC specifications for: '{state.query}'",
             status="in_progress",
             tool="hybrid_rag_search",
         )
-    )
+    ]
 
-    # Step 2: Algorithmic validation if math or code is involved
-    if any(
-        k in query_lower
-        for k in [
-            "latency",
-            "iops",
-            "throughput",
-            "calculate",
-            "quorum",
-            "math",
-            "verify",
-            "formula",
-        ]
-    ):
+    if needs_sandbox(state.query):
         steps.append(
             PlanStep(
                 step_number=2,
@@ -53,7 +67,6 @@ async def planner_node(state: AgentState) -> AgentState:
             )
         )
 
-    # Step 3: Synthesis & diagram rendering
     steps.append(
         PlanStep(
             step_number=len(steps) + 1,
@@ -107,7 +120,7 @@ async def retriever_node(
     state.citations = citations
 
     # Update plan step 1 status
-    if state.plan and len(state.plan) > 0:
+    if state.plan:
         state.plan[0].status = "completed"
 
     return state
@@ -129,7 +142,7 @@ async def sandbox_node(
     # Formulate verification code based on architectural query requirements
     code = ""
     if "quorum" in query_lower or "nodes" in query_lower or "partition" in query_lower:
-        code = """
+        code = """\
 def calculate_quorum(nodes):
     return (nodes // 2) + 1
 
@@ -138,7 +151,7 @@ quorums = {n: calculate_quorum(n) for n in cluster_sizes}
 print(f"Quorum requirements: {quorums}")
 """
     elif "iops" in query_lower or "throughput" in query_lower or "latency" in query_lower:
-        code = """
+        code = """\
 import math
 window_ms = 4.2
 iops = 14000
@@ -147,18 +160,18 @@ print(f"Computed write window batch size: {batch_size} ops/window at {window_ms}
 """
 
     if code:
-        tool_call_record = {"tool": "python_sandbox", "code": code.strip()}
-        state.tool_calls.append(tool_call_record)
+        state.tool_calls.append({"tool": "python_sandbox", "code": code.strip()})
 
         result = await box.execute(code)
-        tool_result_record = {
-            "tool": "python_sandbox",
-            "success": result.success,
-            "stdout": result.stdout.strip(),
-            "stderr": result.stderr.strip(),
-            "duration_ms": result.duration_ms,
-        }
-        state.tool_results.append(tool_result_record)
+        state.tool_results.append(
+            {
+                "tool": "python_sandbox",
+                "success": result.success,
+                "stdout": result.stdout.strip(),
+                "stderr": result.stderr.strip(),
+                "duration_ms": result.duration_ms,
+            }
+        )
 
     # Update plan step status if present
     for step in state.plan:
@@ -218,14 +231,11 @@ async def synthesizer_node(state: AgentState) -> AgentState:
     state.node_history.append("synthesizer")
     state.current_node = "synthesizer"
 
-    # 1. Build response markdown
-    parts: list[str] = [
-        f"## Architectural Analysis: {state.query}\n",
-    ]
+    parts: list[str] = [f"## Architectural Analysis: {state.query}\n"]
 
     if state.retrieved_chunks:
         parts.append("### Grounded Evidence & Specification Invariants\n")
-        for idx, chunk in enumerate(state.retrieved_chunks[:3], start=1):
+        for chunk in state.retrieved_chunks[:3]:
             line_info = (
                 f" (Lines {chunk.start_line}-{chunk.end_line})"
                 if chunk.start_line and chunk.end_line
@@ -239,7 +249,6 @@ async def synthesizer_node(state: AgentState) -> AgentState:
             if res.get("stdout"):
                 parts.append(f"```text\n{res['stdout']}\n```\n")
 
-    # 2. Add Mermaid Architecture Diagram
     diagram = """```mermaid
 flowchart TD
     Client["Client Application"] -->|Write Request| Leader["Raft Leader Node"]
@@ -253,18 +262,23 @@ flowchart TD
     state.mermaid_diagrams.append(diagram)
 
     parts.append(
-        f"\n\n---\n*Synthesis verified by Reflection Critic (Soundness Score: {state.reflection_score}, Iterations: {state.iteration_count})*"
+        f"\n\n---\n*Synthesis verified by Reflection Critic "
+        f"(Soundness Score: {state.reflection_score}, Iterations: {state.iteration_count})*"
     )
 
     state.response = "\n".join(parts)
     state.is_complete = True
     state.completed_at = datetime.now(UTC)
 
-    # Mark all plan steps completed
     for step in state.plan:
         step.status = "completed"
 
     return state
+
+
+def route_after_retriever(state: AgentState) -> str:
+    """Conditional edge: run sandboxed verification only when the query needs arithmetic."""
+    return "sandbox" if needs_sandbox(state.query) else "critic"
 
 
 def route_next_node(state: AgentState) -> str:
@@ -282,8 +296,8 @@ def route_next_node(state: AgentState) -> str:
 
 class AgentGraph:
     """
-    LangGraph-compatible Directed Acyclic Graph (DAG) state machine for autonomous orchestration.
-    Coordinates: Planner -> Retriever -> [Sandbox] -> Critic -> (Conditional Loop-Back) -> Synthesizer.
+    LangGraph ``StateGraph`` orchestrator coordinating:
+    Planner -> Retriever -> [Python Sandbox] -> Reflection Critic -> (Loop-Back) -> Synthesizer.
     """
 
     def __init__(
@@ -295,91 +309,75 @@ class AgentGraph:
         self.db = db or neon_db
         self.search_engine = search_engine or default_hybrid_search_engine
         self.sandbox = sandbox or default_python_sandbox
+        self.graph = self._build_graph()
+
+    async def _retriever_node(self, state: AgentState) -> AgentState:
+        return await retriever_node(state, search_engine=self.search_engine)
+
+    async def _sandbox_node(self, state: AgentState) -> AgentState:
+        return await sandbox_node(state, sandbox=self.sandbox)
+
+    def _build_graph(self):
+        """Assemble and compile the LangGraph StateGraph state machine."""
+        builder = StateGraph(AgentState)
+
+        builder.add_node("planner", planner_node)
+        builder.add_node("retriever", self._retriever_node)
+        builder.add_node("sandbox", self._sandbox_node)
+        builder.add_node("critic", critic_node)
+        builder.add_node("synthesizer", synthesizer_node)
+
+        builder.set_entry_point("planner")
+        builder.add_edge("planner", "retriever")
+        builder.add_conditional_edges(
+            "retriever",
+            route_after_retriever,
+            {"sandbox": "sandbox", "critic": "critic"},
+        )
+        builder.add_edge("sandbox", "critic")
+        builder.add_conditional_edges(
+            "critic",
+            route_next_node,
+            {"planner": "planner", "synthesizer": "synthesizer"},
+        )
+        builder.add_edge("synthesizer", END)
+
+        return builder.compile()
+
+    @staticmethod
+    def _run_config(state: AgentState) -> dict:
+        """Bound LangGraph recursion so cyclical reflection can never run away."""
+        return {"recursion_limit": max(25, state.max_iterations * 5 + 5)}
 
     async def invoke(self, initial_state: AgentState) -> AgentState:
-        """Execute full DAG pipeline from planning to architectural synthesis."""
-        state = initial_state
-
-        while not state.is_complete and state.iteration_count <= state.max_iterations:
-            # 1. Planner Node
-            state = await planner_node(state)
-
-            # 2. Retriever Node
-            state = await retriever_node(state, search_engine=self.search_engine)
-
-            # 3. Sandbox Tool Node (executed if math/calculations requested)
-            query_lower = state.query.lower()
-            if any(
-                k in query_lower
-                for k in [
-                    "latency",
-                    "iops",
-                    "throughput",
-                    "calculate",
-                    "quorum",
-                    "math",
-                    "verify",
-                    "formula",
-                ]
-            ):
-                state = await sandbox_node(state, sandbox=self.sandbox)
-
-            # 4. Reflection Critic Node
-            state = await critic_node(state)
-
-            # 5. Conditional Loop-Back Edge
-            next_step = route_next_node(state)
-            if next_step == "planner":
-                continue  # Loop-back to planner
-            else:
-                # 6. Synthesizer Node
-                state = await synthesizer_node(state)
-                break
-
-        return state
+        """Execute the full LangGraph DAG from planning to architectural synthesis."""
+        final_state = await self.graph.ainvoke(
+            initial_state, config=self._run_config(initial_state)
+        )
+        return (
+            final_state
+            if isinstance(final_state, AgentState)
+            else AgentState.model_validate(final_state)
+        )
 
     async def stream_steps(
         self, initial_state: AgentState
     ) -> AsyncIterator[tuple[str, AgentState]]:
-        """
-        Yield (node_name, state) transitions incrementally as each DAG node finishes execution.
-        """
-        state = initial_state
-
-        while not state.is_complete and state.iteration_count <= state.max_iterations:
-            state = await planner_node(state)
-            yield ("planner", state)
-
-            state = await retriever_node(state, search_engine=self.search_engine)
-            yield ("retriever", state)
-
-            query_lower = state.query.lower()
-            if any(
-                k in query_lower
-                for k in [
-                    "latency",
-                    "iops",
-                    "throughput",
-                    "calculate",
-                    "quorum",
-                    "math",
-                    "verify",
-                    "formula",
-                ]
-            ):
-                state = await sandbox_node(state, sandbox=self.sandbox)
-                yield ("sandbox", state)
-
-            state = await critic_node(state)
-            yield ("critic", state)
-
-            next_step = route_next_node(state)
-            if next_step == "planner":
-                continue
-
-            state = await synthesizer_node(state)
-            yield ("synthesizer", state)
-            break
+        """Yield (node_name, state) transitions incrementally as each LangGraph node finishes."""
+        async for chunk in self.graph.astream(
+            initial_state,
+            config=self._run_config(initial_state),
+            stream_mode="updates",
+        ):
+            for node_name, update in chunk.items():
+                if isinstance(update, AgentState):
+                    step_state = update
+                elif isinstance(update, dict):
+                    step_state = AgentState.model_validate(update)
+                else:
+                    logger.warning(f"Unexpected LangGraph update payload from node {node_name}")
+                    continue
+                yield (node_name, step_state)
 
 
 default_agent_graph = AgentGraph()

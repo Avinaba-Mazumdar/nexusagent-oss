@@ -20,6 +20,7 @@ You are a **Staff-Plus Systems Architect**, a founding engineer, and a **Cyberse
 - **Target Audience**: CTOs, VP of Engineering, Founders, and Systems Architects evaluating distributed systems proposals.
 - **Showcase Objective**: 1-click zero-friction demo readiness with pre-seeded RFCs (RFC-104 Raft vs Multi-Paxos, Neon Storage Whitepaper), live SSE streaming, dynamic Mermaid diagram rendering, and an interactive Model Context Protocol (MCP v2) inspector.
 - **Honesty Rule**: Do not describe an agent as "100% immune to prompt injection", "zero-hallucination", or "infinitely scalable" unless concrete architectural constraints (canary tokens, XML delimiters, reflection critic, RLS) guarantee it.
+- **No Simulated Telemetry Rule**: With no provider key configured, NexusAgent runs in Deterministic Simulator mode. Nodes must never fabricate model names, token counts, latency figures, or streamed prose that no model produced. Every streaming surface (`POST /api/agent/stream`) is backed by the LangGraph DAG that actually ran.
 
 ---
 
@@ -62,7 +63,7 @@ When writing code or proposing changes for NexusAgent, you MUST strictly follow 
 2. **Neon PostgreSQL 18 Data Tier & Python Backend Auth Guarantee**:
     - Single Unified Data Tier: Neon Serverless PostgreSQL 18 with `pgvector` (HNSW indexing), full-text `tsvector` BM25 search, connection pooling, and FastAPI-managed authentication (Guest JWTs + Password/OAuth sessions) is used across local development, wq, and production. Locally, no separate database is maintained.
 3. **Agentic Orchestration & LangGraph DAG**:
-    - The agent execution loop must run on LangGraph `StateGraph` with explicit nodes: `planner` -> `retriever` -> `mcp_tools` -> `python_sandbox` -> `reflection` -> `synthesizer`.
+    - The agent execution loop must run on a LangGraph `StateGraph` with explicit nodes: `planner` -> `retriever` -> [`sandbox` (AST-sandboxed Python, conditional)] -> `critic` (reflection) -> `synthesizer`. The `mcp_tools` node joins this graph in the MCP v2 milestone (Phase 10).
     - Every execution run must have a cycle safeguard (`iteration_count < MAX_STEPS`, default 10).
 4. **Model Context Protocol (MCP v2) Compliance**:
     - Must expose compliant transport endpoints (`/api/mcp/sse`, `/api/mcp/messages`, `/api/mcp/v1`) and stdio CLI launcher supporting `tools/list`, `tools/call`, and `resources/list`.

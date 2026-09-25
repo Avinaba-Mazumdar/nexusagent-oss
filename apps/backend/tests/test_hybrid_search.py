@@ -16,13 +16,6 @@ from app.rag.embeddings import (
 from app.rag.hybrid_search import compute_rrf
 
 
-@pytest.fixture(autouse=True)
-async def setup_db():
-    await neon_db.connect()
-    yield
-    await neon_db.disconnect()
-
-
 def test_embedding_generation_dimension_and_norm():
     """Verify that deterministic embeddings produce normalized 768-d vectors."""
     text = "Raft linearizable consensus protocol with monotonic log sequencing"
@@ -104,6 +97,7 @@ def test_rrf_scoring_algorithm():
     assert fused[0].similarity_score > 0
 
 
+@pytest.mark.db
 @pytest.mark.asyncio
 async def test_hybrid_search_end_to_end_endpoint():
     """End-to-end verification of POST /api/rag/search with Neon database."""

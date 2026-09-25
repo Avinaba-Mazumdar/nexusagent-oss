@@ -4,14 +4,6 @@ import pytest
 
 from app.agent.graph import AgentGraph, critic_node, planner_node, route_next_node
 from app.agent.state import AgentState
-from app.db.neon import neon_db
-
-
-@pytest.fixture(autouse=True)
-async def setup_db():
-    await neon_db.connect()
-    yield
-    await neon_db.disconnect()
 
 
 @pytest.mark.asyncio
@@ -28,6 +20,7 @@ async def test_planner_node_formulates_plan():
     assert "python_sandbox" in tools
 
 
+@pytest.mark.db
 @pytest.mark.asyncio
 async def test_agent_graph_invoke_pipeline():
     """Verify complete DAG pipeline executes plan -> retrieve -> sandbox -> critic -> synthesize."""
@@ -81,6 +74,7 @@ async def test_reflection_critic_and_loop_back_bound():
     assert route_next_node(state) == "synthesizer"
 
 
+@pytest.mark.db
 @pytest.mark.asyncio
 async def test_agent_stream_steps_generator():
     """Verify stream_steps yields intermediate state at each node execution."""

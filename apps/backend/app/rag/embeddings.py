@@ -68,12 +68,16 @@ class EmbeddingService:
     async def get_embeddings(self, texts: Sequence[str]) -> list[list[float]]:
         """
         Generate 768-d dense embeddings for a batch of text strings.
-        Attempts Gemini API if key is set; falls back to deterministic generator on error or absence.
+
+        Live mode: uses the Google Gemini API whenever an API key is configured.
+        Simulator mode: with no key, returns deterministic vectors (zero-cost demo mode).
+        USE_SIMULATION_FALLBACK only controls behavior when a configured provider *fails*;
+        it never silences a working API key.
         """
         if not texts:
             return []
 
-        if not self.api_key or settings.USE_SIMULATION_FALLBACK:
+        if not self.api_key:
             return [generate_deterministic_embedding(t, self.dimension) for t in texts]
 
         try:
@@ -96,10 +100,15 @@ class EmbeddingService:
                     f"Gemini embedding API returned status {response.status_code}; using deterministic fallback."
                 )
         except (httpx.HTTPError, OSError, ValueError, KeyError) as e:
-            logger.warning(
-                f"Error calling Gemini Embedding API: {e}; using deterministic fallback."
+            logger.warning(f"Error calling Gemini Embedding API: {e}")
+
+        if not settings.USE_SIMULATION_FALLBACK:
+            raise RuntimeError(
+                "Gemini embedding provider unavailable and USE_SIMULATION_FALLBACK is disabled. "
+                "Set GEMINI_API_KEY or re-enable the deterministic simulator fallback."
             )
 
+        logger.warning("Falling back to deterministic simulator embeddings.")
         return [generate_deterministic_embedding(t, self.dimension) for t in texts]
 
 

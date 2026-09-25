@@ -10,13 +10,6 @@ from app.db.neon import neon_db
 from app.main import app
 
 
-@pytest.fixture(autouse=True)
-async def setup_db():
-    await neon_db.connect()
-    yield
-    await neon_db.disconnect()
-
-
 @pytest.mark.asyncio
 async def test_password_hashing():
     raw_pass = "SuperSecretSecurePass123!"
@@ -38,6 +31,7 @@ async def test_jwt_token_encode_decode():
     assert decoded["role"] == "user"
 
 
+@pytest.mark.db
 @pytest.mark.asyncio
 async def test_guest_pass_endpoint():
     transport = ASGITransport(app=app)
@@ -78,6 +72,7 @@ async def test_guest_pass_endpoint():
         assert user2["deviceId"] == dev_id
 
 
+@pytest.mark.db
 @pytest.mark.asyncio
 async def test_register_login_and_me_flow():
     transport = ASGITransport(app=app)
@@ -151,6 +146,7 @@ async def test_unauthorized_access():
         assert resp_bad.status_code == 401
 
 
+@pytest.mark.db
 @pytest.mark.asyncio
 async def test_google_oauth_endpoint():
     transport = ASGITransport(app=app)
@@ -242,6 +238,7 @@ async def test_registration_validation_rules():
         assert bad_email_resp.status_code == 422
 
 
+@pytest.mark.db
 @pytest.mark.asyncio
 async def test_login_nonexistent_user_timing_defense():
     transport = ASGITransport(app=app)
@@ -257,6 +254,7 @@ async def test_login_nonexistent_user_timing_defense():
         assert resp.json()["detail"] == "Invalid email or password"
 
 
+@pytest.mark.db
 @pytest.mark.asyncio
 async def test_hourly_rate_limit_replenishment():
     client_ip = f"198.51.100.{uuid4().hex[:2]}"

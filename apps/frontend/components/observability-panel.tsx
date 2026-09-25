@@ -41,14 +41,7 @@ const DAG_NODES = [
     { id: 'synthesizer', label: 'Synthesizer', step: 5 }
 ];
 
-export function ObservabilityPanel({
-    metrics,
-    logs,
-    currentNode,
-    plan = [],
-    reflectionScore = 0,
-    isStreaming = false
-}: ObservabilityPanelProps) {
+export function ObservabilityPanel({ metrics, logs, currentNode, plan = [], reflectionScore = 0, isStreaming = false }: ObservabilityPanelProps) {
     const logsEndRef = React.useRef<HTMLDivElement>(null);
 
     React.useEffect(() => {
@@ -93,9 +86,7 @@ export function ObservabilityPanel({
                 <div className="flex items-center justify-between gap-1 py-1.5 overflow-x-auto">
                     {DAG_NODES.map((node, index) => {
                         const isCurrent = currentNode === node.id;
-                        const isPast =
-                            currentNode &&
-                            DAG_NODES.findIndex(n => n.id === currentNode) > index;
+                        const isPast = currentNode && DAG_NODES.findIndex((n) => n.id === currentNode) > index;
 
                         return (
                             <React.Fragment key={node.id}>
@@ -108,16 +99,10 @@ export function ObservabilityPanel({
                                               : 'bg-muted/40 text-muted-foreground'
                                     }`}
                                 >
-                                    <span className="text-[8px] uppercase tracking-tighter opacity-80">
-                                        {isCurrent ? 'ACTIVE' : `S${node.step}`}
-                                    </span>
-                                    <span className="text-[10px] leading-tight truncate">
-                                        {node.label}
-                                    </span>
+                                    <span className="text-[8px] uppercase tracking-tighter opacity-80">{isCurrent ? 'ACTIVE' : `S${node.step}`}</span>
+                                    <span className="text-[10px] leading-tight truncate">{node.label}</span>
                                 </div>
-                                {index < DAG_NODES.length - 1 && (
-                                    <ChevronRight className="h-3 w-3 text-muted-foreground/50 shrink-0" />
-                                )}
+                                {index < DAG_NODES.length - 1 && <ChevronRight className="h-3 w-3 text-muted-foreground/50 shrink-0" />}
                             </React.Fragment>
                         );
                     })}
@@ -138,8 +123,7 @@ export function ObservabilityPanel({
                                     : 'border-amber-500/50 text-amber-500 bg-amber-500/10'
                             }`}
                         >
-                            {(reflectionScore * 100).toFixed(0)}%{' '}
-                            {reflectionScore >= 0.7 ? '(Grounded)' : '(Re-planning)'}
+                            {(reflectionScore * 100).toFixed(0)}% {reflectionScore >= 0.7 ? '(Grounded)' : '(Re-planning)'}
                         </Badge>
                     </div>
                 )}
@@ -148,13 +132,10 @@ export function ObservabilityPanel({
                 {plan.length > 0 && (
                     <div className="mt-2 pt-2 border-t border-border space-y-1">
                         <div className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
-                            Active Plan Steps ({plan.filter(s => s.status === 'completed').length}/{plan.length})
+                            Active Plan Steps ({plan.filter((s) => s.status === 'completed').length}/{plan.length})
                         </div>
                         {plan.map((step) => (
-                            <div
-                                key={step.stepNumber}
-                                className="flex items-start gap-1.5 text-[11px] text-foreground/90 leading-tight"
-                            >
+                            <div key={step.stepNumber} className="flex items-start gap-1.5 text-[11px] text-foreground/90 leading-tight">
                                 {step.status === 'completed' ? (
                                     <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500 shrink-0 mt-0.5" />
                                 ) : step.status === 'in_progress' ? (
@@ -164,9 +145,7 @@ export function ObservabilityPanel({
                                         {step.stepNumber}
                                     </span>
                                 )}
-                                <span className={step.status === 'completed' ? 'line-through text-muted-foreground' : ''}>
-                                    {step.description}
-                                </span>
+                                <span className={step.status === 'completed' ? 'line-through text-muted-foreground' : ''}>{step.description}</span>
                             </div>
                         ))}
                     </div>
@@ -183,9 +162,7 @@ export function ObservabilityPanel({
                     <div className="text-xs font-bold font-mono text-foreground truncate" title={metrics.activeModel}>
                         {metrics.activeModel || 'Idle'}
                     </div>
-                    <div className="text-[10px] text-muted-foreground mt-0.5">
-                        {metrics.isByok ? 'Direct API Key' : 'Rate-limited auto-cascade'}
-                    </div>
+                    <div className="text-[10px] text-muted-foreground mt-0.5">{metrics.isByok ? 'Direct API Key' : 'Rate-limited auto-cascade'}</div>
                 </Card>
 
                 <Card className="p-3 shadow-2xs border-border bg-secondary/20">
@@ -193,9 +170,7 @@ export function ObservabilityPanel({
                         <span className="text-[10px] font-medium uppercase tracking-wider">Total Tokens</span>
                         <Hash className="h-3 w-3 text-primary" />
                     </div>
-                    <div className="text-xs font-bold font-mono text-foreground">
-                        {metrics.totalTokens.toLocaleString()}
-                    </div>
+                    <div className="text-xs font-bold font-mono text-foreground">{metrics.totalTokens.toLocaleString()}</div>
                     <div className="text-[10px] text-muted-foreground mt-0.5">
                         {metrics.promptTokens} in / {metrics.completionTokens} out
                     </div>
@@ -206,9 +181,7 @@ export function ObservabilityPanel({
                         <span className="text-[10px] font-medium uppercase tracking-wider">Latency</span>
                         <Clock className="h-3 w-3 text-amber-500" />
                     </div>
-                    <div className="text-xs font-bold font-mono text-foreground">
-                        {metrics.latencyMs > 0 ? `${metrics.latencyMs}ms` : '--'}
-                    </div>
+                    <div className="text-xs font-bold font-mono text-foreground">{metrics.latencyMs > 0 ? `${metrics.latencyMs}ms` : '--'}</div>
                     <div className="text-[10px] text-muted-foreground mt-0.5">Edge TTFT &amp; generation</div>
                 </Card>
 
@@ -217,12 +190,8 @@ export function ObservabilityPanel({
                         <span className="text-[10px] font-medium uppercase tracking-wider">Cost / Billing</span>
                         <Zap className="h-3 w-3 text-emerald-500" />
                     </div>
-                    <div className="text-xs font-bold font-mono text-emerald-500">
-                        {metrics.isByok ? 'Custom Billing' : '$0.00 (Free)'}
-                    </div>
-                    <div className="text-[10px] text-muted-foreground mt-0.5">
-                        {metrics.isByok ? 'Unlimited' : `${metrics.rpmRemaining ?? 15} RPM ceiling`}
-                    </div>
+                    <div className="text-xs font-bold font-mono text-emerald-500">{metrics.isByok ? 'Custom Billing' : '$0.00 (Free)'}</div>
+                    <div className="text-[10px] text-muted-foreground mt-0.5">{metrics.isByok ? 'Unlimited' : `${metrics.rpmRemaining ?? 15} RPM ceiling`}</div>
                 </Card>
             </div>
 
@@ -234,9 +203,7 @@ export function ObservabilityPanel({
                             <Terminal className="h-3.5 w-3.5 text-primary" />
                             <span>Execution Wire Logs</span>
                         </CardTitle>
-                        <CardDescription className="text-[11px] text-muted-foreground">
-                            Telemetry trace &amp; model routing events
-                        </CardDescription>
+                        <CardDescription className="text-[11px] text-muted-foreground">Telemetry trace &amp; model routing events</CardDescription>
                     </div>
                     <Badge variant="soft" className="text-[9px] px-1.5 py-0 h-4">
                         Live SSE
@@ -244,9 +211,7 @@ export function ObservabilityPanel({
                 </CardHeader>
                 <CardContent className="p-2.5 flex-1 overflow-y-auto max-h-[320px] font-mono text-[11px] space-y-2 bg-slate-950/90 text-slate-200">
                     {logs.length === 0 ? (
-                        <div className="text-slate-500 py-6 text-center text-[10px]">
-                            Awaiting agent trigger. Stream logs will appear here.
-                        </div>
+                        <div className="text-slate-500 py-6 text-center text-[10px]">Awaiting agent trigger. Stream logs will appear here.</div>
                     ) : (
                         logs.map((log) => (
                             <div key={log.id} className="leading-snug border-b border-slate-800/60 pb-1.5 last:border-0">

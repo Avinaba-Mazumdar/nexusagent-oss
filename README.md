@@ -31,8 +31,8 @@ nexusagent-oss/
 │   ├── DESIGN.md         # 4-zone UI layout, cyber obsidian tokens, component guide
 │   ├── AGENTs.md         # AI Agent context, system master, coding invariants
 │   └── TODOs.md          # Active MVP0 phased task board
-└── data/
-    └── seeded_documents/ # Pre-seeded RFCs (Raft vs Multi-Paxos, Neon Storage)
+└── knowledge_base/
+    └── benchmarks/       # Pre-seeded corpus (BenchLM, CursorBench, OpenRouter metrics, AA)
 ```
 
 ---
@@ -60,7 +60,9 @@ cd apps/backend && uv sync && cd ../..
 
 ### 2. Configure Environment (Optional)
 
-Set `NEON_DATABASE_URL` in `.env`. If third-party API keys are not provided, NexusAgent runs in **Deterministic Simulation Mode** with pre-cached traces automatically!
+Set `NEON_DATABASE_URL` in `.env` (the startup migration creates the schema automatically).
+
+Optional: set `GEMINI_API_KEY` in `apps/backend/.env` for live `text-embedding-004` dense vectors. Without it — or when `USE_SIMULATION_FALLBACK` is left at its default — NexusAgent runs in **Deterministic Simulation Mode**: reproducible hash-derived embeddings and a zero-cost agent DAG, no third-party calls.
 
 ### 3. Run Development Servers
 

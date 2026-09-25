@@ -100,13 +100,7 @@ def test_markdown_hierarchical_parser_chunks_and_metadata():
     )
 
 
-@pytest.fixture(autouse=True)
-async def setup_db():
-    await neon_db.connect()
-    yield
-    await neon_db.disconnect()
-
-
+@pytest.mark.db
 @pytest.mark.asyncio
 async def test_upload_and_list_documents():
     transport = ASGITransport(app=app)

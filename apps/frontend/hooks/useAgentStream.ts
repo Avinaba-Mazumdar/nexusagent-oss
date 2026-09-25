@@ -16,6 +16,8 @@ export interface StreamParams {
     documentId?: string | null;
     sessionId?: string | null;
     token?: string | null;
+    /** Optional BYOK provider credential; bypasses the server-side free-tier token bucket. */
+    byokKey?: string | null;
 }
 
 export function useAgentStream(options?: UseAgentStreamOptions) {
@@ -43,7 +45,7 @@ export function useAgentStream(options?: UseAgentStreamOptions) {
 
     const startStream = React.useCallback(
         async (params: StreamParams): Promise<AgentInvokeResponse | null> => {
-            const { query, documentId, sessionId: existingSessionId, token } = params;
+            const { query, documentId, sessionId: existingSessionId, token, byokKey } = params;
 
             cancelStream();
 
@@ -80,6 +82,9 @@ export function useAgentStream(options?: UseAgentStreamOptions) {
                 };
                 if (token) {
                     headers['Authorization'] = `Bearer ${token}`;
+                }
+                if (byokKey) {
+                    headers['X-User-API-Key'] = byokKey;
                 }
 
                 const response = await fetch(`${API_BASE}/api/agent/stream`, {
@@ -162,26 +167,27 @@ export function useAgentStream(options?: UseAgentStreamOptions) {
                                         setCitations(data.citations);
                                         emitLog('RAG', `Retrieved ${data.chunksRetrieved || data.citations.length} verified context chunks`);
                                     } else if (data.tool === 'python_sandbox') {
-                                        emitLog('INFERENCE', `Sandbox script completed (${data.durationMs}ms): ${data.stdout ? data.stdout.slice(0, 100) : 'OK'}`);
+                                        emitLog(
+                                            'INFERENCE',
+                                            `Sandbox script completed (${data.durationMs}ms): ${data.stdout ? data.stdout.slice(0, 100) : 'OK'}`
+                                        );
                                     }
                                     break;
 
                                 case 'critic': {
-                                    const score = data.reflectionScore !== undefined ? data.reflectionScore : (data.soundnessScore !== undefined ? data.soundnessScore : 0);
+                                    const score =
+                                        data.reflectionScore !== undefined ? data.reflectionScore : data.soundnessScore !== undefined ? data.soundnessScore : 0;
                                     setReflectionScore(score);
                                     setIsGrounded(!!data.isGrounded);
-                                    emitLog(
-                                        'INFERENCE',
-                                        `Critic Score: ${score} (${data.isGrounded ? 'GROUNDED' : 'REPLAN'}) - ${data.feedback || ''}`
-                                    );
+                                    emitLog('INFERENCE', `Critic Score: ${score} (${data.isGrounded ? 'GROUNDED' : 'REPLAN'}) - ${data.feedback || ''}`);
                                     break;
                                 }
 
                                 case 'token':
                                     if (data.token) {
-                                        setStreamedResponse(prev => prev + data.token);
+                                        setStreamedResponse((prev) => prev + data.token);
                                         accumulatedTokens += 1;
-                                        options?.onMetricUpdate?.(prev => ({
+                                        options?.onMetricUpdate?.((prev) => ({
                                             ...prev,
                                             completionTokens: prev.completionTokens + 1,
                                             totalTokens: prev.totalTokens + 1,

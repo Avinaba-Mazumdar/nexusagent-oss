@@ -6,13 +6,6 @@ from app.db.neon import neon_db
 from app.main import app
 
 
-@pytest.fixture(autouse=True)
-async def setup_db():
-    await neon_db.connect()
-    yield
-    await neon_db.disconnect()
-
-
 @pytest.mark.asyncio
 async def test_root_endpoint():
     """Test the root endpoint returns app metadata."""
@@ -26,6 +19,7 @@ async def test_root_endpoint():
         assert data["health_check"] == "/health"
 
 
+@pytest.mark.db
 @pytest.mark.asyncio
 async def test_health_endpoints():
     """Test both /health and /api/health endpoints with DB status verification."""

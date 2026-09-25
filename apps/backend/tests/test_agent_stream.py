@@ -3,17 +3,10 @@ import json
 import pytest
 from httpx import ASGITransport, AsyncClient
 
-from app.db.neon import neon_db
 from app.main import app
 
 
-@pytest.fixture(autouse=True)
-async def setup_db():
-    await neon_db.connect()
-    yield
-    await neon_db.disconnect()
-
-
+@pytest.mark.db
 @pytest.mark.asyncio
 async def test_agent_sse_streaming_endpoint():
     """Verify POST /api/agent/stream emits full sequence of structured SSE events."""

@@ -7,6 +7,7 @@ from app.config import settings
 from app.core.auth import (
     DUMMY_ARGON2_HASH,
     create_access_token,
+    get_client_ip,
     get_current_user,
     hash_password,
     issue_guest_pass,
@@ -27,14 +28,6 @@ from app.db.models import (
 from app.db.neon import NeonDatabase, get_db
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
-
-
-def get_client_ip(request: Request) -> str:
-    """Extract client IP from headers or client connection."""
-    forwarded = request.headers.get("X-Forwarded-For")
-    if forwarded:
-        return forwarded.split(",")[0].strip()
-    return request.client.host if request.client else "127.0.0.1"
 
 
 @router.post("/guest", response_model=GuestPassResponse)

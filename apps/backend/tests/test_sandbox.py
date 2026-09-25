@@ -5,15 +5,7 @@ from app.core.sandbox import (
     PythonSandbox,
     validate_python_code,
 )
-from app.db.neon import neon_db
 from app.main import app
-
-
-@pytest.fixture(autouse=True)
-async def setup_db():
-    await neon_db.connect()
-    yield
-    await neon_db.disconnect()
 
 
 def test_ast_validator_safe_code():
@@ -120,6 +112,7 @@ while True:
     assert "timed out" in result.stderr.lower()
 
 
+@pytest.mark.db
 @pytest.mark.asyncio
 async def test_sandbox_endpoint_authenticated():
     """Verify POST /api/sandbox/run endpoint with authenticated user."""

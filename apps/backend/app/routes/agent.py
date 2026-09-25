@@ -4,14 +4,16 @@ import logging
 from collections.abc import AsyncIterator
 from uuid import UUID, uuid4
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, Header, HTTPException, Request, status
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 
 from app.agent.graph import AgentGraph, default_agent_graph
 from app.agent.state import AgentState
-from app.core.auth import get_current_user
+from app.config import settings
+from app.core.auth import get_client_ip, get_current_user
 from app.db.models import User
+from app.db.neon import NeonDatabase, get_db
 
 logger = logging.getLogger("nexusagent.routes.agent")
 
@@ -157,7 +159,9 @@ async def generate_agent_stream(
                 )
 
             elif node_name == "synthesizer":
-                # Stream response tokens incrementally (simulated token streaming over response)
+                # Progressive rendering: the deterministic synthesizer produces the full markdown
+                # answer in one step, so it is re-chunked here for incremental SSE delivery.
+                # No model token stream is being simulated or claimed.
                 response_text = step_state.response
                 words = response_text.split(" ")
                 for i in range(0, len(words), 3):
@@ -220,13 +224,33 @@ async def generate_agent_stream(
 @router.post("/stream")
 async def stream_agent_execution(
     payload: AgentStreamRequestWire,
+    request: Request,
     current_user: User = Depends(get_current_user),
+    db: NeonDatabase = Depends(get_db),
+    byok_key: str | None = Header(None, alias="X-User-API-Key"),
     graph: AgentGraph = Depends(lambda: default_agent_graph),
 ):
     """
     Server-Sent Events (SSE) streaming endpoint for autonomous agent DAG execution.
     Streams structured real-time events: plan, node_start, tool_call, tool_result, critic, token, done.
+
+    ASI-07: the token bucket is enforced server-side. Callers that present their own provider
+    credential via the `X-User-API-Key` header (BYOK) spend their own quota and bypass the bucket.
     """
+    client_ip = get_client_ip(request)
+
+    if not byok_key:
+        default_tokens = settings.GUEST_QUOTA_DEFAULT if current_user.is_guest else 25
+        await db.get_or_create_rate_limit(current_user.id, client_ip, default_tokens=default_tokens)
+        if not await db.decrement_rate_limit(current_user.id, client_ip):
+            raise HTTPException(
+                status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+                detail=(
+                    "Free-tier quota limit reached. Bring your own key (BYOK) to continue "
+                    "unconstrained or hire me for a custom build."
+                ),
+            )
+
     doc_uuid: UUID | None = None
     if payload.documentId:
         try:

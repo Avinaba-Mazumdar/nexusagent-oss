@@ -3,7 +3,7 @@ from uuid import UUID, uuid4
 
 import httpx
 import jwt
-from fastapi import Depends, HTTPException, Security, status
+from fastapi import Depends, HTTPException, Request, Security, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from passlib.context import CryptContext
 
@@ -16,6 +16,14 @@ security_bearer = HTTPBearer(auto_error=False)
 
 # Constant-time dummy hash to mitigate user enumeration timing attacks on failed logins
 DUMMY_ARGON2_HASH = "$argon2id$v=19$m=65536,t=3,p=4$c29tZXNhbHQ$P2T9k55E4jXNnO6aL5Q9rw"
+
+
+def get_client_ip(request: Request) -> str:
+    """Extract client IP from X-Forwarded-For or the direct connection."""
+    forwarded = request.headers.get("X-Forwarded-For")
+    if forwarded:
+        return forwarded.split(",")[0].strip()
+    return request.client.host if request.client else "127.0.0.1"
 
 
 def hash_password(password: str) -> str:

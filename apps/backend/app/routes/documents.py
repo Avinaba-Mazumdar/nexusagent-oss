@@ -2,7 +2,7 @@ import hashlib
 import logging
 from uuid import UUID, uuid4
 
-from fastapi import APIRouter, Depends, File, HTTPException, Request, UploadFile, status
+from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
 
 from app.core.auth import get_current_user
 from app.db.models import (
@@ -27,14 +27,6 @@ ALLOWED_MIME_TYPES = {
 }
 ALLOWED_EXTENSIONS = {".md", ".markdown", ".txt"}
 MAX_FILE_BYTES = 5 * 1024 * 1024  # 5 MB per document
-
-
-def get_client_ip(request: Request) -> str:
-    """Extract client IP from headers or client connection."""
-    forwarded = request.headers.get("X-Forwarded-For")
-    if forwarded:
-        return forwarded.split(",")[0].strip()
-    return request.client.host if request.client else "127.0.0.1"
 
 
 @router.get("", response_model=dict[str, list[DocumentMetadataWire]])

@@ -14,6 +14,7 @@ from app.routes.auth import router as auth_router
 from app.routes.chat import router as chat_router
 from app.routes.documents import router as documents_router
 from app.routes.health import router as health_router
+from app.routes.mcp import router as mcp_router
 from app.routes.rag import router as rag_router
 from app.routes.sandbox import router as sandbox_router
 
@@ -79,6 +80,7 @@ app.include_router(rag_router, prefix="/api")
 app.include_router(sandbox_router, prefix="/api")
 app.include_router(agent_router, prefix="/api")
 app.include_router(chat_router, prefix="/api")
+app.include_router(mcp_router, prefix="/api")
 
 
 @app.get("/", tags=["Root"])

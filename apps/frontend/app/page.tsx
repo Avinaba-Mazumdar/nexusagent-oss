@@ -19,6 +19,7 @@ import { ByokModal } from '@/components/byok-modal';
 import { ObservabilityPanel, type LogEntry, type TelemetryMetrics } from '@/components/observability-panel';
 import { useAgentStream } from '@/hooks/useAgentStream';
 import { MarkdownRenderer } from '@/components/canvas';
+import { McpInspector } from '@/components/mcp';
 import type { Citation } from '@nexusagent/contracts';
 
 interface ChatItem {
@@ -738,17 +739,7 @@ export default function Home() {
                         </CardContent>
                     </Card>
 
-                    <Card className="shadow-2xs border-border">
-                        <CardHeader className="p-3 pb-2">
-                            <CardTitle className="text-xs font-heading">Tool Registry</CardTitle>
-                            <CardDescription className="text-xs text-muted-foreground">MCP v2 server tools &amp; execution</CardDescription>
-                        </CardHeader>
-                        <CardContent className="p-3 pt-0">
-                            <p className="text-xs text-muted-foreground">
-                                MCP v2 tool registration and HITL approval policies ship with the MCP integration milestone.
-                            </p>
-                        </CardContent>
-                    </Card>
+                    <McpInspector apiBase={API_BASE} authToken={token} />
                 </aside>
 
                 {/* 3. Synthesis Canvas (Center) */}

@@ -1,0 +1,11 @@
+{
+    "mcpServers": {
+        "nexusagent-oss": {
+            "command": "uv",
+            "args": ["run", "--project", "apps/backend", "python", "-m", "app.mcp.server"],
+            "env": {
+                "PYTHONUNBUFFERED": "1"
+            }
+        }
+    }
+}

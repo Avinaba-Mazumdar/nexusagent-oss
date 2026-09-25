@@ -84,12 +84,12 @@
 - [x] Wire agent stream output to canvas viewer
       Verification: Stream response containing Mermaid code block and citations; verify SVG diagram renders and citation click highlights source.
 
-### Phase 10: Model Context Protocol (MCP v2) Integration
+### Phase 10: Model Context Protocol (MCP v2) Integration [Completed]
 
-- [ ] Implement FastAPI MCP SSE endpoint (`/api/mcp/sse`) and CLI stdio entrypoint
-- [ ] Register tools (`hybrid_rag_search`, `python_sandbox`, `mcp_sql_audit`) with Pydantic schemas
-- [ ] Build frontend MCP Inspector panel to test tool calls and view JSON-RPC payloads
-- [ ] Add client connection configuration for Claude Desktop and Cursor
+- [x] Implement FastAPI MCP SSE endpoint (`/api/mcp/sse`) and CLI stdio entrypoint
+- [x] Register tools (`hybrid_rag_search`, `python_sandbox`, `mcp_sql_audit`) with Pydantic schemas
+- [x] Build frontend MCP Inspector panel to test tool calls and view JSON-RPC payloads
+- [x] Add client connection configuration for Claude Desktop and Cursor
       Verification: Connect Claude or run MCP Inspector UI, call `hybrid_rag_search`, verify valid JSON-RPC response.
 
 ### Phase 11: Human-in-the-Loop & Security Controls

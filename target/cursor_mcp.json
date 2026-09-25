@@ -1,0 +1,11 @@
+{
+    "mcpServers": {
+        "nexusagent-oss-sse": {
+            "url": "http://localhost:8000/api/mcp/sse"
+        },
+        "nexusagent-oss-stdio": {
+            "command": "uv",
+            "args": ["run", "--project", "apps/backend", "python", "-m", "app.mcp.server"]
+        }
+    }
+}

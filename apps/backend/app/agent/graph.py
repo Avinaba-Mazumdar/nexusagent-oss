@@ -16,6 +16,7 @@ from datetime import UTC, datetime
 from langgraph.graph import END, StateGraph
 
 from app.agent.state import AgentState, Citation, PlanStep
+from app.config import settings
 from app.core.hitl_coordinator import default_hitl_coordinator
 from app.core.sandbox import PythonSandbox, default_python_sandbox
 from app.core.security_guardrails import (
@@ -210,7 +211,7 @@ print(f"Computed write window batch size: {batch_size} ops/window at {window_ms}
                 tool_name="python_sandbox",
                 arguments={"code": code.strip()},
                 risk_level=risk_level,
-                timeout_seconds=5.0,
+                timeout_seconds=settings.HITL_APPROVAL_TIMEOUT_SECONDS,
             )
             state.hitl_approved = approved
 

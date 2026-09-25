@@ -107,3 +107,11 @@
 - [x] Polish 1-Click Guest experience with pre-loaded quota badge
 - [x] Run end-to-end demo flow validation
       Verification: Open app in guest mode with zero API keys, run demo scenario, verify instant cached DAG trace and rendered diagram.
+
+### Post-Phase-12 Sturdiness Pass [Applied]
+
+- [x] Hermetic offline suite restored: DB-bound showcase/HITL-audit tests marked `@pytest.mark.db` (skip offline, pass against live Neon)
+- [x] HITL approval timeout configurable via `HITL_APPROVAL_TIMEOUT_SECONDS` (30s human-paced default; test conftest overrides to 1s)
+- [x] New guards: unresolved approvals fail closed on timeout; test asserts production default stays human-paced
+- [x] `tool_audit_logs` writes retry once and log at error level before degrading to the memory ring
+- [x] Sandbox HITL policy capability-based (imports/functions/loops gate approval; trivial arithmetic runs free)

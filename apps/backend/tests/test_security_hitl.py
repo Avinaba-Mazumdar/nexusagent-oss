@@ -4,12 +4,14 @@ Canary Tokens, Token-Bucket Rate Limiter, and HITL Approvals.
 """
 
 import asyncio
+import time
 from uuid import uuid4
 
 import pytest
 from fastapi import HTTPException
 from httpx import ASGITransport, AsyncClient
 
+from app.config import Settings, settings
 from app.core.hitl_coordinator import default_hitl_coordinator
 from app.core.rate_limiter import default_rate_limiter
 from app.core.security_guardrails import (
@@ -203,6 +205,7 @@ async def test_hitl_rejection_policy():
     default_hitl_coordinator.unregister_notifier(session_id)
 
 
+@pytest.mark.db
 @pytest.mark.asyncio
 async def test_immutable_audit_logging_and_endpoint():
     transport = ASGITransport(app=app)
@@ -231,3 +234,29 @@ async def test_immutable_audit_logging_and_endpoint():
         latest = data["logs"][0]
         assert latest["tool_name"] == "mcp_sql_audit"
         assert latest["hitl_approved"] is True
+
+
+@pytest.mark.asyncio
+async def test_hitl_approval_fails_closed_on_timeout():
+    """Unresolved approvals must reject (fail closed) and honor the caller's timeout."""
+    start = time.monotonic()
+    approved, approval_id = await default_hitl_coordinator.request_approval(
+        session_id=f"timeout-{uuid4().hex[:6]}",
+        tool_name="mcp_sql_audit",
+        arguments={"query": "SELECT * FROM information_schema.tables;"},
+        risk_level="high",
+        timeout_seconds=0.3,
+    )
+    elapsed = time.monotonic() - start
+
+    assert approved is False
+    assert approval_id.startswith("hitl-")
+    assert elapsed < 5.0, "request_approval must honor the caller timeout"
+
+
+def test_hitl_default_timeout_is_human_paced():
+    """Operators get >= 30s to respond in production; the test suite overrides it down."""
+    assert Settings.model_fields["HITL_APPROVAL_TIMEOUT_SECONDS"].default >= 30.0
+    assert settings.HITL_APPROVAL_TIMEOUT_SECONDS < 5.0, (
+        "conftest must shorten the HITL timeout for tests"
+    )

@@ -47,11 +47,15 @@ class HitlCoordinator:
         Evaluate security policy for tool execution.
         Returns (requires_approval, risk_level).
         """
-        # 1. Python sandbox with calculations or complex loops requires approval
+        # 1. Python sandbox: gate non-trivial scripts (imports, functions, loops).
+        # Trivial arithmetic runs free to avoid approval fatigue; the AST validator
+        # remains the hard boundary for dangerous constructs regardless.
         if tool_name == "python_sandbox":
             code = arguments.get("code", "")
-            # Complex scripts with imports or loops or system checks flagged for HITL
-            if "math" in code or "batch_size" in code or "import" in code or len(code) > 100:
+            if (
+                any(marker in code for marker in ("import", "def ", "while ", "for ", "open("))
+                or len(code) > 200
+            ):
                 return True, "medium"
 
         # 2. Database SQL queries with schema inspection require approval
@@ -187,31 +191,41 @@ class HitlCoordinator:
         # 1. Store in memory ring-buffer
         self._memory_audit_logs.appendleft(entry)
 
-        # 2. Persist to Neon Postgres if connected
+        # 2. Persist to Neon Postgres if connected. Audit rows are security-relevant:
+        # retry once before degrading to the in-memory ring so a transient Neon hiccup
+        # does not silently drop them.
         if self.db and self.db.pool:
-            try:
-                query = """
-                    INSERT INTO tool_audit_logs (
-                        id, conversation_id, user_id, tool_name, mcp_server,
-                        input_args, output_summary, duration_ms, hitl_approved, executed_at
-                    ) VALUES ($1, $2, $3, $4, $5, $6::jsonb, $7::jsonb, $8, $9, $10);
-                """
-                async with self.db.pool.acquire() as conn:
-                    await conn.execute(
-                        query,
-                        record_id,
-                        conversation_id,
-                        user_id,
-                        tool_name,
-                        mcp_server,
-                        json.dumps(input_args, default=str),
-                        json.dumps(output_summary or {}, default=str),
-                        duration_ms,
-                        hitl_approved,
-                        now,
-                    )
-            except Exception as e:  # noqa: BLE001
-                logger.warning(f"Failed to write tool_audit_log to Neon DB: {e}")
+            query = """
+                INSERT INTO tool_audit_logs (
+                    id, conversation_id, user_id, tool_name, mcp_server,
+                    input_args, output_summary, duration_ms, hitl_approved, executed_at
+                ) VALUES ($1, $2, $3, $4, $5, $6::jsonb, $7::jsonb, $8, $9, $10);
+            """
+            for attempt in (1, 2):
+                try:
+                    async with self.db.pool.acquire() as conn:
+                        await conn.execute(
+                            query,
+                            record_id,
+                            conversation_id,
+                            user_id,
+                            tool_name,
+                            mcp_server,
+                            json.dumps(input_args, default=str),
+                            json.dumps(output_summary or {}, default=str),
+                            duration_ms,
+                            hitl_approved,
+                            now,
+                        )
+                    break
+                except Exception as exc:  # noqa: BLE001
+                    if attempt == 1:
+                        logger.error(f"tool_audit_logs write failed, retrying once: {exc}")
+                    else:
+                        logger.error(
+                            f"Audit record {record_id} kept in memory ring only "
+                            f"(Neon write failed twice): {exc}"
+                        )
 
         return entry
 

@@ -1,4 +1,5 @@
 import json
+
 import pytest
 from httpx import ASGITransport, AsyncClient
 
@@ -30,6 +31,7 @@ async def test_offline_hybrid_search_rfc104_and_neon():
     assert any("Pageserver" in r.content or "Safekeeper" in r.content for r in neon_results)
 
 
+@pytest.mark.db
 @pytest.mark.asyncio
 async def test_agent_stream_showcase_raft_diagram():
     """Verify agent stream produces Raft diagram and citations for RFC-104 query."""
@@ -56,7 +58,9 @@ async def test_agent_stream_showcase_raft_diagram():
         done_block = next((b for b in blocks if "event: done" in b), None)
         assert done_block is not None
 
-        data_line = next((line for line in done_block.split("\n") if line.startswith("data:")), None)
+        data_line = next(
+            (line for line in done_block.split("\n") if line.startswith("data:")), None
+        )
         assert data_line is not None
 
         done_data = json.loads(data_line[5:].strip())
@@ -67,6 +71,7 @@ async def test_agent_stream_showcase_raft_diagram():
         assert len(done_data["citations"]) > 0
 
 
+@pytest.mark.db
 @pytest.mark.asyncio
 async def test_agent_stream_showcase_neon_diagram():
     """Verify agent stream produces Neon Safekeeper/Pageserver diagram for Neon query."""
@@ -91,7 +96,9 @@ async def test_agent_stream_showcase_neon_diagram():
         done_block = next((b for b in blocks if "event: done" in b), None)
         assert done_block is not None
 
-        data_line = next((line for line in done_block.split("\n") if line.startswith("data:")), None)
+        data_line = next(
+            (line for line in done_block.split("\n") if line.startswith("data:")), None
+        )
         assert data_line is not None
 
         done_data = json.loads(data_line[5:].strip())

@@ -315,7 +315,7 @@ class McpRegistry:
 
         try:
             timeout_seconds = min(max(float(arguments.get("timeout", 5.0)), 1.0), 10.0)
-        except TypeError, ValueError:
+        except (TypeError, ValueError):
             timeout_seconds = 5.0
 
         # Execute query if database pool is available — inside an explicitly

@@ -111,7 +111,7 @@ def compute_rrf(
 
             try:
                 meta = json.loads(meta)
-            except json.JSONDecodeError, TypeError, ValueError:
+            except (json.JSONDecodeError, TypeError, ValueError):
                 meta = {}
 
         header_path = meta.get("header_path") or []

@@ -19,7 +19,7 @@ async def get_health():
             async with neon_db.pool.acquire() as conn:
                 val = await conn.fetchval("SELECT 1;")
                 db_connected = val == 1
-        except asyncpg.PostgresError, OSError:
+        except (asyncpg.PostgresError, OSError):
             db_connected = False
 
     is_healthy = db_connected

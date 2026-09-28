@@ -159,6 +159,28 @@ class NeonDatabase:
         async with self.pool.acquire() as conn:
             await conn.execute(query, datetime.now(UTC), user_id, client_ip, device_id)
 
+    async def prune_expired_guests(self, ttl_hours: int = 24) -> int:
+        """Prune ephemeral guest sessions older than ttl_hours (Section 11 Architecture).
+
+        Cascades via foreign keys to rate_limit_buckets, guest documents, and chunks.
+        Returns the number of pruned guest user accounts.
+        """
+        if not self.pool:
+            return 0
+        query = """
+            DELETE FROM users
+            WHERE is_guest = TRUE
+              AND created_at < NOW() - ($1 * INTERVAL '1 hour');
+        """
+        async with self.pool.acquire() as conn:
+            result = await conn.execute(query, ttl_hours)
+            try:
+                count = int(result.split()[-1])
+            except (ValueError, IndexError):
+                count = 0
+            logger.info("Pruned %d expired guest user(s) older than %d hours.", count, ttl_hours)
+            return count
+
     async def get_or_create_rate_limit(
         self, user_id: UUID, client_ip: str, default_tokens: int = 5
     ) -> RateLimitBucket:

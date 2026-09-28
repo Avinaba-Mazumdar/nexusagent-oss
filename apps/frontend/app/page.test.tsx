@@ -42,10 +42,10 @@ describe('Home Page - Layout and Header Controls', () => {
         await user.click(signInButton);
 
         expect(screen.getByRole('dialog')).toBeInTheDocument();
-        expect(screen.getByRole('heading', { name: 'Sign In' })).toBeInTheDocument();
-        expect(screen.getByRole('button', { name: /google sign in/i })).toBeInTheDocument();
-        expect(screen.getByRole('button', { name: /guest sign in/i })).toBeInTheDocument();
-        expect(screen.getByRole('tab', { name: /email account/i })).toBeInTheDocument();
+        expect(screen.getByRole('heading', { name: 'Sign In to NexusAgent' })).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: /continue with google/i })).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: /start as guest/i })).toBeInTheDocument();
+        expect(screen.queryByRole('tab', { name: /email account/i })).not.toBeInTheDocument();
     });
 
     it('authenticates guest, displays session header with quota, and signs out', async () => {
@@ -82,7 +82,7 @@ describe('Home Page - Layout and Header Controls', () => {
         await user.click(signInButton);
 
         // Click Guest Sign In
-        const guestButton = screen.getByRole('button', { name: /guest sign in/i });
+        const guestButton = screen.getByRole('button', { name: /start as guest/i });
         await user.click(guestButton);
 
         // Header shows avatar button
@@ -106,15 +106,15 @@ describe('Home Page - Layout and Header Controls', () => {
         global.fetch = originalFetch;
     });
 
-    it('authenticates with email and password via Email Account tab', async () => {
+    it('authenticates with Google sign in', async () => {
         const mockAuthResponse = {
-            accessToken: 'argon2.jwt.token',
+            accessToken: 'google.jwt.token',
             tokenType: 'bearer',
             expiresIn: 86400,
             user: {
                 id: '44444444-4444-4444-4444-444444444444',
-                email: 'architect@nexusagent.internal',
-                name: 'Principal Engineer',
+                email: 'developer@nexusagent.internal',
+                name: 'Lead Systems Architect',
                 avatarUrl: null,
                 isGuest: false,
                 createdAt: '2026-09-13T00:00:00Z',
@@ -134,22 +134,15 @@ describe('Home Page - Layout and Header Controls', () => {
         // Open Dialog
         await user.click(screen.getByRole('button', { name: /sign in/i }));
 
-        // Switch to Email tab
-        await user.click(screen.getByRole('tab', { name: /email account/i }));
-
-        // Fill form
-        await user.type(screen.getByPlaceholderText('architect@nexusagent.internal'), 'architect@nexusagent.internal');
-        await user.type(screen.getByPlaceholderText('••••••••'), 'Password123!');
-
-        // Submit form
-        await user.click(screen.getByRole('button', { name: /sign in with password/i }));
+        // Click Google Sign In
+        await user.click(screen.getByRole('button', { name: /continue with google/i }));
 
         // Header shows avatar button for authenticated user
         const profileBtn = await screen.findByRole('button', { name: /user profile menu/i });
         expect(profileBtn).toBeInTheDocument();
 
         // Verify cookie persistence
-        expect(document.cookie).toContain('nexusagent_token=argon2.jwt.token');
+        expect(document.cookie).toContain('nexusagent_token=google.jwt.token');
 
         global.fetch = originalFetch;
     });
@@ -185,7 +178,7 @@ describe('Home Page - Layout and Header Controls', () => {
 
         // Login guest
         await user.click(screen.getByRole('button', { name: /sign in/i }));
-        await user.click(screen.getByRole('button', { name: /guest sign in/i }));
+        await user.click(screen.getByRole('button', { name: /start as guest/i }));
 
         // Open profile popover
         const profileBtn = await screen.findByRole('button', { name: /user profile menu/i });

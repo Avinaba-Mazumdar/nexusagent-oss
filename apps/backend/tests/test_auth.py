@@ -74,63 +74,20 @@ async def test_guest_pass_endpoint():
 
 @pytest.mark.db
 @pytest.mark.asyncio
-async def test_register_login_and_me_flow():
+async def test_guest_prune_maintenance():
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
-        unique_id = uuid4().hex[:8]
-        email = f"architect_{unique_id}@nexusagent.internal"
-        password = "ProductionPassword2026!"
-        name = "Staff Architect"
+        # 1. Create a guest pass first
+        guest_resp = await client.post("/api/auth/guest")
+        assert guest_resp.status_code == 200
 
-        # 1. Register
-        reg_resp = await client.post(
-            "/api/auth/register",
-            json={"email": email, "password": password, "name": name},
-        )
-        assert reg_resp.status_code == 200
-        reg_data = reg_resp.json()
-        assert reg_data["user"]["email"] == email
-        assert reg_data["user"]["name"] == name
-        assert reg_data["user"]["isGuest"] is False
-        assert "accessToken" in reg_data
-
-        # 2. Duplicate registration returns 409
-        dup_resp = await client.post(
-            "/api/auth/register",
-            json={"email": email, "password": password, "name": name},
-        )
-        assert dup_resp.status_code == 409
-
-        # 3. Login with correct credentials
-        login_resp = await client.post(
-            "/api/auth/login",
-            json={"email": email, "password": password},
-        )
-        assert login_resp.status_code == 200
-        login_data = login_resp.json()
-        token = login_data["accessToken"]
-
-        # 4. Login with invalid credentials returns 401
-        bad_login = await client.post(
-            "/api/auth/login",
-            json={"email": email, "password": "WrongPassword!"},
-        )
-        assert bad_login.status_code == 401
-
-        # 5. Access /me with token
-        me_resp = await client.get("/api/auth/me", headers={"Authorization": f"Bearer {token}"})
-        assert me_resp.status_code == 200
-        me_data = me_resp.json()
-        assert me_data["user"]["email"] == email
-        assert me_data["quota"]["bucketCapacity"] == 25
-
-        # 6. Refresh token
-        refresh_resp = await client.post(
-            "/api/auth/refresh", headers={"Authorization": f"Bearer {token}"}
-        )
-        assert refresh_resp.status_code == 200
-        refresh_data = refresh_resp.json()
-        assert "accessToken" in refresh_data
+        # 2. Invoke maintenance prune endpoint with ttl_hours=0
+        prune_resp = await client.post("/api/auth/maintenance/prune-guests?ttl_hours=0")
+        assert prune_resp.status_code == 200
+        prune_data = prune_resp.json()
+        assert prune_data["status"] == "ok"
+        assert "pruned_guests" in prune_data
+        assert prune_data["ttl_hours"] == 0
 
 
 @pytest.mark.asyncio
@@ -200,58 +157,10 @@ async def test_google_oauth_mock_disabled_in_production(monkeypatch):
 
 
 @pytest.mark.asyncio
-async def test_registration_validation_rules():
-    transport = ASGITransport(app=app)
-    async with AsyncClient(transport=transport, base_url="http://test") as client:
-        # 1. Short password (< 8 chars) rejected
-        short_resp = await client.post(
-            "/api/auth/register",
-            json={
-                "email": "valid@nexusagent.internal",
-                "password": "short",
-                "name": "Valid User",
-            },
-        )
-        assert short_resp.status_code == 422
-
-        # 2. Oversized password (> 128 chars DoS prevention) rejected
-        oversized_pass = "A" * 130
-        oversized_resp = await client.post(
-            "/api/auth/register",
-            json={
-                "email": "valid@nexusagent.internal",
-                "password": oversized_pass,
-                "name": "Valid User",
-            },
-        )
-        assert oversized_resp.status_code == 422
-
-        # 3. Invalid email format rejected
-        bad_email_resp = await client.post(
-            "/api/auth/register",
-            json={
-                "email": "not-an-email",
-                "password": "ValidPassword123!",
-                "name": "Valid User",
-            },
-        )
-        assert bad_email_resp.status_code == 422
-
-
-@pytest.mark.db
-@pytest.mark.asyncio
-async def test_login_nonexistent_user_timing_defense():
-    transport = ASGITransport(app=app)
-    async with AsyncClient(transport=transport, base_url="http://test") as client:
-        resp = await client.post(
-            "/api/auth/login",
-            json={
-                "email": "nonexistent@nexusagent.internal",
-                "password": "SomeValidPassword123!",
-            },
-        )
-        assert resp.status_code == 401
-        assert resp.json()["detail"] == "Invalid email or password"
+async def test_offline_prune_guests_safe_fallback():
+    # Calling prune_expired_guests when pool is not initialized returns 0 safely
+    count = await neon_db.prune_expired_guests(ttl_hours=24)
+    assert count == 0
 
 
 @pytest.mark.db

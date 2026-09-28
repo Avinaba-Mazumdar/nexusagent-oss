@@ -1,27 +1,21 @@
-from datetime import UTC, datetime, timedelta
-from uuid import uuid4
+from datetime import timedelta
 
-from fastapi import APIRouter, Depends, HTTPException, Request, status
+from fastapi import APIRouter, Depends, Request
 
 from app.config import settings
 from app.core.auth import (
-    DUMMY_ARGON2_HASH,
     create_access_token,
     get_client_ip,
     get_current_user,
-    hash_password,
     issue_guest_pass,
     user_to_session,
     verify_google_token,
-    verify_password,
 )
 from app.db.models import (
     GoogleAuthRequest,
     GuestPassRequest,
     GuestPassResponse,
-    LoginRequest,
     QuotaStatus,
-    RegisterRequest,
     TokenResponse,
     User,
 )
@@ -42,100 +36,14 @@ async def create_guest_pass(
     return await issue_guest_pass(db, client_ip, device_id)
 
 
-@router.post("/register", response_model=TokenResponse)
-async def register(
-    payload: RegisterRequest,
-    request: Request,
+@router.post("/maintenance/prune-guests")
+async def prune_guests_endpoint(
+    ttl_hours: int = 24,
     db: NeonDatabase = Depends(get_db),
 ):
-    """Register standard user with Argon2 password hashing."""
-    existing_user = await db.get_user_by_email(payload.email)
-    if existing_user:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail="A user with this email address already exists.",
-        )
-
-    client_ip = get_client_ip(request)
-    now = datetime.now(UTC)
-    new_user = User(
-        id=uuid4(),
-        email=payload.email,
-        hashed_password=hash_password(payload.password),
-        name=payload.name,
-        avatar_url=None,
-        is_guest=False,
-        client_ip=client_ip,
-        created_at=now,
-        last_seen_at=now,
-    )
-    created_user = await db.create_user(new_user)
-
-    bucket = await db.get_or_create_rate_limit(
-        user_id=created_user.id,
-        client_ip=client_ip,
-        default_tokens=25,
-    )
-
-    token_str, expires_in = create_access_token(
-        data={"sub": str(created_user.id), "role": "user", "is_guest": False},
-        expires_delta=timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES),
-    )
-
-    return TokenResponse(
-        accessToken=token_str,
-        tokenType="bearer",
-        expiresIn=expires_in,
-        user=user_to_session(created_user),
-        quotaRemaining=bucket.tokens_remaining,
-        bucketCapacity=bucket.bucket_capacity,
-    )
-
-
-@router.post("/login", response_model=TokenResponse)
-async def login(
-    payload: LoginRequest,
-    request: Request,
-    db: NeonDatabase = Depends(get_db),
-):
-    """Authenticate email and password and return access token with timing-attack defense."""
-    user = await db.get_user_by_email(payload.email)
-    if not user or not user.hashed_password:
-        # Perform constant-time verification with dummy hash to prevent user enumeration
-        verify_password(payload.password, DUMMY_ARGON2_HASH)
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid email or password",
-        )
-
-    if not verify_password(payload.password, user.hashed_password):
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid email or password",
-        )
-
-    client_ip = get_client_ip(request)
-    await db.update_user_last_seen(user.id, client_ip)
-
-    bucket = await db.get_or_create_rate_limit(
-        user_id=user.id,
-        client_ip=client_ip,
-        default_tokens=25,
-    )
-
-    token_str, expires_in = create_access_token(
-        data={"sub": str(user.id), "role": "user", "is_guest": user.is_guest},
-        expires_delta=timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES),
-    )
-
-    return TokenResponse(
-        accessToken=token_str,
-        tokenType="bearer",
-        expiresIn=expires_in,
-        user=user_to_session(user),
-        quotaRemaining=bucket.tokens_remaining,
-        bucketCapacity=bucket.bucket_capacity,
-    )
+    """Maintenance endpoint to purge expired ephemeral guest sessions and cascaded docs (Section 11 Architecture)."""
+    deleted_count = await db.prune_expired_guests(ttl_hours=ttl_hours)
+    return {"status": "ok", "pruned_guests": deleted_count, "ttl_hours": ttl_hours}
 
 
 @router.post("/google", response_model=TokenResponse)

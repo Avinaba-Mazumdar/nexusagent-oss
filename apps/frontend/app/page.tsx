@@ -2,7 +2,7 @@
 
 import * as React from 'react';
 import Script from 'next/script';
-import { Bot, Briefcase, Database, FileText, KeyRound, Loader2, LogIn, LogOut, Moon, Send, Sparkles, Sun, UploadCloud, User } from 'lucide-react';
+import { Bot, Briefcase, Database, FileText, KeyRound, Loader2, LogIn, LogOut, Moon, Send, Sparkles, Sun, UploadCloud } from 'lucide-react';
 import { NexusLogo } from '@/components/icons';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
@@ -12,7 +12,6 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Input } from '@/components/ui/input';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Switch } from '@/components/ui/switch';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAuthStore } from '@/lib/auth-store';
 import { HireMeModal } from '@/components/hire-me-modal';
 import { ByokModal } from '@/components/byok-modal';
@@ -53,14 +52,6 @@ export default function Home() {
     const [seededDocs, setSeededDocs] = React.useState<SeededDoc[]>([]);
     const [messages, setMessages] = React.useState<ChatItem[]>([]);
     const [selectedCitationDoc, setSelectedCitationDoc] = React.useState<string | null>(null);
-
-    // Email/password form state
-    const [isRegisterMode, setIsRegisterMode] = React.useState(false);
-    const [emailInput, setEmailInput] = React.useState('');
-    const [passwordInput, setPasswordInput] = React.useState('');
-    const [nameInput, setNameInput] = React.useState('');
-    const [isEmailLoading, setIsEmailLoading] = React.useState(false);
-    const [formError, setFormError] = React.useState<string | null>(null);
 
     const [metrics, setMetrics] = React.useState<TelemetryMetrics>({
         activeModel: 'gemini-2.5-flash',
@@ -105,8 +96,6 @@ export default function Home() {
         byokProvider,
         loginGuest,
         loginGoogle,
-        loginEmail,
-        registerEmail,
         logout,
         initAuth,
         setQuotaRemaining
@@ -255,44 +244,6 @@ export default function Home() {
         [googleClientId, initGsi]
     );
 
-    const handleEmailSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
-        setFormError(null);
-
-        const email = emailInput.trim();
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        if (!emailRegex.test(email)) {
-            setFormError('Please enter a valid email address.');
-            return;
-        }
-
-        if (passwordInput.length < 8) {
-            setFormError('Password must be at least 8 characters long.');
-            return;
-        }
-
-        setIsEmailLoading(true);
-        try {
-            let ok = false;
-            if (isRegisterMode) {
-                ok = await registerEmail(email, passwordInput, nameInput.trim() || email.split('@')[0]);
-            } else {
-                ok = await loginEmail(email, passwordInput);
-            }
-            if (ok) {
-                setDialogOpen(false);
-                setEmailInput('');
-                setPasswordInput('');
-                setNameInput('');
-            } else {
-                const latestError = useAuthStore.getState().error;
-                setFormError(latestError || 'Authentication failed. Please verify credentials.');
-            }
-        } finally {
-            setIsEmailLoading(false);
-        }
-    };
-
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         const query = prompt.trim();
@@ -381,7 +332,9 @@ export default function Home() {
                             data-testid="quota-badge"
                         >
                             <span className={`h-2 w-2 rounded-full ${quotaRemaining > 0 ? 'bg-emerald-500 animate-pulse' : 'bg-destructive'}`} />
-                            <span className="font-mono font-bold text-foreground">{quotaRemaining}/{bucketCapacity}</span>
+                            <span className="font-mono font-bold text-foreground">
+                                {quotaRemaining}/{bucketCapacity}
+                            </span>
                             <span className="text-[11px] text-muted-foreground">{user.isGuest ? 'Free Pass' : 'Quota'}</span>
                         </div>
                     )}
@@ -501,18 +454,7 @@ export default function Home() {
                             </PopoverContent>
                         </Popover>
                     ) : (
-                        <div className="flex items-center gap-2">
-                            <Button
-                                size="sm"
-                                variant="secondary"
-                                disabled={isGuestLoading}
-                                onClick={loginGuest}
-                                className="hidden sm:inline-flex text-xs font-semibold gap-1.5 rounded-xl h-9"
-                                title="1-Click Instant Guest Access"
-                            >
-                                {isGuestLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <User className="h-3.5 w-3.5" />}
-                                <span>1-Click Guest</span>
-                            </Button>
+                        <div>
                             <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
                                 <DialogTrigger asChild>
                                     <Button size="sm" variant="default" className="text-xs font-bold gap-1.5 rounded-xl h-9">
@@ -520,151 +462,119 @@ export default function Home() {
                                         <span>Sign In</span>
                                     </Button>
                                 </DialogTrigger>
-                                <DialogContent className="sm:max-w-sm">
-                                    <DialogHeader>
-                                        <DialogTitle>Sign In</DialogTitle>
-                                        <DialogDescription className="text-xs">Sign in to your account or continue as a guest.</DialogDescription>
+                                <DialogContent className="sm:max-w-[480px] p-6 sm:p-7 rounded-3xl gap-4 border border-border/80 shadow-2xl">
+                                    <DialogHeader className="text-left space-y-1">
+                                        <DialogTitle className="text-xl sm:text-2xl font-bold tracking-tight text-foreground font-heading">
+                                            Sign In to NexusAgent
+                                        </DialogTitle>
+                                        <DialogDescription className="text-xs sm:text-[13px] text-muted-foreground leading-relaxed">
+                                            Choose an option to begin architecture analysis with your complimentary 5 live LLM quota balance.
+                                        </DialogDescription>
                                     </DialogHeader>
-                                <Tabs defaultValue="quick" className="w-full pt-1">
-                                    <TabsList className="grid w-full grid-cols-2 h-9 mb-2">
-                                        <TabsTrigger value="quick">1-Click / Google</TabsTrigger>
-                                        <TabsTrigger value="email">Email Account</TabsTrigger>
-                                    </TabsList>
-                                    <TabsContent value="quick" className="flex flex-col gap-2.5 pt-1">
-                                        {/* Google Sign In */}
-                                        <div className="relative w-full">
-                                            <Button
-                                                type="button"
-                                                variant="outline"
-                                                disabled={isGoogleLoading || isGuestLoading}
-                                                onClick={async () => {
-                                                    setIsGoogleLoading(true);
-                                                    const ok = await loginGoogle('mock-google-token:developer@nexusagent.internal:Lead Systems Architect');
-                                                    setIsGoogleLoading(false);
-                                                    if (ok) setDialogOpen(false);
-                                                }}
-                                                className="w-full justify-center gap-2 text-xs font-medium border-border hover:bg-secondary rounded-xl h-10 shadow-xs"
-                                                title="Sign in with Google"
-                                            >
-                                                {isGoogleLoading ? (
-                                                    <Loader2 className="h-3.5 w-3.5 animate-spin text-primary" aria-hidden="true" />
-                                                ) : (
-                                                    <svg className="h-4 w-4 shrink-0" viewBox="0 0 24 24" aria-hidden="true">
-                                                        <path
-                                                            fill="#4285F4"
-                                                            d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
-                                                        />
-                                                        <path
-                                                            fill="#34A853"
-                                                            d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
-                                                        />
-                                                        <path
-                                                            fill="#FBBC05"
-                                                            d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"
-                                                        />
-                                                        <path
-                                                            fill="#EA4335"
-                                                            d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"
-                                                        />
-                                                    </svg>
-                                                )}
-                                                <span>{isGoogleLoading ? 'Signing in with Google...' : 'Google Sign In'}</span>
-                                            </Button>
 
-                                            {!isGoogleLoading && (
-                                                <div
-                                                    ref={renderGoogleButton}
-                                                    className="absolute inset-0 opacity-[0.001] cursor-pointer overflow-hidden rounded-xl flex items-center justify-center z-10"
-                                                    title="Sign in with Google"
-                                                />
-                                            )}
+                                    <div className="flex flex-col gap-4 pt-1">
+                                        {/* Zero-Cost Mode Banner */}
+                                        <div className="bg-indigo-50/70 dark:bg-indigo-950/40 border border-indigo-100 dark:border-indigo-900/50 rounded-2xl p-3 sm:p-3.5 flex items-center gap-3">
+                                            <span className="shrink-0 bg-indigo-100 dark:bg-indigo-900/80 text-indigo-700 dark:text-indigo-300 text-[10px] font-mono font-bold tracking-wider px-2 py-1 rounded-md uppercase">
+                                                ZERO-COST MODE
+                                            </span>
+                                            <p className="text-[11px] sm:text-xs text-muted-foreground leading-snug">
+                                                All reasoning on NexusAgent is simulated or pre-cached for zero cloud bill. No real API keys required.
+                                            </p>
                                         </div>
 
-                                        {/* Guest Sign In */}
-                                        <Button
-                                            variant="secondary"
-                                            disabled={isGuestLoading || isGoogleLoading}
-                                            onClick={async () => {
-                                                const ok = await loginGuest();
-                                                if (ok) setDialogOpen(false);
-                                            }}
-                                            className="w-full justify-center gap-2 text-xs font-medium rounded-xl h-10"
-                                        >
-                                            {isGuestLoading ? (
-                                                <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" />
-                                            ) : (
-                                                <User className="h-3.5 w-3.5" aria-hidden="true" />
-                                            )}
-                                            <span>{isGuestLoading ? 'Creating Guest Pass...' : 'Guest Sign In'}</span>
-                                        </Button>
-                                    </TabsContent>
-                                    <TabsContent value="email" className="pt-1">
-                                        <form onSubmit={handleEmailSubmit} className="space-y-2.5">
-                                            {isRegisterMode && (
-                                                <div className="space-y-1">
-                                                    <label className="text-[11px] font-medium text-foreground">Full Name</label>
-                                                    <Input
-                                                        type="text"
-                                                        placeholder="Staff Architect"
-                                                        value={nameInput}
-                                                        onChange={(e) => setNameInput(e.target.value)}
-                                                        required
-                                                        className="h-8 text-xs rounded-lg"
-                                                    />
-                                                </div>
-                                            )}
-                                            <div className="space-y-1">
-                                                <label className="text-[11px] font-medium text-foreground">Email Address</label>
-                                                <Input
-                                                    type="email"
-                                                    placeholder="architect@nexusagent.internal"
-                                                    value={emailInput}
-                                                    onChange={(e) => setEmailInput(e.target.value)}
-                                                    required
-                                                    className="h-8 text-xs rounded-lg"
-                                                />
-                                            </div>
-                                            <div className="space-y-1">
-                                                <label className="text-[11px] font-medium text-foreground">Password</label>
-                                                <Input
-                                                    type="password"
-                                                    placeholder="••••••••"
-                                                    value={passwordInput}
-                                                    onChange={(e) => setPasswordInput(e.target.value)}
-                                                    required
-                                                    className="h-8 text-xs rounded-lg"
-                                                />
-                                            </div>
-                                            {formError && <p className="text-[11px] text-destructive">{formError}</p>}
-                                            <Button type="submit" disabled={isEmailLoading} className="w-full text-xs font-semibold h-9 rounded-xl mt-1">
-                                                {isEmailLoading ? (
-                                                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                                                ) : isRegisterMode ? (
-                                                    'Create Account'
-                                                ) : (
-                                                    'Sign In with Password'
-                                                )}
-                                            </Button>
-                                            <div className="text-center pt-1">
-                                                <button
+                                        {/* Sign In with Google Card (Prominent with purple border) */}
+                                        <div className="border-2 border-indigo-500/70 dark:border-indigo-500/80 rounded-2xl p-4 sm:p-5 bg-card/60 relative">
+                                            <h3 className="text-sm font-bold text-foreground">Sign in with Google</h3>
+                                            <p className="text-xs text-muted-foreground mt-1 mb-4 leading-relaxed">
+                                                Seamless one-click authentication. Never lose your architecture blueprints or execution traces.
+                                            </p>
+
+                                            <div className="relative w-full">
+                                                <Button
                                                     type="button"
-                                                    onClick={() => {
-                                                        setIsRegisterMode(!isRegisterMode);
-                                                        setFormError(null);
+                                                    variant="outline"
+                                                    disabled={isGoogleLoading || isGuestLoading}
+                                                    onClick={async () => {
+                                                        setIsGoogleLoading(true);
+                                                        const ok = await loginGoogle('mock-google-token:developer@nexusagent.internal:Lead Systems Architect');
+                                                        setIsGoogleLoading(false);
+                                                        if (ok) setDialogOpen(false);
                                                     }}
-                                                    className="text-[11px] text-primary hover:underline cursor-pointer bg-transparent border-0 p-0"
+                                                    className="w-full justify-center gap-2.5 text-xs font-semibold border-border/80 hover:bg-secondary/70 rounded-xl h-11 shadow-xs bg-card text-foreground"
+                                                    title="Continue with Google"
                                                 >
-                                                    {isRegisterMode ? 'Already have an account? Sign in' : "Don't have an account? Register"}
-                                                </button>
+                                                    {isGoogleLoading ? (
+                                                        <Loader2 className="h-4 w-4 animate-spin text-primary" aria-hidden="true" />
+                                                    ) : (
+                                                        <svg className="h-4 w-4 shrink-0" viewBox="0 0 24 24" aria-hidden="true">
+                                                            <path
+                                                                fill="#4285F4"
+                                                                d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+                                                            />
+                                                            <path
+                                                                fill="#34A853"
+                                                                d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+                                                            />
+                                                            <path
+                                                                fill="#FBBC05"
+                                                                d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"
+                                                            />
+                                                            <path
+                                                                fill="#EA4335"
+                                                                d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"
+                                                            />
+                                                        </svg>
+                                                    )}
+                                                    <span>{isGoogleLoading ? 'Connecting...' : 'Continue with Google'}</span>
+                                                </Button>
+
+                                                {!isGoogleLoading && (
+                                                    <div
+                                                        ref={renderGoogleButton}
+                                                        className="absolute inset-0 opacity-[0.001] cursor-pointer overflow-hidden rounded-xl flex items-center justify-center z-10"
+                                                        title="Continue with Google"
+                                                    />
+                                                )}
                                             </div>
-                                        </form>
-                                    </TabsContent>
-                                </Tabs>
-                                {error && <p className="text-[11px] text-destructive text-center pt-1">{error}</p>}
-                            </DialogContent>
-                        </Dialog>
-                    </div>
-                )}
+                                        </div>
+
+                                        {/* Divider with OR */}
+                                        <div className="relative flex items-center justify-center my-0.5">
+                                            <div className="absolute inset-0 flex items-center">
+                                                <div className="w-full border-t border-border/70" />
+                                            </div>
+                                            <div className="relative bg-card px-3 text-[10px] uppercase tracking-widest font-bold text-muted-foreground">
+                                                OR
+                                            </div>
+                                        </div>
+
+                                        {/* Continue as Guest Card */}
+                                        <div className="bg-secondary/40 dark:bg-secondary/20 border border-border/70 rounded-2xl p-4 sm:p-5 flex items-center justify-between gap-4">
+                                            <div className="space-y-1">
+                                                <h3 className="text-sm font-bold text-foreground">Continue as Guest</h3>
+                                                <p className="text-xs text-muted-foreground leading-relaxed max-w-[220px] sm:max-w-[260px]">
+                                                    Immediate sandbox analysis. You will receive a 5 live LLM quota gift with zero registration required.
+                                                </p>
+                                            </div>
+                                            <Button
+                                                variant="outline"
+                                                disabled={isGuestLoading || isGoogleLoading}
+                                                onClick={async () => {
+                                                    const ok = await loginGuest();
+                                                    if (ok) setDialogOpen(false);
+                                                }}
+                                                className="shrink-0 bg-card hover:bg-secondary text-foreground font-semibold text-xs px-4 py-2.5 rounded-xl border-border/80 shadow-xs h-10"
+                                            >
+                                                {isGuestLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" /> : 'Start as Guest'}
+                                            </Button>
+                                        </div>
+                                    </div>
+                                    {error && <p className="text-[11px] text-destructive text-center pt-1">{error}</p>}
+                                </DialogContent>
+                            </Dialog>
+                        </div>
+                    )}
                 </div>
             </header>
 

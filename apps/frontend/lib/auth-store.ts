@@ -39,8 +39,6 @@ interface AuthState {
     setIsGoogleLoading: (loading: boolean) => void;
     loginGuest: () => Promise<boolean>;
     loginGoogle: (credential: string) => Promise<boolean>;
-    loginEmail: (email: string, password: string) => Promise<boolean>;
-    registerEmail: (email: string, password: string, name: string) => Promise<boolean>;
     logout: () => void;
     setByokKey: (key: string | null, provider?: ByokProvider) => void;
     clearByokKey: () => void;
@@ -227,79 +225,6 @@ export const useAuthStore = create<AuthState>((set, get) => {
                 return false;
             }
         },
-
-        loginEmail: async (email: string, password: string) => {
-            set({ isLoading: true, error: null });
-            try {
-                const data = await apiClient<TokenResponse>('/api/auth/login', {
-                    method: 'POST',
-                    body: JSON.stringify({ email, password })
-                });
-
-                const token = data.accessToken;
-                const user = data.user;
-                const quotaRemaining = data.quotaRemaining ?? 25;
-                const bucketCapacity = data.bucketCapacity ?? 25;
-
-                if (typeof window !== 'undefined') {
-                    localStorage.setItem(STORAGE_KEY_TOKEN, token);
-                    localStorage.setItem(STORAGE_KEY_USER, JSON.stringify(user));
-                    localStorage.setItem(STORAGE_KEY_QUOTA, quotaRemaining.toString());
-                    setCookie(STORAGE_KEY_TOKEN, token);
-                }
-
-                set({
-                    token,
-                    user,
-                    quotaRemaining,
-                    bucketCapacity,
-                    isLoading: false,
-                    error: null
-                });
-                return true;
-            } catch (err) {
-                const message = err instanceof Error ? err.message : 'Failed email sign-in';
-                set({ isLoading: false, error: message });
-                return false;
-            }
-        },
-
-        registerEmail: async (email: string, password: string, name: string) => {
-            set({ isLoading: true, error: null });
-            try {
-                const data = await apiClient<TokenResponse>('/api/auth/register', {
-                    method: 'POST',
-                    body: JSON.stringify({ email, password, name })
-                });
-
-                const token = data.accessToken;
-                const user = data.user;
-                const quotaRemaining = data.quotaRemaining ?? 25;
-                const bucketCapacity = data.bucketCapacity ?? 25;
-
-                if (typeof window !== 'undefined') {
-                    localStorage.setItem(STORAGE_KEY_TOKEN, token);
-                    localStorage.setItem(STORAGE_KEY_USER, JSON.stringify(user));
-                    localStorage.setItem(STORAGE_KEY_QUOTA, quotaRemaining.toString());
-                    setCookie(STORAGE_KEY_TOKEN, token);
-                }
-
-                set({
-                    token,
-                    user,
-                    quotaRemaining,
-                    bucketCapacity,
-                    isLoading: false,
-                    error: null
-                });
-                return true;
-            } catch (err) {
-                const message = err instanceof Error ? err.message : 'Failed registration';
-                set({ isLoading: false, error: message });
-                return false;
-            }
-        },
-
         logout: () => {
             if (typeof window !== 'undefined') {
                 localStorage.removeItem(STORAGE_KEY_TOKEN);

@@ -62,9 +62,6 @@ export function ObservabilityPanel({ metrics, logs, currentNode, plan = [], refl
                     <Activity className="h-3.5 w-3.5 text-primary" aria-hidden="true" />
                     <span>Real-time Observability</span>
                 </h2>
-                <Badge variant={metrics.isByok ? 'soft' : 'outline'} className="text-[10px] font-mono">
-                    {metrics.isByok ? 'BYOK Mode' : 'Free Tier Edge'}
-                </Badge>
             </div>
 
             {/* Reactive DAG Execution Pipeline Tracker */}

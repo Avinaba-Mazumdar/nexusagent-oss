@@ -165,50 +165,6 @@ class QuotaStatus(BaseModel):
     resetMinutes: int
 
 
-class LoginRequest(BaseModel):
-    email: str = Field(..., max_length=255)
-    password: str = Field(..., min_length=1, max_length=128)
-
-    @field_validator("email")
-    @classmethod
-    def validate_login_email(cls, v: str) -> str:
-        clean = v.strip().lower()
-        if not EMAIL_REGEX.match(clean):
-            raise ValueError("Invalid email format")
-        return clean
-
-
-class RegisterRequest(BaseModel):
-    email: str = Field(..., max_length=255)
-    password: str = Field(..., min_length=8, max_length=128)
-    name: str = Field(..., min_length=1, max_length=100)
-
-    @field_validator("email")
-    @classmethod
-    def validate_register_email(cls, v: str) -> str:
-        clean = v.strip().lower()
-        if not EMAIL_REGEX.match(clean):
-            raise ValueError("Invalid email format")
-        return clean
-
-    @field_validator("name")
-    @classmethod
-    def validate_register_name(cls, v: str) -> str:
-        clean = re.sub(r"[\x00-\x1f\x7f-\x9f]", "", v.strip())
-        if not clean:
-            raise ValueError("Name cannot be empty or contain only control characters")
-        return clean
-
-    @field_validator("password")
-    @classmethod
-    def validate_password_strength(cls, v: str) -> str:
-        if len(v) < 8:
-            raise ValueError("Password must be at least 8 characters long")
-        if len(v) > 128:
-            raise ValueError("Password cannot exceed 128 characters")
-        return v
-
-
 class GoogleAuthRequest(BaseModel):
     credential: str = Field(..., min_length=10, max_length=4096)
 

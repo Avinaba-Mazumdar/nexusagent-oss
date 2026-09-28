@@ -54,11 +54,15 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     return (
         <html lang="en" suppressHydrationWarning className={`${instrumentSans.variable} ${outfit.variable} ${jetbrainsMono.variable}`}>
             <head>
-                <Script id="nexusagent-theme-init" strategy="beforeInteractive">
-                    {`(function(){try{var t=localStorage.getItem('nexusagent_theme');if(t==='dark'||(!t&&window.matchMedia('(prefers-color-scheme: dark)').matches)){document.documentElement.classList.add('dark')}else{document.documentElement.classList.remove('dark')}}catch(e){}})();`}
-                </Script>
+                <script
+                    dangerouslySetInnerHTML={{
+                        __html: `(function(){try{var t=localStorage.getItem('nexusagent_theme');if(t==='dark'||(!t&&window.matchMedia('(prefers-color-scheme: dark)').matches)){document.documentElement.classList.add('dark')}else{document.documentElement.classList.remove('dark')}}catch(e){}})();`
+                    }}
+                />
             </head>
-            <body className="bg-background text-foreground antialiased font-sans min-h-screen">{children}</body>
+            <body suppressHydrationWarning className="bg-background text-foreground antialiased font-sans min-h-screen">
+                {children}
+            </body>
         </html>
     );
 }

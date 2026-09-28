@@ -211,7 +211,7 @@ export function ObservabilityPanel({ metrics, logs, currentNode, plan = [], refl
                         logs.map((log) => (
                             <div key={log.id} className="leading-snug border-b border-border pb-1.5 last:border-0">
                                 <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
-                                    <span>{log.timestamp}</span>
+                                    <span suppressHydrationWarning>{log.timestamp}</span>
                                     <span
                                         className={`px-1 py-0.2 rounded text-[9px] font-bold ${
                                             log.stage === 'ROUTER'

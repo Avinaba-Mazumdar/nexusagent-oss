@@ -89,7 +89,7 @@ export function ApprovalModal({ open, approval, onResolve }: ApprovalModalProps)
                         type="button"
                         variant="default"
                         onClick={() => onResolve('approve')}
-                        className="h-9 px-4 text-xs font-bold rounded-xl gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs"
+                        className="h-9 px-4 text-xs font-bold rounded-xl gap-1.5 bg-success hover:opacity-90 text-success-foreground shadow-xs"
                     >
                         <Check className="h-3.5 w-3.5" />
                         <span>Authorize &amp; Run</span>

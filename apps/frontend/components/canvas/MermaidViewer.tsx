@@ -207,7 +207,7 @@ export function MermaidViewer({ chart, isDark = false, title = 'Architecture Seq
                         aria-label="Copy diagram source"
                         className="h-7 w-7 rounded-lg text-muted-foreground hover:text-foreground"
                     >
-                        {copied ? <Check className="h-3.5 w-3.5 text-emerald-500" /> : <Copy className="h-3.5 w-3.5" />}
+                        {copied ? <Check className="h-3.5 w-3.5 text-success" /> : <Copy className="h-3.5 w-3.5" />}
                     </Button>
 
                     {/* Maximize / Minimize View */}

@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from 'next';
+import Script from 'next/script';
 import { Instrument_Sans, Outfit, JetBrains_Mono } from 'next/font/google';
 import '../styles/globals.css';
 
@@ -53,11 +54,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     return (
         <html lang="en" suppressHydrationWarning className={`${instrumentSans.variable} ${outfit.variable} ${jetbrainsMono.variable}`}>
             <head>
-                <script
-                    dangerouslySetInnerHTML={{
-                        __html: `(function(){try{var t=localStorage.getItem('nexusagent_theme');if(t==='dark'||(!t&&window.matchMedia('(prefers-color-scheme: dark)').matches)){document.documentElement.classList.add('dark')}else{document.documentElement.classList.remove('dark')}}catch(e){}})();`
-                    }}
-                />
+                <Script id="nexusagent-theme-init" strategy="beforeInteractive">
+                    {`(function(){try{var t=localStorage.getItem('nexusagent_theme');if(t==='dark'||(!t&&window.matchMedia('(prefers-color-scheme: dark)').matches)){document.documentElement.classList.add('dark')}else{document.documentElement.classList.remove('dark')}}catch(e){}})();`}
+                </Script>
             </head>
             <body className="bg-background text-foreground antialiased font-sans min-h-screen">{children}</body>
         </html>

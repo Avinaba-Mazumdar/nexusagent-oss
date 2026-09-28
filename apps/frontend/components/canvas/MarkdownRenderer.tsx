@@ -49,7 +49,7 @@ function CodeBlock({ language, code }: CodeBlockProps) {
                     aria-label="Copy code block"
                     className="h-6 w-6 rounded text-muted-foreground hover:text-foreground"
                 >
-                    {copied ? <Check className="h-3 w-3 text-emerald-500" /> : <Copy className="h-3 w-3" />}
+                    {copied ? <Check className="h-3 w-3 text-success" /> : <Copy className="h-3 w-3" />}
                 </Button>
             </div>
             <pre className="p-3 overflow-x-auto font-mono text-[11px] leading-relaxed text-foreground bg-card/60">

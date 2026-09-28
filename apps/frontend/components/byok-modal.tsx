@@ -150,7 +150,7 @@ export function ByokModal({ trigger, open, onOpenChange }: ByokModalProps) {
                         <Button type="submit" variant="default" className="flex-1 justify-center gap-1.5 text-xs font-bold rounded-xl h-10">
                             {savedSuccess ? (
                                 <>
-                                    <Check className="h-4 w-4 text-emerald-400" />
+                                    <Check className="h-4 w-4 text-success" />
                                     <span>Key Saved</span>
                                 </>
                             ) : (

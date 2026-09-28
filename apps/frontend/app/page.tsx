@@ -122,6 +122,22 @@ export default function Home() {
         }
     }, [initAuth]);
 
+    const handleToggleTheme = React.useCallback((checked?: boolean) => {
+        setIsDarkTheme((prev) => {
+            const next = typeof checked === 'boolean' ? checked : !prev;
+            if (typeof document !== 'undefined') {
+                if (next) {
+                    document.documentElement.classList.add('dark');
+                    localStorage.setItem('nexusagent_theme', 'dark');
+                } else {
+                    document.documentElement.classList.remove('dark');
+                    localStorage.setItem('nexusagent_theme', 'light');
+                }
+            }
+            return next;
+        });
+    }, []);
+
     // Fetch documents on mount and whenever authentication token changes
     const fetchDocs = React.useCallback(async () => {
         try {
@@ -310,6 +326,19 @@ export default function Home() {
                 </div>
 
                 <div className="flex items-center gap-2.5">
+                    {/* Theme Toggle Button (Always accessible in header) */}
+                    <Button
+                        type="button"
+                        variant="outline"
+                        size="icon-sm"
+                        onClick={() => handleToggleTheme()}
+                        className="rounded-xl border-border h-9 w-9 text-muted-foreground hover:text-foreground shrink-0 cursor-pointer"
+                        aria-label="Toggle theme mode"
+                        title={isDarkTheme ? 'Switch to light mode' : 'Switch to dark mode'}
+                    >
+                        {isDarkTheme ? <Sun className="h-4 w-4 text-amber-400" /> : <Moon className="h-4 w-4" />}
+                    </Button>
+
                     {/* BYOK CTA Button */}
                     <Button
                         variant={byokKey ? 'default' : 'outline'}
@@ -331,7 +360,7 @@ export default function Home() {
                             title={`${quotaRemaining} of ${bucketCapacity} query quota remaining`}
                             data-testid="quota-badge"
                         >
-                            <span className={`h-2 w-2 rounded-full ${quotaRemaining > 0 ? 'bg-emerald-500 animate-pulse' : 'bg-destructive'}`} />
+                            <span className={`h-2 w-2 rounded-full ${quotaRemaining > 0 ? 'bg-success animate-pulse' : 'bg-destructive'}`} />
                             <span className="font-mono font-bold text-foreground">
                                 {quotaRemaining}/{bucketCapacity}
                             </span>
@@ -418,22 +447,7 @@ export default function Home() {
                                         )}
                                         <span className="text-xs font-medium text-foreground">Dark Mode</span>
                                     </div>
-                                    <Switch
-                                        checked={isDarkTheme}
-                                        onCheckedChange={(checked) => {
-                                            setIsDarkTheme(checked);
-                                            if (typeof document !== 'undefined') {
-                                                if (checked) {
-                                                    document.documentElement.classList.add('dark');
-                                                    localStorage.setItem('nexusagent_theme', 'dark');
-                                                } else {
-                                                    document.documentElement.classList.remove('dark');
-                                                    localStorage.setItem('nexusagent_theme', 'light');
-                                                }
-                                            }
-                                        }}
-                                        aria-label="Toggle dark mode theme"
-                                    />
+                                    <Switch checked={isDarkTheme} onCheckedChange={handleToggleTheme} aria-label="Toggle dark mode theme" />
                                 </div>
 
                                 {/* Sign Out */}
@@ -474,8 +488,8 @@ export default function Home() {
 
                                     <div className="flex flex-col gap-4 pt-1">
                                         {/* Zero-Cost Mode Banner */}
-                                        <div className="bg-indigo-50/70 dark:bg-indigo-950/40 border border-indigo-100 dark:border-indigo-900/50 rounded-2xl p-3 sm:p-3.5 flex items-center gap-3">
-                                            <span className="shrink-0 bg-indigo-100 dark:bg-indigo-900/80 text-indigo-700 dark:text-indigo-300 text-[10px] font-mono font-bold tracking-wider px-2 py-1 rounded-md uppercase">
+                                        <div className="bg-banner-bg border border-banner-border rounded-2xl p-3 sm:p-3.5 flex items-center gap-3">
+                                            <span className="shrink-0 bg-banner-badge-bg text-banner-badge-text text-[10px] font-mono font-bold tracking-wider px-2 py-1 rounded-md uppercase">
                                                 ZERO-COST MODE
                                             </span>
                                             <p className="text-[11px] sm:text-xs text-muted-foreground leading-snug">
@@ -484,7 +498,7 @@ export default function Home() {
                                         </div>
 
                                         {/* Sign In with Google Card (Prominent with purple border) */}
-                                        <div className="border-2 border-indigo-500/70 dark:border-indigo-500/80 rounded-2xl p-4 sm:p-5 bg-card/60 relative">
+                                        <div className="border-2 border-featured-border rounded-2xl p-4 sm:p-5 bg-featured-bg relative">
                                             <h3 className="text-sm font-bold text-foreground">Sign in with Google</h3>
                                             <p className="text-xs text-muted-foreground mt-1 mb-4 leading-relaxed">
                                                 Seamless one-click authentication. Never lose your architecture blueprints or execution traces.

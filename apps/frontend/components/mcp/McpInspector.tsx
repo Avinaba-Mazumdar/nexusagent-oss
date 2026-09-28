@@ -130,8 +130,8 @@ export function McpInspector({ apiBase = 'http://localhost:8000', authToken }: M
                 </div>
                 <CardDescription className="text-xs text-muted-foreground flex items-center justify-between">
                     <span>Direct JSON-RPC 2.0 Gateway</span>
-                    <span className="text-[10px] text-emerald-500 font-medium flex items-center gap-1">
-                        <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                    <span className="text-[10px] text-success font-medium flex items-center gap-1">
+                        <span className="h-1.5 w-1.5 rounded-full bg-success animate-pulse" />
                         SSE Ready
                     </span>
                 </CardDescription>
@@ -233,7 +233,7 @@ export function McpInspector({ apiBase = 'http://localhost:8000', authToken }: M
                 {(lastResponse || errorMsg) && (
                     <div
                         className={`p-2 rounded-lg border text-[11px] space-y-1 ${
-                            errorMsg ? 'bg-destructive/10 border-destructive/30' : 'bg-emerald-500/10 border-emerald-500/30'
+                            errorMsg ? 'bg-destructive/10 border-destructive/30' : 'bg-success-bg border-success-border'
                         }`}
                     >
                         <div className="flex items-center justify-between text-[10px] font-medium">
@@ -245,8 +245,8 @@ export function McpInspector({ apiBase = 'http://localhost:8000', authToken }: M
                                     </>
                                 ) : (
                                     <>
-                                        <CheckCircle2 className="h-3 w-3 text-emerald-500" />
-                                        <span className="text-emerald-600 dark:text-emerald-400 font-semibold">RPC 200 OK</span>
+                                        <CheckCircle2 className="h-3 w-3 text-success" />
+                                        <span className="text-success font-semibold">RPC 200 OK</span>
                                     </>
                                 )}
                             </span>

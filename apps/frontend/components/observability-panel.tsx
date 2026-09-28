@@ -115,9 +115,7 @@ export function ObservabilityPanel({ metrics, logs, currentNode, plan = [], refl
                         <Badge
                             variant="outline"
                             className={`font-mono text-[10px] font-bold ${
-                                reflectionScore >= 0.7
-                                    ? 'border-emerald-500/50 text-emerald-500 bg-emerald-500/10'
-                                    : 'border-amber-500/50 text-amber-500 bg-amber-500/10'
+                                reflectionScore >= 0.7 ? 'border-success-border text-success bg-success-bg' : 'border-warning-border text-warning bg-warning-bg'
                             }`}
                         >
                             {(reflectionScore * 100).toFixed(0)}% {reflectionScore >= 0.7 ? '(Grounded)' : '(Re-planning)'}
@@ -134,7 +132,7 @@ export function ObservabilityPanel({ metrics, logs, currentNode, plan = [], refl
                         {plan.map((step) => (
                             <div key={step.stepNumber} className="flex items-start gap-1.5 text-[11px] text-foreground/90 leading-tight">
                                 {step.status === 'completed' ? (
-                                    <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500 shrink-0 mt-0.5" />
+                                    <CheckCircle2 className="h-3.5 w-3.5 text-success shrink-0 mt-0.5" />
                                 ) : step.status === 'in_progress' ? (
                                     <Loader2 className="h-3.5 w-3.5 text-primary animate-spin shrink-0 mt-0.5" />
                                 ) : (
@@ -185,9 +183,9 @@ export function ObservabilityPanel({ metrics, logs, currentNode, plan = [], refl
                 <Card className="p-3 shadow-2xs border-border bg-secondary/20">
                     <div className="flex items-center justify-between text-muted-foreground mb-1">
                         <span className="text-[10px] font-medium uppercase tracking-wider">Cost / Billing</span>
-                        <Zap className="h-3 w-3 text-emerald-500" />
+                        <Zap className="h-3 w-3 text-success" />
                     </div>
-                    <div className="text-xs font-bold font-mono text-emerald-500">{metrics.isByok ? 'Custom Billing' : '$0.00 (Free)'}</div>
+                    <div className="text-xs font-bold font-mono text-success">{metrics.isByok ? 'Custom Billing' : '$0.00 (Free)'}</div>
                     <div className="text-[10px] text-muted-foreground mt-0.5">{metrics.isByok ? 'Unlimited' : `${metrics.rpmRemaining ?? 15} RPM ceiling`}</div>
                 </Card>
             </div>
@@ -206,29 +204,29 @@ export function ObservabilityPanel({ metrics, logs, currentNode, plan = [], refl
                         Live SSE
                     </Badge>
                 </CardHeader>
-                <CardContent className="p-2.5 flex-1 overflow-y-auto max-h-[320px] font-mono text-[11px] space-y-2 bg-slate-950/90 text-slate-200">
+                <CardContent className="p-2.5 flex-1 overflow-y-auto max-h-[320px] font-mono text-[11px] space-y-2 bg-secondary/40 text-foreground">
                     {logs.length === 0 ? (
-                        <div className="text-slate-500 py-6 text-center text-[10px]">Awaiting agent trigger. Stream logs will appear here.</div>
+                        <div className="text-muted-foreground py-6 text-center text-[10px]">Awaiting agent trigger. Stream logs will appear here.</div>
                     ) : (
                         logs.map((log) => (
-                            <div key={log.id} className="leading-snug border-b border-slate-800/60 pb-1.5 last:border-0">
-                                <div className="flex items-center gap-1.5 text-[10px] text-slate-400">
+                            <div key={log.id} className="leading-snug border-b border-border pb-1.5 last:border-0">
+                                <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
                                     <span>{log.timestamp}</span>
                                     <span
                                         className={`px-1 py-0.2 rounded text-[9px] font-bold ${
                                             log.stage === 'ROUTER'
-                                                ? 'bg-blue-900/60 text-blue-300'
+                                                ? 'bg-primary/10 text-primary border border-primary/20'
                                                 : log.stage === 'RAG'
-                                                  ? 'bg-purple-900/60 text-purple-300'
+                                                  ? 'bg-accent text-accent-foreground border border-border'
                                                   : log.stage === 'BYOK'
-                                                    ? 'bg-emerald-900/60 text-emerald-300'
-                                                    : 'bg-amber-900/60 text-amber-300'
+                                                    ? 'bg-success-bg text-success border border-success-border'
+                                                    : 'bg-warning-bg text-warning border border-warning-border'
                                         }`}
                                     >
                                         [{log.stage}]
                                     </span>
                                 </div>
-                                <p className="text-slate-300 mt-0.5 break-words">{log.message}</p>
+                                <p className="text-foreground/90 mt-0.5 break-words">{log.message}</p>
                             </div>
                         ))
                     )}

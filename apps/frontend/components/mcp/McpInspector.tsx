@@ -147,7 +147,7 @@ export function McpInspector({ apiBase = 'http://localhost:8000', authToken }: M
                                 type="button"
                                 onClick={() => handleSelectTool(t)}
                                 className={`text-[10px] py-1 px-1.5 rounded-md font-medium transition-all text-center truncate ${
-                                    active ? 'bg-card text-foreground shadow-2xs font-semibold' : 'text-muted-foreground hover:text-foreground'
+                                    active ? 'bg-background text-foreground shadow-2xs font-semibold' : 'text-muted-foreground hover:text-foreground'
                                 }`}
                                 title={t.description}
                             >
@@ -171,7 +171,7 @@ export function McpInspector({ apiBase = 'http://localhost:8000', authToken }: M
                         value={argsJson}
                         onChange={(e) => setArgsJson(e.target.value)}
                         rows={3}
-                        className="w-full font-mono text-[10px] bg-secondary/30 border border-border rounded-lg p-2 leading-tight focus:outline-hidden focus:ring-1 focus:ring-primary text-foreground resize-none"
+                        className="w-full font-mono text-[10px] bg-background border border-border rounded-lg p-2 leading-tight focus:outline-hidden focus:ring-1 focus:ring-primary text-foreground resize-none"
                     />
                 </div>
 
@@ -207,7 +207,7 @@ export function McpInspector({ apiBase = 'http://localhost:8000', authToken }: M
                             <div className="grid grid-cols-2 gap-3 flex-1 overflow-hidden pt-2 text-xs">
                                 <div className="flex flex-col overflow-hidden">
                                     <div className="font-mono text-[10px] font-semibold text-muted-foreground pb-1">Outbound Request</div>
-                                    <pre className="flex-1 overflow-auto bg-secondary/50 p-2.5 rounded-lg border border-border font-mono text-[10px] text-foreground">
+                                    <pre className="flex-1 overflow-auto bg-background p-2.5 rounded-lg border border-border font-mono text-[10px] text-foreground">
                                         {lastRequest ? JSON.stringify(lastRequest, null, 2) : '// No request executed yet'}
                                     </pre>
                                 </div>
@@ -220,7 +220,7 @@ export function McpInspector({ apiBase = 'http://localhost:8000', authToken }: M
                                             </Badge>
                                         )}
                                     </div>
-                                    <pre className="flex-1 overflow-auto bg-secondary/50 p-2.5 rounded-lg border border-border font-mono text-[10px] text-foreground">
+                                    <pre className="flex-1 overflow-auto bg-background p-2.5 rounded-lg border border-border font-mono text-[10px] text-foreground">
                                         {lastResponse ? JSON.stringify(lastResponse, null, 2) : '// Awaiting response'}
                                     </pre>
                                 </div>

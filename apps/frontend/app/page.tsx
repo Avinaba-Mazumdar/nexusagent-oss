@@ -2,7 +2,7 @@
 
 import * as React from 'react';
 import Script from 'next/script';
-import { Bot, Briefcase, Database, FileText, KeyRound, Loader2, LogIn, LogOut, Moon, Send, Sparkles, Sun, UploadCloud } from 'lucide-react';
+import { Activity, Bot, Briefcase, Database, FileText, KeyRound, Loader2, LogIn, LogOut, MessageSquare, Moon, Send, Sparkles, Sun, UploadCloud } from 'lucide-react';
 import { NexusLogo } from '@/components/icons';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
@@ -51,6 +51,7 @@ export default function Home() {
     const [byokModalOpen, setByokModalOpen] = React.useState(false);
     const [seededDocs, setSeededDocs] = React.useState<SeededDoc[]>([]);
     const [messages, setMessages] = React.useState<ChatItem[]>([]);
+    const [mobileActiveTab, setMobileActiveTab] = React.useState<'workspace' | 'chat' | 'observability'>('chat');
     const [selectedCitationDoc, setSelectedCitationDoc] = React.useState<string | null>(null);
 
     const [metrics, setMetrics] = React.useState<TelemetryMetrics>({
@@ -598,7 +599,9 @@ export default function Home() {
                 <aside
                     role="complementary"
                     aria-label="Workspace & Tools"
-                    className="w-72 lg:w-80 bg-card border-r border-border flex flex-col shrink-0 overflow-y-auto p-4 space-y-4"
+                    className={`w-full xl:w-72 2xl:w-80 bg-card border-r border-border flex-col shrink-0 overflow-y-auto p-4 space-y-4 ${
+                        mobileActiveTab === 'workspace' ? 'flex' : 'hidden xl:flex'
+                    }`}
                 >
                     <div className="flex items-center justify-between pb-2 border-b border-border">
                         <h2 className="flex items-center gap-1.5 text-xs font-heading font-bold text-foreground">
@@ -694,7 +697,13 @@ export default function Home() {
                 </aside>
 
                 {/* 3. Synthesis Canvas (Center) */}
-                <main role="main" aria-label="Active Synthesis Canvas" className="flex-1 flex flex-col overflow-hidden bg-background">
+                <main
+                    role="main"
+                    aria-label="Active Synthesis Canvas"
+                    className={`flex-1 flex-col overflow-hidden bg-background ${
+                        mobileActiveTab === 'chat' ? 'flex' : 'hidden xl:flex'
+                    }`}
+                >
                     <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-4">
                         <div className="flex items-center justify-between bg-card border border-border rounded-xl px-4 py-2.5 shadow-2xs">
                             <div className="flex items-center gap-2 text-xs">
@@ -844,7 +853,7 @@ export default function Home() {
                                 variant="default"
                                 disabled={agentStream.isStreaming || !prompt.trim()}
                                 aria-label="Send query"
-                                className="absolute right-1.5 h-8 px-4 text-xs rounded-lg gap-1.5 font-bold"
+                                className="absolute right-1.5 top-1/2 -translate-y-1/2 h-8 px-4 text-xs rounded-lg gap-1.5 font-bold"
                             >
                                 {agentStream.isStreaming ? (
                                     <Loader2 className="h-3 w-3 animate-spin" aria-hidden="true" />
@@ -867,7 +876,39 @@ export default function Home() {
                     plan={agentStream.plan}
                     reflectionScore={agentStream.reflectionScore}
                     isStreaming={agentStream.isStreaming}
+                    className={mobileActiveTab === 'observability' ? 'flex' : 'hidden xl:flex'}
                 />
+            </div>
+
+            {/* Mobile Bottom Navigation */}
+            <div className="xl:hidden flex items-center justify-around bg-card border-t border-border p-2 shrink-0 z-40 pb-safe">
+                <button
+                    onClick={() => setMobileActiveTab('workspace')}
+                    className={`flex flex-col items-center p-2 rounded-lg min-w-[70px] ${
+                        mobileActiveTab === 'workspace' ? 'text-primary bg-primary/10 font-bold' : 'text-muted-foreground hover:bg-secondary/50 font-medium'
+                    }`}
+                >
+                    <Database className="h-5 w-5" />
+                    <span className="text-[10px] mt-1">Workspace</span>
+                </button>
+                <button
+                    onClick={() => setMobileActiveTab('chat')}
+                    className={`flex flex-col items-center p-2 rounded-lg min-w-[70px] ${
+                        mobileActiveTab === 'chat' ? 'text-primary bg-primary/10 font-bold' : 'text-muted-foreground hover:bg-secondary/50 font-medium'
+                    }`}
+                >
+                    <MessageSquare className="h-5 w-5" />
+                    <span className="text-[10px] mt-1">Canvas</span>
+                </button>
+                <button
+                    onClick={() => setMobileActiveTab('observability')}
+                    className={`flex flex-col items-center p-2 rounded-lg min-w-[70px] ${
+                        mobileActiveTab === 'observability' ? 'text-primary bg-primary/10 font-bold' : 'text-muted-foreground hover:bg-secondary/50 font-medium'
+                    }`}
+                >
+                    <Activity className="h-5 w-5" />
+                    <span className="text-[10px] mt-1">Observe</span>
+                </button>
             </div>
 
             {/* Modals */}

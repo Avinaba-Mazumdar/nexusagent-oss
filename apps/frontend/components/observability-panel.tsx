@@ -1,6 +1,7 @@
 'use client';
 
 import * as React from 'react';
+import { cn } from '@/lib/utils';
 import { Activity, CheckCircle2, ChevronRight, Clock, Cpu, GitFork, Hash, Loader2, RefreshCw, Terminal, Zap } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -31,6 +32,7 @@ interface ObservabilityPanelProps {
     plan?: PlanStep[];
     reflectionScore?: number;
     isStreaming?: boolean;
+    className?: string;
 }
 
 const DAG_NODES = [
@@ -41,7 +43,7 @@ const DAG_NODES = [
     { id: 'synthesizer', label: 'Synthesizer', step: 5 }
 ];
 
-export function ObservabilityPanel({ metrics, logs, currentNode, plan = [], reflectionScore = 0, isStreaming = false }: ObservabilityPanelProps) {
+export function ObservabilityPanel({ metrics, logs, currentNode, plan = [], reflectionScore = 0, isStreaming = false, className }: ObservabilityPanelProps) {
     const logsEndRef = React.useRef<HTMLDivElement>(null);
 
     React.useEffect(() => {
@@ -54,7 +56,7 @@ export function ObservabilityPanel({ metrics, logs, currentNode, plan = [], refl
         <aside
             role="complementary"
             aria-label="Agent Telemetry & Observability"
-            className="w-80 lg:w-88 bg-card border-l border-border flex flex-col shrink-0 overflow-y-auto p-4 space-y-4"
+            className={cn("w-full xl:w-80 lg:w-88 bg-card border-l border-border flex flex-col shrink-0 overflow-y-auto p-4 space-y-4", className)}
         >
             {/* Header */}
             <div className="flex items-center justify-between pb-2 border-b border-border">
@@ -88,7 +90,7 @@ export function ObservabilityPanel({ metrics, logs, currentNode, plan = [], refl
                         return (
                             <React.Fragment key={node.id}>
                                 <div
-                                    className={`flex flex-col items-center px-1.5 py-1 rounded text-center min-w-[52px] transition-all ${
+                                    className={`flex flex-col items-center px-1.5 py-1 rounded text-center min-w-[52px] shrink-0 transition-all ${
                                         isCurrent
                                             ? 'bg-primary text-primary-foreground font-bold shadow-xs scale-105'
                                             : isPast

@@ -2,7 +2,23 @@
 
 import * as React from 'react';
 import Script from 'next/script';
-import { Activity, Bot, Briefcase, Database, FileText, KeyRound, Loader2, LogIn, LogOut, MessageSquare, Moon, Send, Sparkles, Sun, UploadCloud } from 'lucide-react';
+import {
+    Activity,
+    Bot,
+    Briefcase,
+    Database,
+    FileText,
+    KeyRound,
+    Loader2,
+    LogIn,
+    LogOut,
+    MessageSquare,
+    Moon,
+    Send,
+    Sparkles,
+    Sun,
+    UploadCloud
+} from 'lucide-react';
 import { NexusLogo } from '@/components/icons';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
@@ -108,8 +124,7 @@ export default function Home() {
         initAuth();
         if (typeof window !== 'undefined') {
             const storedTheme = localStorage.getItem('nexusagent_theme');
-            const systemDark = typeof window.matchMedia === 'function' ? window.matchMedia('(prefers-color-scheme: dark)').matches : false;
-            const isDark = storedTheme ? storedTheme === 'dark' : systemDark;
+            const isDark = storedTheme === 'dark';
             setIsDarkTheme(isDark);
             if (isDark) {
                 document.documentElement.classList.add('dark');
@@ -337,7 +352,7 @@ export default function Home() {
                         aria-label="Toggle theme mode"
                         title={isDarkTheme ? 'Switch to light mode' : 'Switch to dark mode'}
                     >
-                        {isDarkTheme ? <Sun className="h-4 w-4 text-amber-400" /> : <Moon className="h-4 w-4" />}
+                        {isDarkTheme ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
                     </Button>
 
                     {/* BYOK CTA Button */}
@@ -444,7 +459,7 @@ export default function Home() {
                                         {isDarkTheme ? (
                                             <Moon className="h-4 w-4 text-primary" aria-hidden="true" />
                                         ) : (
-                                            <Sun className="h-4 w-4 text-amber-500" aria-hidden="true" />
+                                            <Sun className="h-4 w-4" aria-hidden="true" />
                                         )}
                                         <span className="text-xs font-medium text-foreground">Dark Mode</span>
                                     </div>
@@ -599,7 +614,7 @@ export default function Home() {
                 <aside
                     role="complementary"
                     aria-label="Workspace & Tools"
-                    className={`w-full xl:w-72 2xl:w-80 bg-card border-r border-border flex-col shrink-0 overflow-y-auto p-4 space-y-4 ${
+                    className={`w-full xl:w-80 2xl:w-88 bg-card border-r border-border flex-col shrink-0 overflow-y-auto p-4 space-y-4 ${
                         mobileActiveTab === 'workspace' ? 'flex' : 'hidden xl:flex'
                     }`}
                 >
@@ -700,9 +715,7 @@ export default function Home() {
                 <main
                     role="main"
                     aria-label="Active Synthesis Canvas"
-                    className={`flex-1 flex-col overflow-hidden bg-background ${
-                        mobileActiveTab === 'chat' ? 'flex' : 'hidden xl:flex'
-                    }`}
+                    className={`flex-1 flex-col overflow-hidden bg-background ${mobileActiveTab === 'chat' ? 'flex' : 'hidden xl:flex'}`}
                 >
                     <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-4">
                         <div className="flex items-center justify-between bg-card border border-border rounded-xl px-4 py-2.5 shadow-2xs">

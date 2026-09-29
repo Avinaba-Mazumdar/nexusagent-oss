@@ -150,8 +150,8 @@ NexusAgent integrates **shadcn/ui** primitives powered by **Tailwind CSS v4** na
 │  [■]  │  - Node Cards with Nexus Blue headers, status pills, and sub-metrics (US-east-lb: 150 kbps)            │
 │  [📁] ├──────────────────────────────────────────────────────┬─────────────────────────────────────────────────┤
 │  [⚡] │ CENTER: Active Synthesis & Streaming Verdict        │ RIGHT: Active Tools & Document Vault            │
-│  [📊] │  - Quorum invariant verification stream              │  - [x] Hybrid RAG Search (Neon pgvector)        │
-│       │  - Line-level citation pills: [RFC-104:L128-145]     │  - [x] AST Python Sandbox                       │
+│  [📊] │  - Frontier reasoning benchmark synthesis stream     │  - [x] Hybrid RAG Search (Neon pgvector)        │
+│       │  - Line-level citation pills: [benchlm:L14-28]       │  - [x] AST Python Sandbox                       │
 │  [🛡️] │  - [Execute Plan] (#0a66c2) | [Approve Tool] (dark)  │  - [ ] SQL Schema Audit                         │
 │       ├──────────────────────────────────────────────────────┴─────────────────────────────────────────────────┤
 │       │ BOTTOM SECTION: Telemetry & Mesh Overview                                                              │
@@ -178,7 +178,7 @@ NexusAgent integrates **shadcn/ui** primitives powered by **Tailwind CSS v4** na
 ### 3.3 Topology & Central Execution Stream
 
 - **Interactive Architecture Flow**: Node-based cluster map with clean status chips and routing metrics.
-- **Synthesizer Thread**: Real-time verdict with clickable source citation pills (`[RFC-104:L128-145]`) that preview and jump to exact line ranges.
+- **Synthesizer Thread**: Real-time verdict with clickable source citation pills (`[benchlm:L14-28]`, `[artificial_analysis:L42-60]`) that preview and jump to exact line ranges.
 
 ### 3.4 Telemetry & Service Mesh Overview
 
@@ -198,7 +198,7 @@ NexusAgent integrates **shadcn/ui** primitives powered by **Tailwind CSS v4** na
 ## 5. Micro-Interactions & States
 
 - **Subtle Elevation on Hover**: Cards and nodes smoothly elevate (`transition: all 0.15s ease-out`).
-- **Citation Hover Preview**: Citation badges (`[RFC-104:L128-145]`) display instant popovers with snippet line previews.
+- **Citation Hover Preview**: Citation badges (`[benchlm:L14-28]`) display instant popovers with snippet line previews.
 - **Tactile Switches**: Clean Nexus Blue toggles with smooth pill translation.
 - **Zero Distracting Animations**: No pulsing neon glows, spinning gradient borders, or excessive animated banners.
 

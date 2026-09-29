@@ -125,3 +125,13 @@
 - [x] HITL approval ownership: `resolve_approval` binds the approval to its owning session; cross-session resolution is rejected
 - [x] `/api/agent/audit-logs` reads persisted `tool_audit_logs` rows (memory ring only as fallback)
 - [x] Indirect injection defense: retriever scans retrieved chunks (`sanitize_retrieved_chunks`), drops injected content, prunes citations, surfaces an observability warning
+
+### Phase 13: FastMCP Transition, Gemini 3.x Upgrade & Live Benchmark Vault [Completed]
+
+- [x] Migrate Model Context Protocol server from manual custom router to official `FastMCP` (`apps/backend/app/routes/mcp.py`)
+- [x] Integrate LangSmith `@traceable` decorators across agent execution nodes and sandbox tools
+- [x] Fix guest session quota retention across browser page refreshes
+- [x] Upgrade LLM synthesis to active Gemini frontier models (`gemini-3.8-flash`, `gemini-3.7-flash`, `gemini-3.5-flash`) with automatic cascading fallbacks
+- [x] Implement robust offline deterministic synthesis fallback with sanitized citations, Mermaid diagrams, and conversational greeting handling
+- [x] Ingest live scraped benchmark datasets across Artificial Analysis, BenchLM (Bench-Align v5), CursorBench 4.0, and OpenRouter
+- [x] Modernize UI with light-mode enterprise palette (`#F4F5F8` canvas, `#004EA1` signature blue) and mobile responsive DAG pipeline

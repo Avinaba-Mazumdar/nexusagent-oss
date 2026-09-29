@@ -133,7 +133,7 @@ graph TB
     end
 
     subgraph MCPHub ["Dual Model Context Protocol Hub"]
-        MCPServer["MCP v2 Server (SSE /api/mcp/sse & Stdio)"]
+        MCPServer["FastMCP Server (FastAPI Mount /api/mcp)"]
         ExternalClients["External Agents (Claude Desktop, Cursor, Antigravity)"]
     end
 
@@ -144,7 +144,7 @@ graph TB
     end
 
     subgraph ExternalServices ["External LLM & Provider APIs"]
-        GeminiFlash["Gemini 2.5 Flash / OpenAI / Anthropic"]
+        GeminiFlash["Gemini 3.8 Flash / 3.7 Flash / Simulator"]
         SimEngine["Deterministic Simulator Engine (Zero Cost)"]
     end
 
@@ -265,11 +265,10 @@ nexusagent-oss/
 │       └── package.json
 ├── knowledge_base/
 │   └── benchmarks/                    # Pre-seeded corpus for zero-friction evaluation
-│       ├── benchlm_evals.md
-│       ├── cursor_bench.md
-│       ├── openrouter_metrics.md
-│       ├── artificial_analysis.md
-│       └── leaks_rumours.md
+│       ├── artificial_analysis.md     # Quality & Speed Matrix, blended costs, TTFT
+│       ├── benchlm_evals.md           # BenchLM Leaderboard (Bench-Align v5)
+│       ├── cursor_bench.md            # CursorBench 4.0 Refactoring Benchmarks
+│       └── openrouter_metrics.md      # Live provider API metrics, pricing & context limits
 ├── target/
 │   ├── ARCHITECTURE.md                # System Architecture & Technical Specification
 │   ├── DESIGN.md                      # Next.js 16 + shadcn/ui Design System Specification
@@ -550,12 +549,18 @@ CREATE TABLE IF NOT EXISTS citations (
     - Request: `{ execution_id: string, approved: boolean, feedback?: string }`
     - Resumes graph execution halted at a Human-in-the-Loop interrupt gate.
 
-### 7.4 Model Context Protocol (MCP v2) Endpoints & Transports
+### 7.4 Model Context Protocol (FastMCP) Endpoints & Transports
 
-- `GET /api/mcp/sse`: Server-Sent Events stream initialization for external MCP clients (Claude Desktop, Cursor, Antigravity).
-- `POST /api/mcp/messages`: Inbound JSON-RPC 2.0 message handler for active SSE client sessions.
-- `POST /api/mcp/v1`: Direct HTTP JSON-RPC 2.0 gateway accepting standard `tools/list`, `tools/call`, and `resources/list`.
-- **Stdio Transport CLI**: `python -m app.mcp.server` for local command-based agent spawning.
+- **FastMCP Sub-Application**: Mounted at `app.mount("/api/mcp", mcp_app)` via the official `fastmcp` SDK (`fastmcp.FastMCP`).
+- **Transport Interfaces**:
+    - `GET /api/mcp/sse`: Server-Sent Events stream initialization for external MCP clients (Claude Desktop, Cursor, Antigravity).
+    - `POST /api/mcp/messages`: Inbound JSON-RPC 2.0 message handler for active SSE client sessions.
+    - **Stdio Transport CLI**: Supported via `fastmcp run app/routes/mcp.py` for direct command-line process spawning.
+- **Registered Tools**:
+    - `hybrid_rag_search(query: str, limit: int = 5)`: Dense cosine + BM25 tsvector search over benchmark docs with RRF ranking.
+    - `python_sandbox(code: str)`: Isolated AST validation and subprocess execution with 5.0s timeout.
+    - `mcp_sql_audit(query: str)`: Safe, read-only transaction execution on Neon PostgreSQL for systems inspection.
+- **Authentication**: Bearer token required on MCP entrypoints.
 
 ---
 

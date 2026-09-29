@@ -40,6 +40,17 @@ Telemetry Scope: Production edge clusters across global provider routes
 | `qwen/qwen-3.7-coder`          | 1,000,000      | $0.22         | $0.88             | -                    | 32,000     | 145 tok/s    |
 | `muse/muse-1.3-spark`          | 512,000        | $0.09         | $0.36             | -                    | 32,000     | 170 tok/s    |
 | `muse/muse-1.2-spark`          | 256,000        | $0.04         | $0.16             | -                    | 16,000     | 210 tok/s    |
+| `openai/chatgpt-6-sol`         | 1,050,000      | $2.00         | $10.00            | -                    | 128,000    | -            |
+| `openai/chatgpt-6-luna`        | 1,050,000      | $0.10         | $0.50             | -                    | 128,000    | -            |
+| `anthropic/claude-opus-5.5`    | 1,000,000      | $4.00         | $20.00            | -                    | 128,000    | -            |
+| `anthropic/claude-sonnet-5.5`  | 1,000,000      | $2.00         | $10.00            | -                    | 128,000    | -            |
+| `google/gemini-3.5-flash`      | 1,048,576      | $1.50         | $9.00             | +$9.00/1M reasoning  | 65,536     | -            |
+| `xai/grok-4.7`                 | 500,000        | $2.00         | $6.00             | -                    | 450,000    | -            |
+| `mimo/mimo-v2.6-pro`           | 1,050,000      | $0.43         | $0.87             | -                    | 131,072    | -            |
+| `mimo/mimo-v2.6-flash`         | 1,048,576      | $0.14         | $0.28             | -                    | 131,072    | -            |
+| `minimax/minimax-m3`           | 1,048,576      | $0.30         | $1.20             | -                    | 512,000    | -            |
+| `typesafe/jev-router`          | 1,000,000      | -             | -                 | -                    | -          | -            |
+| `laya`                         | -              | -             | -                 | -                    | -          | -            |
 
 ---
 
@@ -75,6 +86,17 @@ Time To First Token (TTFT in milliseconds) measured from client edge across Low,
 | `qwen/qwen-3.7-coder`          | 210ms             | 520ms                | 1,450ms            | +105ms              |
 | `muse/muse-1.3-spark`          | -                 | 170ms                | -                  | +80ms               |
 | `muse/muse-1.2-spark`          | -                 | 120ms                | -                  | +55ms               |
+| `openai/chatgpt-6-sol`         | -                 | -                    | -                  | -                   |
+| `openai/chatgpt-6-luna`        | -                 | -                    | -                  | -                   |
+| `anthropic/claude-opus-5.5`    | -                 | -                    | -                  | -                   |
+| `anthropic/claude-sonnet-5.5`  | -                 | -                    | -                  | -                   |
+| `google/gemini-3.5-flash`      | -                 | -                    | -                  | -                   |
+| `xai/grok-4.7`                 | -                 | -                    | -                  | -                   |
+| `mimo/mimo-v2.6-pro`           | -                 | -                    | -                  | -                   |
+| `mimo/mimo-v2.6-flash`         | -                 | -                    | -                  | -                   |
+| `minimax/minimax-m3`           | -                 | -                    | -                  | -                   |
+| `typesafe/jev-router`          | -                 | -                    | -                  | -                   |
+| `laya`                         | -                 | -                    | -                  | -                   |
 
 ---
 

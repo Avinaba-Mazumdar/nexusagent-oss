@@ -23,6 +23,12 @@ Thinking / reasoning effort levels:
 | **OpenAI ChatGPT**   | ChatGPT 6 Astra     | High             | 91.4%    | 98.2%    | 84.6%        | 38.4%     | 1412            |
 |                      |                     | Medium           | 88.7%    | 95.8%    | 80.1%        | 33.2%     | -               |
 |                      |                     | Low              | 84.2%    | 90.4%    | 74.3%        | 27.5%     | -               |
+|                      | ChatGPT 6 Sol       | High             | -        | -        | -            | -         | -               |
+|                      |                     | Medium           | -        | -        | -            | -         | -               |
+|                      |                     | Low              | -        | -        | -            | -         | -               |
+|                      | ChatGPT 6 Luna      | High             | -        | -        | -            | -         | -               |
+|                      |                     | Medium           | -        | -        | -            | -         | -               |
+|                      |                     | Low              | -        | -        | -            | -         | -               |
 |                      | ChatGPT 5.6 Sol     | High             | 88.6%    | 96.1%    | 79.4%        | 32.1%     | 1378            |
 |                      |                     | Medium           | 85.3%    | 92.4%    | 74.8%        | 28.0%     | -               |
 |                      |                     | Low              | 81.0%    | 87.2%    | 68.9%        | 22.4%     | -               |
@@ -32,9 +38,15 @@ Thinking / reasoning effort levels:
 |                      | ChatGPT 5.6 Luna    | High             | 82.3%    | 89.4%    | -            | -         | 1310            |
 |                      |                     | Medium           | -        | -        | -            | -         | -               |
 |                      |                     | Low              | -        | -        | -            | -         | -               |
-| **Anthropic Claude** | Claude Opus 5       | High             | 90.8%    | 97.4%    | 83.9%        | 37.8%     | 1406            |
+| **Anthropic Claude** | Claude Opus 5.5     | High             | -        | -        | -            | -         | 1491            |
+|                      |                     | Medium           | -        | -        | -            | -         | -               |
+|                      |                     | Low              | -        | -        | -            | -         | -               |
+|                      | Claude Opus 5       | High             | 90.8%    | 97.4%    | 83.9%        | 37.8%     | 1406            |
 |                      |                     | Medium           | 87.9%    | 94.6%    | 79.2%        | 32.6%     | -               |
 |                      |                     | Low              | 83.5%    | 89.7%    | 73.5%        | 26.9%     | -               |
+|                      | Claude Sonnet 5.5   | High             | -        | -        | -            | -         | -               |
+|                      |                     | Medium           | -        | -        | -            | -         | -               |
+|                      |                     | Low              | -        | -        | -            | -         | -               |
 |                      | Claude Sonnet 5     | High             | 88.9%    | 96.0%    | 80.4%        | 33.5%     | 1382            |
 |                      |                     | Medium           | 85.8%    | 92.8%    | 75.6%        | 29.1%     | -               |
 |                      |                     | Low              | 81.7%    | 87.9%    | 70.2%        | 23.8%     | -               |
@@ -56,7 +68,13 @@ Thinking / reasoning effort levels:
 |                      | Gemini 3.6 Flash    | High             | 83.1%    | 90.1%    | 72.0%        | -         | 1320            |
 |                      |                     | Medium           | -        | -        | -            | -         | -               |
 |                      |                     | Low              | -        | -        | -            | -         | -               |
-| **xAI Grok**         | Grok 4.6            | High             | 89.5%    | 96.2%    | 81.5%        | 35.1%     | 1391            |
+|                      | Gemini 3.5 Flash    | High             | -        | -        | -            | -         | 1456            |
+|                      |                     | Medium           | -        | -        | -            | -         | -               |
+|                      |                     | Low              | -        | -        | -            | -         | -               |
+| **xAI Grok**         | Grok 4.7            | High             | -        | -        | -            | -         | -               |
+|                      |                     | Medium           | -        | -        | -            | -         | -               |
+|                      |                     | Low              | -        | -        | -            | -         | -               |
+|                      | Grok 4.6            | High             | 89.5%    | 96.2%    | 81.5%        | 35.1%     | 1391            |
 |                      |                     | Medium           | 86.4%    | 93.1%    | 76.8%        | 30.2%     | -               |
 |                      |                     | Low              | 82.0%    | 88.0%    | 71.0%        | 24.8%     | -               |
 |                      | Grok 4.5            | High             | 86.8%    | 93.9%    | 77.2%        | -         | 1358            |
@@ -98,10 +116,65 @@ Thinking / reasoning effort levels:
 |                      | Muse 1.2 Spark      | High             | 81.5     | 88.5%    | -            | -         | -               |
 |                      |                     | Medium           | -        | -        | -            | -         | -               |
 |                      |                     | Low              | -        | -        | -            | -         | -               |
+| **Xiaomi MiMo**      | MiMo V2.6 Pro       | High             | -        | -        | -            | -         | -               |
+|                      |                     | Medium           | -        | -        | -            | -         | -               |
+|                      |                     | Low              | -        | -        | -            | -         | -               |
+|                      | MiMo V2.6 Flash     | High             | -        | -        | -            | -         | -               |
+|                      |                     | Medium           | -        | -        | -            | -         | -               |
+|                      |                     | Low              | -        | -        | -            | -         | -               |
+| **MiniMax**          | Minimax M3          | High             | -        | -        | -            | -         | -               |
+|                      |                     | Medium           | -        | -        | -            | -         | -               |
+|                      |                     | Low              | -        | -        | -            | -         | -               |
+| **TypeSafe**         | Jev                 | High             | -        | -        | -            | -         | -               |
+| **Other**            | Laya                | High             | -        | -        | -            | -         | -               |
 
 ---
 
-## 2. In-Depth Architectural Insights
+## 2. BenchLM Composite Alignment Leaderboard (Bench-Align v5)
+
+Official verified composite scores from `benchlm.ai/evals` (September 2026):
+
+| Model Name              | Provider    | BenchLM Score | Agentic | Coding | Reasoning | Multimodal | Knowledge | Status      |
+| :---------------------- | :---------- | :------------ | :------ | :----- | :-------- | :--------- | :-------- | :---------- |
+| **ChatGPT 6 Astra**     | OpenAI      | 88.50         | 70.67%  | 74.00% | 89.60%    | -          | 86.81%    | Current     |
+| **Claude Opus 5.5**     | Anthropic   | 87.07         | 87.84%  | 83.14% | 82.40%    | 88.80%     | 89.13%    | Current     |
+| **Claude Fable 5.1**    | Anthropic   | 82.96         | 78.85%  | 79.77% | 81.40%    | -          | 85.99%    | Current     |
+| **ChatGPT 6 Sol**       | OpenAI      | 81.08         | 59.99%  | 62.65% | 79.60%    | -          | 79.07%    | Current     |
+| **Claude Sonnet 5.5**   | Anthropic   | 80.49         | 66.17%  | 79.83% | 79.20%    | -          | 80.87%    | Current     |
+| **Claude Opus 5**       | Anthropic   | 79.64         | 77.68%  | 72.11% | 77.30%    | 88.80%     | 81.35%    | Superseded  |
+| **ChatGPT 5.6 Sol**     | OpenAI      | 78.41         | 69.56%  | 70.31% | 71.80%    | 88.60%     | 78.79%    | Superseded  |
+| **MiMo-V2.6-Pro**       | Xiaomi      | 74.71         | 61.59%  | 66.08% | -         | -          | 65.94%    | Current     |
+| **Gemini 3.8 Flash**    | Google      | 73.49         | 64.16%  | 64.09% | 70.60%    | 83.90%     | 74.33%    | Current     |
+| **ChatGPT 5.6 Terra**   | OpenAI      | 72.58         | 59.34%  | 64.25% | 65.50%    | 78.20%     | 71.13%    | Current     |
+| **Kimi K3**             | Moonshot AI | 71.88         | 68.99%  | 61.54% | 65.60%    | 89.40%     | 68.53%    | Current     |
+| **Qwen 3.8 Max**        | Alibaba     | 71.69         | 64.79%  | 55.60% | -         | 88.40%     | 66.65%    | Current     |
+| **Grok 4.6**            | xAI         | 69.02         | 68.05%  | 61.57% | 57.70%    | -          | 69.02%    | Superseded  |
+| **Gemini 3.7 Flash**    | Google      | 67.53         | 57.94%  | 59.41% | -         | 83.60%     | 71.03%    | Superseded  |
+| **Claude Sonnet 5**     | Anthropic   | 66.98         | 64.57%  | 59.79% | -         | 78.40%     | 64.52%    | Superseded  |
+| **ChatGPT 6 Luna**      | OpenAI      | 66.45         | 55.48%  | 51.14% | 55.60%    | -          | 65.34%    | Current     |
+| **ChatGPT 5.6 Luna**    | OpenAI      | 65.55         | 55.23%  | 63.13% | 55.80%    | 68.10%     | 64.66%    | Superseded  |
+| **GLM-5.3**             | Zhipu AI    | 65.44         | 67.37%  | 56.76% | 77.10%    | -          | 61.89%    | Current     |
+| **Grok 4.5**            | xAI         | 65.11         | 56.91%  | 57.98% | 50.40%    | -          | 67.16%    | Superseded  |
+| **Muse Spark 1.2**      | Muse        | 64.92         | 59.28%  | 55.21% | -         | -          | 64.91%    | Established |
+| **Gemini 3.6 Flash**    | Google      | 64.56         | 45.19%  | 53.69% | -         | -          | 64.27%    | Superseded  |
+| **Gemini 3.1 Pro**      | Google      | 64.46         | 40.32%  | 42.30% | -         | 80.10%     | 66.56%    | Current     |
+| **MiMo-V2.6-Flash**     | Xiaomi      | 64.06         | 48.23%  | 49.43% | -         | -          | 54.10%    | Current     |
+| **DeepSeek V4 Pro**     | DeepSeek    | 63.97         | 54.44%  | 49.11% | -         | -          | 63.80%    | Current     |
+| **Gemini 3.5 Flash**    | Google      | 63.41         | 50.51%  | 52.32% | 62.80%    | 87.80%     | 64.37%    | Current     |
+| **Qwen 3.8**            | Alibaba     | 60.82         | 57.25%  | 54.96% | -         | 84.10%     | 57.39%    | Current     |
+| **GLM-5.3-Flash**       | Zhipu AI    | 60.62         | 55.91%  | 52.40% | 77.30%    | 80.40%     | 60.82%    | Current     |
+| **DeepSeek V4.1 Flash** | DeepSeek    | 55.70         | 57.62%  | 49.48% | -         | -          | 61.29%    | Current     |
+| **MiniMax M3**          | MiniMax     | 54.78         | 39.71%  | 38.73% | 79.40%    | 52.00%     | 48.28%    | Current     |
+| **Grok 4.7**            | xAI         | -             | -       | -      | 75.00%    | -          | -         | Tracked     |
+| **Muse 1.3 Spark**      | Muse        | -             | -       | -      | 79.40%    | -          | -         | Tracked     |
+| **Claude 5 Fable**      | Anthropic   | -             | -       | -      | -         | -          | -         | -           |
+| **DeepSeek 4 Flash**    | DeepSeek    | -             | -       | -      | -         | -          | -         | -           |
+| **Jev**                 | TypeSafe    | -             | -       | -      | -         | -          | -         | -           |
+| **Laya**                | Other       | -             | -       | -      | -         | -          | -         | -           |
+
+---
+
+## 3. In-Depth Architectural Insights
 
 - **Thinking Effort Scaling Curves**: Across frontier reasoners (ChatGPT 6 Astra, Claude Opus 5, Gemini 3.1 Pro, DeepSeek V4.0 Pro), transitioning from Low to High reasoning effort provides a measured +8.2% boost on MATH-500 and +11.8% on GPQA Diamond.
 - **Fast Reasoning Breakthroughs**: DeepSeek V4.1 Flash and Gemini 3.8 Flash narrow the gap with prior-generation monolithic frontier models while maintaining high throughput.

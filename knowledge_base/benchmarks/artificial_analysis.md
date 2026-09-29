@@ -37,9 +37,20 @@ Methodology: Independent third-party evaluation across standardized prompt suite
 | **Alibaba**   | Qwen 3.7 Coder      | `qwen/qwen-3.7-coder`          | 89.8                  | $0.72               | 145 tok/s            | 1,450ms          | 9.5 / 10     |
 | **Moonshot**  | Kimi K3             | `moonshot/kimi-k3`             | 92.1                  | $1.30               | 125 tok/s            | 1,920ms          | 9.6 / 10     |
 | **Zhipu**     | GLM 5.3             | `zhipu/glm-5.3`                | 91.5                  | $0.98               | 130 tok/s            | 1,840ms          | 9.7 / 10     |
-| **Zhipu**     | GLM 5.3 Flash       | `zhipu/glm-5.3-flash`          | -                     | $0.23               | 185 tok/s            | 910ms            | -            |
-| **Muse**      | Muse 1.3 Spark      | `muse/muse-1.3-spark`          | -                     | $0.29               | -                    | -                | -            |
+| **Zhipu**     | GLM 5.3 Flash       | `zhipu/glm-5.3-flash`          | 41.8                  | $0.24               | 185 tok/s            | 910ms            | -            |
+| **Muse**      | Muse 1.3 Spark      | `muse/muse-1.3-spark`          | 48.1                  | $2.00               | -                    | 44,850ms         | -            |
 | **Muse**      | Muse 1.2 Spark      | `muse/muse-1.2-spark`          | -                     | $0.13               | -                    | -                | -            |
+| **OpenAI**    | ChatGPT 6 Sol       | `openai/chatgpt-6-sol`         | 47.5                  | $4.00               | -                    | 163,528ms        | -            |
+| **OpenAI**    | ChatGPT 6 Luna      | `openai/chatgpt-6-luna`        | 37.3                  | $0.20               | -                    | 94,118ms         | -            |
+| **Anthropic** | Claude Opus 5.5     | `anthropic/claude-opus-5.5`    | 57.6                  | $8.00               | -                    | 681,274ms        | -            |
+| **Anthropic** | Claude Sonnet 5.5   | `anthropic/claude-sonnet-5.5`  | 56.0                  | $4.00               | -                    | 327,864ms        | -            |
+| **Google**    | Gemini 3.5 Flash    | `google/gemini-3.5-flash`      | 22.2                  | $0.85               | -                    | 9,631ms          | -            |
+| **xAI**       | Grok 4.7            | `xai/grok-4.7`                 | 46.4                  | $3.00               | -                    | 55,256ms         | -            |
+| **Xiaomi**    | MiMo V2.6 Pro       | `mimo/mimo-v2.6-pro`           | 46.3                  | $0.54               | -                    | 50,931ms         | -            |
+| **Xiaomi**    | MiMo V2.6 Flash     | `mimo/mimo-v2.6-flash`         | -                     | -                   | -                    | -                | -            |
+| **MiniMax**   | Minimax M3          | `minimax/minimax-m3`           | 29.2                  | $0.53               | -                    | 17,500ms         | -            |
+| **TypeSafe**  | Jev                 | `typesafe/jev`                 | -                     | -                   | -                    | -                | -            |
+| **Other**     | Laya                | `laya`                         | -                     | -                   | -                    | -                | -            |
 
 ---
 

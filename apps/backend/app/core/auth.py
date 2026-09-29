@@ -8,6 +8,7 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from passlib.context import CryptContext
 
 from app.config import settings
+from app.core.rate_limiter import default_rate_limiter
 from app.db.models import AuthTokens, GuestPassResponse, User, UserSession
 from app.db.neon import NeonDatabase, get_db
 
@@ -205,10 +206,10 @@ async def issue_guest_pass(
         )
         target_user = await db.create_user(user)
 
-    bucket = await db.get_or_create_rate_limit(
+    tokens_remaining = await default_rate_limiter.get_quota(
         user_id=target_user.id,
         client_ip=client_ip,
-        default_tokens=settings.GUEST_QUOTA_DEFAULT,
+        is_guest=True,
     )
 
     token_str, expires_in = create_access_token(
@@ -223,8 +224,8 @@ async def issue_guest_pass(
             tokenType="bearer",
             expiresIn=expires_in,
         ),
-        quotaRemaining=bucket.tokens_remaining,
-        bucketCapacity=bucket.bucket_capacity,
+        quotaRemaining=tokens_remaining,
+        bucketCapacity=settings.GUEST_QUOTA_DEFAULT,
     )
 
 

@@ -167,6 +167,8 @@ class ExecutionResult(BaseModel):
     security_violations: list[str] = Field(default_factory=list)
 
 
+from langsmith import traceable
+
 class PythonSandbox:
     """
     Asynchronous subprocess runner executing AST-verified Python scripts
@@ -176,6 +178,7 @@ class PythonSandbox:
     def __init__(self, default_timeout: float = DEFAULT_TIMEOUT_SECONDS):
         self.default_timeout = min(default_timeout, MAX_TIMEOUT_SECONDS)
 
+    @traceable
     async def execute(
         self,
         code: str,

@@ -122,6 +122,29 @@ class TokenBucketLimiter:
         bucket.tokens_remaining -= 1
         return bucket.tokens_remaining
 
+    async def get_quota(
+        self,
+        user_id: UUID,
+        client_ip: str,
+        is_guest: bool = True,
+    ) -> int:
+        """Fetch current quota without consuming."""
+        default_tokens = 5 if is_guest else 25
+        
+        if self.db and self.db.pool:
+            try:
+                row = await self.db.get_or_create_rate_limit(
+                    user_id, client_ip, default_tokens=default_tokens
+                )
+                return row.tokens_remaining
+            except Exception as e:  # noqa: BLE001
+                logger.warning(
+                    f"Database rate limit query failed, falling back to memory bucket: {e}"
+                )
+                
+        bucket = self._get_memory_bucket(user_id, client_ip, default_tokens)
+        return bucket.tokens_remaining
+
     def reset_for_test(self) -> None:
         """Clear memory cache for test isolation."""
         self._memory_buckets.clear()

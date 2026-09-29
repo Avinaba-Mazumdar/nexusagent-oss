@@ -11,6 +11,7 @@ from app.core.auth import (
     user_to_session,
     verify_google_token,
 )
+from app.core.rate_limiter import default_rate_limiter
 from app.db.models import (
     GoogleAuthRequest,
     GuestPassRequest,
@@ -63,10 +64,10 @@ async def google_auth(
         client_ip=client_ip,
     )
 
-    bucket = await db.get_or_create_rate_limit(
+    tokens_remaining = await default_rate_limiter.get_quota(
         user_id=user.id,
         client_ip=client_ip,
-        default_tokens=25,
+        is_guest=False,
     )
 
     token_str, expires_in = create_access_token(
@@ -79,8 +80,8 @@ async def google_auth(
         tokenType="bearer",
         expiresIn=expires_in,
         user=user_to_session(user),
-        quotaRemaining=bucket.tokens_remaining,
-        bucketCapacity=bucket.bucket_capacity,
+        quotaRemaining=tokens_remaining,
+        bucketCapacity=25,
     )
 
 
@@ -95,17 +96,17 @@ async def get_current_user_profile(
     await db.update_user_last_seen(current_user.id, client_ip)
     current_user.client_ip = client_ip
 
-    bucket = await db.get_or_create_rate_limit(
+    tokens_remaining = await default_rate_limiter.get_quota(
         user_id=current_user.id,
         client_ip=client_ip,
-        default_tokens=settings.GUEST_QUOTA_DEFAULT if current_user.is_guest else 25,
+        is_guest=current_user.is_guest,
     )
 
     return {
         "user": user_to_session(current_user),
         "quota": QuotaStatus(
-            tokensRemaining=bucket.tokens_remaining,
-            bucketCapacity=bucket.bucket_capacity,
+            tokensRemaining=tokens_remaining,
+            bucketCapacity=settings.GUEST_QUOTA_DEFAULT if current_user.is_guest else 25,
             resetMinutes=60,
         ),
     }
@@ -119,10 +120,10 @@ async def refresh_token(
 ):
     """Refresh JWT access token for currently authenticated session."""
     client_ip = get_client_ip(request)
-    bucket = await db.get_or_create_rate_limit(
+    tokens_remaining = await default_rate_limiter.get_quota(
         user_id=current_user.id,
         client_ip=client_ip,
-        default_tokens=settings.GUEST_QUOTA_DEFAULT if current_user.is_guest else 25,
+        is_guest=current_user.is_guest,
     )
 
     token_str, expires_in = create_access_token(
@@ -139,6 +140,6 @@ async def refresh_token(
         tokenType="bearer",
         expiresIn=expires_in,
         user=user_to_session(current_user),
-        quotaRemaining=bucket.tokens_remaining,
-        bucketCapacity=bucket.bucket_capacity,
+        quotaRemaining=tokens_remaining,
+        bucketCapacity=settings.GUEST_QUOTA_DEFAULT if current_user.is_guest else 25,
     )

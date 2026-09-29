@@ -13,6 +13,10 @@ import logging
 from collections.abc import AsyncIterator
 from datetime import UTC, datetime
 
+from langchain_google_genai import ChatGoogleGenerativeAI
+from langchain_core.messages import SystemMessage, HumanMessage
+from langsmith import traceable
+
 from langgraph.graph import END, StateGraph
 
 from app.agent.state import AgentState, Citation, PlanStep
@@ -323,90 +327,57 @@ async def critic_node(state: AgentState) -> AgentState:
     return state
 
 
+@traceable
 async def synthesizer_node(state: AgentState) -> AgentState:
     """
-    Synthesizer Node: Produces verified architectural response with citations and Mermaid diagram.
+    Synthesizer Node: Produces verified architectural response using LLM with fallback routing.
     """
     state.node_history.append("synthesizer")
     state.current_node = "synthesizer"
 
-    parts: list[str] = [f"## Architectural Analysis: {state.query}\n"]
+    models = [
+        "gemini-2.5-flash",
+        "gemini-2.5-flash-lite",
+        "gemini-1.5-flash"
+    ]
+    primary_llm = ChatGoogleGenerativeAI(model=models[0], temperature=0.1)
+    fallback_llms = [ChatGoogleGenerativeAI(model=m, temperature=0.1) for m in models[1:]]
+    llm_chain = primary_llm.with_fallbacks(fallback_llms)
 
-    if state.injection_detected:
-        parts.append(
-            f"> [!CAUTION]\n> **Adversarial Input Quarantined**: {state.injection_reason}. "
-            "Untrusted instructions inside delimiters were safely neutralized.\n\n"
-        )
-
+    context_parts = []
     if state.retrieved_chunks:
-        parts.append("### Grounded Evidence & Specification Invariants\n")
-        for chunk in state.retrieved_chunks[:3]:
-            wrapped_context = wrap_untrusted_context(
-                content=chunk.content.strip(),
-                filename=chunk.filename,
-                start_line=chunk.start_line,
-                end_line=chunk.end_line,
-                doc_id=str(chunk.document_id),
-            )
-            parts.append(f"{wrapped_context}\n\n")
-
+        for chunk in state.retrieved_chunks[:5]:
+            context_parts.append(f"Document File: {chunk.filename}\nContent:\n{chunk.content.strip()}\n")
+    
+    context_str = "\n".join(context_parts)
+    sandbox_str = ""
     if state.tool_results:
-        parts.append("\n### Sandbox Verification Output\n")
-        for res in state.tool_results:
-            if res.get("stdout"):
-                parts.append(f"```text\n{res['stdout']}\n```\n")
+        sandbox_str = "\n".join(res.get("stdout", "") for res in state.tool_results)
 
-    query_lower = state.query.lower()
-    if (
-        "neon" in query_lower
-        or "storage" in query_lower
-        or "safekeeper" in query_lower
-        or "pageserver" in query_lower
-    ):
-        diagram = """```mermaid
-flowchart TD
-    Client["Application Client"] -->|SQL Query| Compute["Stateless Compute Node (microVM)"]
-    Compute -->|Stream WAL (Fastpath)| SK1["Safekeeper 1 (AZ-1)"]
-    Compute -->|Stream WAL| SK2["Safekeeper 2 (AZ-2)"]
-    Compute -->|Stream WAL| SK3["Safekeeper 3 (AZ-3)"]
-    SK1 -->|Paxos Quorum Ack (<4.2ms)| Compute
-    SK2 -->|Paxos Quorum Ack| Compute
-    SK1 -.->|Async Timeline Feed| PS["Pageserver LSM Storage Engine"]
-    PS -.->|Immutable Base Layers| S3["AWS S3 / Cloudflare R2 Archive"]
-```"""
-    elif (
-        "cursor" in query_lower
-        or "bench" in query_lower
-        or "sonnet" in query_lower
-        or "model" in query_lower
-    ):
-        diagram = """```mermaid
-flowchart LR
-    Claude["Claude 3.7 Sonnet (High Effort)"] -->|CursorBench: 82.4%| TopTier["Leaderboard Tier 1"]
-    Gemini["Gemini 2.5 Flash"] -->|CursorBench: 78.1%| FastTier["Leaderboard Tier 1 (Fast)"]
-    DeepSeek["DeepSeek R1 / V3"] -->|CursorBench: 76.5%| OpenTier["Open Weights Tier"]
-```"""
-    else:
-        diagram = """```mermaid
-flowchart TD
-    Client["Client Application"] -->|Write Request| Leader["Raft Leader Node"]
-    Leader -->|Replicate Log| Follower1["Follower 1 (AZ-1)"]
-    Leader -->|Replicate Log| Follower2["Follower 2 (AZ-2)"]
-    Follower1 -->|Ack| Leader
-    Follower2 -->|Ack| Leader
-    Leader -->|Commit & Respond| Client
-```"""
-    parts.append("\n### State Machine Sequence Diagram\n\n" + diagram)
-    state.mermaid_diagrams.append(diagram)
+    sys_prompt = f"""You are a senior system architect. 
+You are provided with architectural context and optionally sandbox results.
+Respond directly to the user's query. Do NOT use pleasantries. Be highly technical.
+Include a Markdown Mermaid diagram if it makes sense.
 
-    parts.append(
-        f"\n\n---\n*Synthesis verified by Reflection Critic "
-        f"(Soundness Score: {state.reflection_score}, Iterations: {state.iteration_count})*"
-    )
+CRITICAL GUARDRAIL: If the provided context does NOT contain the information needed to answer the query, you MUST refuse to answer and state that you can only answer questions based on the RAG documents.
 
-    state.response = "\n".join(parts)
+Context:
+{context_str}
 
-    # Security check: verify private canary was not leaked
+Sandbox Results:
+{sandbox_str}
+"""
+    
+    try:
+        response = await llm_chain.ainvoke([
+            SystemMessage(content=sys_prompt),
+            HumanMessage(content=state.query)
+        ])
+        state.response = response.content
+    except Exception as e:
+        logger.error(f"LLM Synthesis failed: {e}")
+        state.response = f"Synthesis failed due to API error: {e}"
+
     if state.canary_token and not verify_canary_integrity(state.response, state.canary_token):
         logger.error(f"Canary token leak detected in session {state.session_id}!")
 

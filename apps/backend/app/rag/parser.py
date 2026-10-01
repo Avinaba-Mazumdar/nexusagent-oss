@@ -6,6 +6,7 @@ from uuid import UUID
 from llama_index.core import Document as LlamaDocument
 from llama_index.core.node_parser import MarkdownNodeParser
 
+from app.core.security_guardrails import scrub_sensitive_information
 from app.db.models import DocumentChunk
 
 logger = logging.getLogger("nexusagent.rag.parser")
@@ -110,7 +111,7 @@ class MarkdownHierarchicalParser:
         Extracts header hierarchy, start_line, end_line, char_count, token_count, and SHA-256 hash.
         """
         extra_metadata = extra_metadata or {}
-        clean_text = markdown_text.strip()
+        clean_text = scrub_sensitive_information(markdown_text).strip()
         if not clean_text:
             return []
 

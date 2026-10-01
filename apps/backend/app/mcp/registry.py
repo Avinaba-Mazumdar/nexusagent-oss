@@ -13,6 +13,7 @@ from pathlib import Path
 from typing import Any
 
 from app.core.sandbox import default_python_sandbox
+from app.core.security_guardrails import compute_mcp_tool_hash, scan_mcp_tool_metadata
 from app.db.neon import neon_db
 from app.mcp.protocol import (
     ResourceDefinition,
@@ -83,6 +84,11 @@ TOOLS: list[ToolDefinition] = [
     ),
 ]
 
+# Pinned cryptographic schema hashes for zero-trust MCP tool integrity (detects rug pull modifications)
+PINNED_TOOL_HASHES: dict[str, str] = {
+    tool.name: compute_mcp_tool_hash(tool) for tool in TOOLS
+}
+
 
 # Resource Definitions
 STATIC_RESOURCES: list[ResourceDefinition] = [
@@ -114,11 +120,54 @@ STATIC_RESOURCES: list[ResourceDefinition] = [
 
 
 class McpRegistry:
-    """Manages MCP tool execution, resource listing, and protocol dispatch."""
+    """Manages MCP tool execution, resource listing, and protocol dispatch with zero-trust validation."""
 
-    @staticmethod
-    def get_tools() -> list[dict[str, Any]]:
-        return [tool.model_dump() for tool in TOOLS]
+    @classmethod
+    def validate_tool_integrity(cls, tool: ToolDefinition) -> tuple[bool, str | None]:
+        """
+        Verify tool against Invariant Labs MCP tool poisoning attacks & rug pull hash drift.
+        Returns (is_valid, failure_reason).
+        """
+        is_poisoned, reason = scan_mcp_tool_metadata(tool)
+        if is_poisoned:
+            return False, reason
+
+        expected_hash = PINNED_TOOL_HASHES.get(tool.name)
+        if expected_hash:
+            current_hash = compute_mcp_tool_hash(tool)
+            if current_hash != expected_hash:
+                return False, (
+                    f"Tool integrity violation: Schema hash mismatch for '{tool.name}' "
+                    f"(expected {expected_hash[:12]}..., got {current_hash[:12]}...). "
+                    "Possible unauthorized runtime tampering (rug pull attack)."
+                )
+        return True, None
+
+    @classmethod
+    def register_tool(cls, tool: ToolDefinition) -> tuple[bool, str | None]:
+        """
+        Register a new tool with mandatory Invariant Labs tool poisoning inspection.
+        """
+        is_valid, reason = cls.validate_tool_integrity(tool)
+        if not is_valid:
+            logger.warning("Rejected untrusted MCP tool registration '%s': %s", tool.name, reason)
+            return False, reason
+        TOOLS.append(tool)
+        PINNED_TOOL_HASHES[tool.name] = compute_mcp_tool_hash(tool)
+        return True, None
+
+    @classmethod
+    def get_tools(cls) -> list[dict[str, Any]]:
+        safe_tools = []
+        for tool in TOOLS:
+            is_valid, reason = cls.validate_tool_integrity(tool)
+            if not is_valid:
+                logger.error("Skipping untrusted/poisoned MCP tool '%s': %s", tool.name, reason)
+                continue
+            dumped = tool.model_dump()
+            dumped["schemaHash"] = compute_mcp_tool_hash(tool)
+            safe_tools.append(dumped)
+        return safe_tools
 
     @staticmethod
     def get_resources() -> list[dict[str, Any]]:
@@ -171,7 +220,26 @@ class McpRegistry:
 
     @classmethod
     async def call_tool(cls, name: str, arguments: dict[str, Any]) -> ToolCallResult:
-        """Route and execute tool invocation."""
+        """Route and execute tool invocation with pre-execution poisoning & integrity gates."""
+        target_tool = next((t for t in TOOLS if t.name == name), None)
+        if not target_tool:
+            return ToolCallResult(
+                content=[
+                    ToolCallContent(
+                        text=f"Unknown tool '{name}'. Available: {', '.join(t.name for t in TOOLS)}"
+                    )
+                ],
+                isError=True,
+            )
+
+        is_valid, reason = cls.validate_tool_integrity(target_tool)
+        if not is_valid:
+            logger.critical("Execution blocked for poisoned/tampered MCP tool '%s': %s", name, reason)
+            return ToolCallResult(
+                content=[ToolCallContent(text=f"Security Violation: {reason}")],
+                isError=True,
+            )
+
         if name == "hybrid_rag_search":
             return await cls._exec_hybrid_search(arguments)
         elif name == "python_sandbox":

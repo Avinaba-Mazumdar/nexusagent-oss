@@ -42,7 +42,10 @@ class Settings(BaseSettings):
     USE_SIMULATION_FALLBACK: bool = True
 
     model_config = SettingsConfigDict(
-        env_file=(str(BACKEND_DIR / ".env"), ".env"),
+        env_file=(
+            str(BACKEND_DIR / ".env.local"),
+            ".env.local",
+        ),
         env_file_encoding="utf-8",
         extra="ignore",
     )

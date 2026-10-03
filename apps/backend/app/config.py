@@ -1,5 +1,6 @@
 from pathlib import Path
 
+from pydantic import model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 BACKEND_DIR = Path(__file__).resolve().parent.parent
@@ -9,7 +10,7 @@ class Settings(BaseSettings):
     APP_NAME: str = "NexusAgent"
     VERSION: str = "0.1.0-alpha"
     ENVIRONMENT: str = "development"
-    DEBUG: bool = True
+    DEBUG: bool = False
 
     HOST: str = "0.0.0.0"
     PORT: int = 8000
@@ -40,6 +41,20 @@ class Settings(BaseSettings):
     GEMINI_API_KEY: str = ""
     GOOGLE_CLIENT_ID: str = ""
     USE_SIMULATION_FALLBACK: bool = True
+
+    @model_validator(mode="after")
+    def validate_production_secrets(self) -> "Settings":
+        insecure_default = "nexusagent-dev-insecure-secret-key-change-in-production-12345"
+        if self.ENVIRONMENT in ("production", "prod", "staging"):
+            if not self.JWT_SECRET_KEY or self.JWT_SECRET_KEY == insecure_default:
+                raise ValueError(
+                    "JWT_SECRET_KEY must be set to a secure, unique secret in production/staging environments."
+                )
+            if len(self.JWT_SECRET_KEY) < 32:
+                raise ValueError("JWT_SECRET_KEY must be at least 32 characters in production.")
+            if self.DEBUG:
+                raise ValueError("DEBUG mode cannot be enabled in production/staging environments.")
+        return self
 
     model_config = SettingsConfigDict(
         env_file=(

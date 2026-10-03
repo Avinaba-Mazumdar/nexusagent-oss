@@ -57,19 +57,20 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-# Standard permissive CORS setup for OSS development & local frontends
+# Hardened CORS configuration: explicit origins from settings, restrictive methods and headers
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:3000",
-        "http://localhost:3001",
-        "http://127.0.0.1:3000",
-        "http://127.0.0.1:3001",
-        "https://nexusagent-oss.vercel.app",
-    ],
+    allow_origins=settings.CORS_ORIGINS,
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+    allow_headers=[
+        "Content-Type",
+        "Authorization",
+        "X-Requested-With",
+        "Accept",
+        "Origin",
+        "X-Device-Id",
+    ],
 )
 
 app.include_router(health_router)

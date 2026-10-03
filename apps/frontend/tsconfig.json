@@ -19,7 +19,9 @@
             }
         ],
         "paths": {
-            "@/*": ["./*"]
+            "@/*": ["./*"],
+            "@nexusagent/contracts": ["../../packages/contracts/src/index.ts"],
+            "@nexusagent/contracts/*": ["../../packages/contracts/src/*"]
         }
     },
     "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts", ".next/dev/types/**/*.ts", "**/*.mts"],

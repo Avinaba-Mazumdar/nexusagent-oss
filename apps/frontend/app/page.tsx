@@ -29,6 +29,7 @@ import { Input } from '@/components/ui/input';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Switch } from '@/components/ui/switch';
 import { useAuthStore } from '@/lib/auth-store';
+import { API_BASE } from '@/lib/api-client';
 import { HireMeModal } from '@/components/hire-me-modal';
 import { ByokModal } from '@/components/byok-modal';
 import { ObservabilityPanel, type LogEntry, type TelemetryMetrics } from '@/components/observability-panel';
@@ -51,8 +52,6 @@ interface SeededDoc {
     total_chunks: number;
     uploaded_at?: string;
 }
-
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
 export default function Home() {
     const [prompt, setPrompt] = React.useState('');
@@ -281,6 +280,12 @@ export default function Home() {
         const query = prompt.trim();
         if (!query || agentStream.isStreaming) return;
 
+        // If user is not authenticated, open sign-in dialog and abort workflow
+        if (!token) {
+            setDialogOpen(true);
+            return;
+        }
+
         // Check if demo quota is exhausted and not BYOK
         if (!byokKey && quotaRemaining <= 0) {
             setHireMeModalOpen(true);
@@ -398,7 +403,7 @@ export default function Home() {
                                             {user.name
                                                 ? user.name
                                                       .split(' ')
-                                                      .map((n) => n[0])
+                                                      .map((n: string) => n[0])
                                                       .join('')
                                                       .slice(0, 2)
                                                       .toUpperCase()
@@ -416,7 +421,7 @@ export default function Home() {
                                             {user.name
                                                 ? user.name
                                                       .split(' ')
-                                                      .map((n) => n[0])
+                                                      .map((n: string) => n[0])
                                                       .join('')
                                                       .slice(0, 2)
                                                       .toUpperCase()

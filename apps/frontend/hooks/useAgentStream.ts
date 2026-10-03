@@ -4,7 +4,7 @@ import * as React from 'react';
 import type { AgentInvokeResponse, Citation, PlanStep } from '@nexusagent/contracts';
 import type { LogEntry, TelemetryMetrics } from '@/components/observability-panel';
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+import { API_BASE } from '@/lib/api-client';
 
 export interface UseAgentStreamOptions {
     onLog?: (entry: LogEntry) => void;

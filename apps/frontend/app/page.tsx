@@ -31,7 +31,6 @@ import { Switch } from '@/components/ui/switch';
 import { useAuthStore } from '@/lib/auth-store';
 import { API_BASE } from '@/lib/api-client';
 import { HireMeModal } from '@/components/hire-me-modal';
-import { ByokModal } from '@/components/byok-modal';
 import { ObservabilityPanel, type LogEntry, type TelemetryMetrics } from '@/components/observability-panel';
 import { useAgentStream } from '@/hooks/useAgentStream';
 import { MarkdownRenderer } from '@/components/canvas';
@@ -60,10 +59,6 @@ export default function Home() {
     const [isDarkTheme, setIsDarkTheme] = React.useState(false);
     const [, setGisLoaded] = React.useState(false);
     const [hireMeModalOpen, setHireMeModalOpen] = React.useState(false);
-    const [isUploading, setIsUploading] = React.useState(false);
-    const [uploadError, setUploadError] = React.useState<string | null>(null);
-    const fileInputRef = React.useRef<HTMLInputElement | null>(null);
-    const [byokModalOpen, setByokModalOpen] = React.useState(false);
     const [seededDocs, setSeededDocs] = React.useState<SeededDoc[]>([]);
     const [messages, setMessages] = React.useState<ChatItem[]>([]);
     const [mobileActiveTab, setMobileActiveTab] = React.useState<'workspace' | 'chat' | 'observability'>('chat');
@@ -183,43 +178,6 @@ export default function Home() {
     React.useEffect(() => {
         fetchDocs();
     }, [fetchDocs]);
-
-    const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-        const file = event.target.files?.[0];
-        if (!file) return;
-
-        if (!token) {
-            setDialogOpen(true);
-            return;
-        }
-
-        setIsUploading(true);
-        setUploadError(null);
-        const formData = new FormData();
-        formData.append('file', file);
-
-        try {
-            const res = await fetch(`${API_BASE}/api/documents/upload`, {
-                method: 'POST',
-                headers: {
-                    Authorization: `Bearer ${token}`
-                },
-                body: formData
-            });
-
-            if (!res.ok) {
-                const errData = await res.json().catch(() => ({}));
-                throw new Error(errData.detail || `Upload failed with status ${res.status}`);
-            }
-
-            await fetchDocs();
-            if (fileInputRef.current) fileInputRef.current.value = '';
-        } catch (err) {
-            setUploadError(err instanceof Error ? err.message : 'Upload failed');
-        } finally {
-            setIsUploading(false);
-        }
-    };
 
     const gsiInitializedRef = React.useRef(false);
     const handleCredentialRef = React.useRef<((credential: string) => Promise<void>) | null>(null);
@@ -364,7 +322,7 @@ export default function Home() {
                     <Button
                         variant={byokKey ? 'default' : 'outline'}
                         size="sm"
-                        onClick={() => setByokModalOpen(true)}
+                        onClick={() => setHireMeModalOpen(true)}
                         className={`text-xs font-semibold gap-1.5 rounded-xl border-border h-9 ${
                             byokKey ? 'bg-primary text-primary-foreground shadow-xs' : 'hover:bg-secondary'
                         }`}
@@ -673,34 +631,16 @@ export default function Home() {
                             </div>
 
                             {/* Hidden native file input for Markdown documents */}
-                            <input
-                                ref={fileInputRef}
-                                type="file"
-                                accept=".md,.markdown,.txt"
-                                onChange={handleFileUpload}
-                                className="hidden"
-                                aria-label="Upload Markdown or RFC document"
-                            />
-
                             {/* Document Upload Button */}
                             <Button
                                 variant="default"
                                 size="sm"
-                                disabled={isUploading}
-                                onClick={() => {
-                                    if (!token) {
-                                        setDialogOpen(true);
-                                    } else {
-                                        fileInputRef.current?.click();
-                                    }
-                                }}
-                                className="w-full justify-center gap-1.5 text-xs font-bold rounded-xl mt-2 shadow-2xs h-9"
+                                onClick={() => setHireMeModalOpen(true)}
+                                className="w-full justify-center gap-1.5 text-xs font-bold rounded-xl mt-2 shadow-2xs h-9 cursor-pointer"
                             >
-                                {isUploading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <UploadCloud className="h-3.5 w-3.5" />}
-                                <span>{isUploading ? 'Parsing & Indexing...' : 'Upload Markdown (.md)'}</span>
+                                <UploadCloud className="h-3.5 w-3.5" />
+                                <span>Upload Markdown (.md)</span>
                             </Button>
-
-                            {uploadError && <p className="text-[10px] text-destructive text-center font-medium">{uploadError}</p>}
 
                             {/* Lead Magnet Link */}
                             <button
@@ -748,8 +688,8 @@ export default function Home() {
                                     <Button
                                         size="sm"
                                         variant="outline"
-                                        onClick={() => setByokModalOpen(true)}
-                                        className="text-xs font-semibold rounded-xl h-8 gap-1"
+                                        onClick={() => setHireMeModalOpen(true)}
+                                        className="text-xs font-semibold rounded-xl h-8 gap-1 cursor-pointer"
                                     >
                                         <KeyRound className="h-3.5 w-3.5" />
                                         <span>Use My Key</span>
@@ -931,7 +871,6 @@ export default function Home() {
 
             {/* Modals */}
             <HireMeModal open={hireMeModalOpen} onOpenChange={setHireMeModalOpen} />
-            <ByokModal open={byokModalOpen} onOpenChange={setByokModalOpen} />
             <ApprovalModal open={Boolean(agentStream.pendingApproval)} approval={agentStream.pendingApproval} onResolve={agentStream.resolveApproval} />
         </div>
     );

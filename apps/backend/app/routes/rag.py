@@ -2,10 +2,11 @@ import logging
 from typing import Any
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, Header, HTTPException, Request, status
 from pydantic import BaseModel, Field
 
-from app.core.auth import get_current_user
+from app.core.auth import get_client_ip, get_current_user, validate_byok_key
+from app.core.rate_limiter import default_rate_limiter
 from app.db.models import User
 from app.db.neon import NeonDatabase, get_db
 from app.rag.hybrid_search import HybridSearchEngine
@@ -78,13 +79,24 @@ class HybridSearchResponseWire(BaseModel):
 @router.post("/search", response_model=HybridSearchResponseWire)
 async def hybrid_search_documents(
     payload: HybridSearchRequestWire,
+    request: Request,
     current_user: User = Depends(get_current_user),
+    byok_key: str | None = Header(None, alias="X-User-API-Key"),
     db: NeonDatabase = Depends(get_db),
 ):
     """
     Execute hybrid dense (pgvector HNSW) and sparse (BM25 tsvector GIN) search
-    with Reciprocal Rank Fusion (RRF) re-ranking.
+    with Reciprocal Rank Fusion (RRF) re-ranking. Metered by token bucket rate limiter.
     """
+    client_ip = get_client_ip(request)
+    byok_key = validate_byok_key(byok_key)
+
+    await default_rate_limiter.check_and_consume(
+        user_id=current_user.id,
+        client_ip=client_ip,
+        is_guest=current_user.is_guest,
+        byok_key=byok_key,
+    )
     doc_uuid: UUID | None = None
     if payload.documentId:
         try:

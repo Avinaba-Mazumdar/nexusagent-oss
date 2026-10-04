@@ -1,6 +1,7 @@
 import ast
 import asyncio
 import logging
+import os
 import sys
 import time
 
@@ -50,6 +51,9 @@ BLOCKED_BUILTINS = {
     "locals",
     "vars",
     "delattr",
+    "getattr",
+    "setattr",
+    "hasattr",
 }
 
 # Forbidden dunder / private escape attributes
@@ -126,10 +130,18 @@ class ASTSecurityValidator(ast.NodeVisitor):
         self.generic_visit(node)
 
     def visit_Attribute(self, node: ast.Attribute) -> None:
-        if node.attr in BLOCKED_ATTRIBUTES:
+        if node.attr in BLOCKED_ATTRIBUTES or (node.attr.startswith("__") and node.attr.endswith("__")):
             self.violations.append(
                 f"Line {node.lineno}: Prohibited access to dunder/private attribute '{node.attr}'."
             )
+        self.generic_visit(node)
+
+    def visit_Constant(self, node: ast.Constant) -> None:
+        if isinstance(node.value, str):
+            if node.value in BLOCKED_ATTRIBUTES or (node.value.startswith("__") and node.value.endswith("__")):
+                self.violations.append(
+                    f"Line {node.lineno}: Prohibited dunder reflection string '{node.value}'."
+                )
         self.generic_visit(node)
 
 
@@ -203,14 +215,21 @@ class PythonSandbox:
             )
 
         # 2. Spawn isolated Python subprocess
-        # Python flags: -c to run string code, -u for unbuffered binary stdout and stderr
-        cmd = [sys.executable, "-u", "-c", code]
+        # Python flags: -I (isolated mode), -S (don't import site), -u (unbuffered binary stdout and stderr)
+        cmd = [sys.executable, "-I", "-S", "-u", "-c", code]
+        # Restrict environment inheritance to prevent leaking server env/secrets
+        safe_env = {
+            "SYSTEMROOT": os.environ.get("SYSTEMROOT", "C:\\Windows"),
+            "PATH": os.environ.get("PATH", ""),
+            "PYTHONHASHSEED": "0",
+        }
 
         try:
             process = await asyncio.create_subprocess_exec(
                 *cmd,
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.PIPE,
+                env=safe_env,
             )
 
             try:

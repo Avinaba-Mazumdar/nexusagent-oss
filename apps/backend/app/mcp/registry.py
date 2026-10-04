@@ -93,18 +93,6 @@ PINNED_TOOL_HASHES: dict[str, str] = {
 # Resource Definitions
 STATIC_RESOURCES: list[ResourceDefinition] = [
     ResourceDefinition(
-        uri="rfc://104-raft-consensus",
-        name="RFC-104: Raft Consensus vs Multi-Paxos",
-        description="Leader election invariants, log replication guarantees, and quorum models.",
-        mimeType="text/markdown",
-    ),
-    ResourceDefinition(
-        uri="rfc://neon-storage-architecture",
-        name="Neon Storage Architecture Whitepaper",
-        description="Serverless PostgreSQL compute-storage separation and page server invariants.",
-        mimeType="text/markdown",
-    ),
-    ResourceDefinition(
         uri="benchmark://benchlm-2026",
         name="BenchLM 2026 AI Model Intelligence & Latency Suite",
         description="Weekly frontier model reasoning, throughput, and TTFT benchmarks.",
@@ -177,8 +165,6 @@ class McpRegistry:
     async def read_resource(uri: str) -> dict[str, Any]:
         """Read resource content by URI."""
         filename_map = {
-            "rfc://104-raft-consensus": "rfc_104_consensus.md",
-            "rfc://neon-storage-architecture": "neon_storage_architecture.md",
             "benchmark://benchlm-2026": "benchlm_evals.md",
             "benchmark://cursorbench-coding": "cursor_bench.md",
         }

@@ -8,27 +8,25 @@ from app.rag.hybrid_search import HybridSearchEngine
 
 
 @pytest.mark.asyncio
-async def test_offline_hybrid_search_rfc104_and_neon():
-    """Verify offline search reads bundled RFC-104 and Neon architecture files without DB pool."""
+async def test_offline_hybrid_search_benchmarks():
+    """Verify offline search reads bundled benchmark files without DB pool."""
     engine = HybridSearchEngine(db=None)
 
-    # Search for Raft consensus invariants
-    raft_results = await engine._search_offline_knowledge_base(
-        query="Raft leader election randomized election timer and majority quorum",
+    # Search for BenchLM evals
+    benchlm_results = await engine._search_offline_knowledge_base(
+        query="BenchLM model intelligence latency and throughput",
         limit=5,
     )
-    assert len(raft_results) > 0
-    assert any("rfc_104_consensus.md" == r.filename for r in raft_results)
-    assert any("Raft" in r.content or "quorum" in r.content.lower() for r in raft_results)
+    assert len(benchlm_results) > 0
+    assert any("benchlm_evals.md" == r.filename for r in benchlm_results)
 
-    # Search for Neon storage architecture
-    neon_results = await engine._search_offline_knowledge_base(
-        query="Neon Pageserver LSM tree Safekeeper WAL replication",
+    # Search for CursorBench coding evals
+    cursor_results = await engine._search_offline_knowledge_base(
+        query="CursorBench coding leaderboard benchmark",
         limit=5,
     )
-    assert len(neon_results) > 0
-    assert any("neon_storage_architecture.md" == r.filename for r in neon_results)
-    assert any("Pageserver" in r.content or "Safekeeper" in r.content for r in neon_results)
+    assert len(cursor_results) > 0
+    assert any("cursor_bench.md" == r.filename for r in cursor_results)
 
 
 @pytest.mark.db

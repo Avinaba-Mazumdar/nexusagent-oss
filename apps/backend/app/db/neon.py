@@ -62,6 +62,18 @@ class NeonDatabase:
         async with pool.acquire() as conn:
             await conn.execute(migration_sql)
 
+    async def fetch(self, query: str, *args: Any) -> list[asyncpg.Record]:
+        """Execute query and fetch all records."""
+        pool = self.get_pool()
+        async with pool.acquire() as conn:
+            return await conn.fetch(query, *args)
+
+    async def fetchrow(self, query: str, *args: Any) -> asyncpg.Record | None:
+        """Execute query and fetch a single record."""
+        pool = self.get_pool()
+        async with pool.acquire() as conn:
+            return await conn.fetchrow(query, *args)
+
     async def create_user(self, user: User) -> User:
         """Insert a new user record."""
         pool = self.get_pool()

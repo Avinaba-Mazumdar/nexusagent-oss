@@ -102,7 +102,7 @@
 
 ### Phase 12: Deterministic Showcase & 1-Click Guest Experience [Completed]
 
-- [x] Bundle pre-seeded RFCs (`RFC-104` Raft vs Multi-Paxos, Neon Storage Architecture)
+- [x] Bundle pre-seeded knowledge benchmarks (BenchLM, CursorBench, OpenRouter, Artificial Analysis)
 - [x] Implement deterministic cached execution simulator for zero-cost demos
 - [x] Polish 1-Click Guest experience with pre-loaded quota badge
 - [x] Run end-to-end demo flow validation

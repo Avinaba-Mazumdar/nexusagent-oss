@@ -45,16 +45,25 @@ def test_embedding_determinism():
 @pytest.mark.asyncio
 async def test_embedding_service_batch():
     """Verify EmbeddingService processes batch inputs."""
-    service = EmbeddingService()
-    texts = [
-        "Distributed consensus protocol",
-        "AST execution sandbox",
-        "Vector search with pgvector",
-    ]
-    results = await service.get_embeddings(texts)
-    assert len(results) == 3
-    for r in results:
-        assert len(r) == EMBEDDING_DIMENSION
+    from unittest.mock import AsyncMock, MagicMock, patch
+
+    mock_resp = MagicMock()
+    mock_resp.status_code = 200
+    mock_resp.json.return_value = {
+        "embeddings": [{"values": [0.1] * EMBEDDING_DIMENSION} for _ in range(3)]
+    }
+
+    with patch("httpx.AsyncClient.post", new_callable=AsyncMock, return_value=mock_resp):
+        service = EmbeddingService()
+        texts = [
+            "Distributed consensus protocol",
+            "AST execution sandbox",
+            "Vector search with pgvector",
+        ]
+        results = await service.get_embeddings(texts)
+        assert len(results) == 3
+        for r in results:
+            assert len(r) == EMBEDDING_DIMENSION
 
 
 def test_rrf_scoring_algorithm():

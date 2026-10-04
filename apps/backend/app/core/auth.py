@@ -237,7 +237,7 @@ async def verify_google_token(credential: str) -> dict:
     is_mock = credential.startswith(("mock-google-token:", "test-"))
     if is_mock:
         allowed_environments = ("development", "test", "testing")
-        if settings.USE_SIMULATION_FALLBACK and settings.ENVIRONMENT in allowed_environments:
+        if settings.ENVIRONMENT in allowed_environments:
             parts = credential.split(":")
             email = parts[1] if len(parts) > 1 else "architect@nexusagent.internal"
             name = parts[2] if len(parts) > 2 else "Test Architect"

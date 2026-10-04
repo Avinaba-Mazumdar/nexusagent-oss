@@ -67,18 +67,13 @@ class EmbeddingService:
 
     async def get_embeddings(self, texts: Sequence[str]) -> list[list[float]]:
         """
-        Generate 768-d dense embeddings for a batch of text strings.
-
-        Live mode: uses the Google Gemini API whenever an API key is configured.
-        Simulator mode: with no key, returns deterministic vectors (zero-cost demo mode).
-        USE_SIMULATION_FALLBACK only controls behavior when a configured provider *fails*;
-        it never silences a working API key.
+        Generate 768-d dense embeddings for a batch of text strings via Google Gemini API.
         """
         if not texts:
             return []
 
         if not self.api_key:
-            return [generate_deterministic_embedding(t, self.dimension) for t in texts]
+            raise RuntimeError("GEMINI_API_KEY is not configured for EmbeddingService.")
 
         try:
             url = f"{GEMINI_API_URL}/{GEMINI_EMBED_MODEL}:batchEmbedContents?key={self.api_key}"
@@ -96,20 +91,12 @@ class EmbeddingService:
                     embeddings = [item["values"] for item in data.get("embeddings", [])]
                     if len(embeddings) == len(texts):
                         return embeddings
-                logger.warning(
-                    f"Gemini embedding API returned status {response.status_code}; using deterministic fallback."
+                raise RuntimeError(
+                    f"Gemini embedding API failed with status code {response.status_code}: {response.text}"
                 )
-        except (httpx.HTTPError, OSError, ValueError, KeyError) as e:
-            logger.warning(f"Error calling Gemini Embedding API: {e}")
-
-        if not settings.USE_SIMULATION_FALLBACK:
-            raise RuntimeError(
-                "Gemini embedding provider unavailable and USE_SIMULATION_FALLBACK is disabled. "
-                "Set GEMINI_API_KEY or re-enable the deterministic simulator fallback."
-            )
-
-        logger.warning("Falling back to deterministic simulator embeddings.")
-        return [generate_deterministic_embedding(t, self.dimension) for t in texts]
+        except Exception as e:
+            logger.error(f"Error calling Gemini Embedding API: {e}")
+            raise RuntimeError(f"Gemini embedding provider unavailable: {e}") from e
 
 
 default_embedding_service = EmbeddingService()

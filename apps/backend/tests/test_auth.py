@@ -147,7 +147,7 @@ async def test_google_oauth_endpoint():
 async def test_google_oauth_mock_disabled_in_production(monkeypatch):
     from app.config import settings
 
-    monkeypatch.setattr(settings, "USE_SIMULATION_FALLBACK", False)
+    monkeypatch.setattr(settings, "ENVIRONMENT", "production")
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
         mock_cred = "mock-google-token:attacker@nexusagent.internal:Attacker"

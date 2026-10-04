@@ -43,28 +43,40 @@ def test_canary_token_generation_and_integrity():
 
 @pytest.mark.asyncio
 async def test_canary_leak_aborts_synthesized_response():
-    from unittest.mock import patch
+    from unittest.mock import AsyncMock, patch
     from app.agent.graph import synthesizer_node
     from app.agent.state import AgentState
 
     canary = generate_canary_token()
     state = AgentState(query="Ping test", canary_token=canary)
+    mock_clean_chain = AsyncMock()
+    mock_clean_resp = AsyncMock()
+    mock_clean_resp.content = "Normal answer without leak"
+    mock_clean_chain.ainvoke.return_value = mock_clean_resp
 
-    with patch("app.agent.graph.settings") as mock_settings:
-        mock_settings.GEMINI_API_KEY = None
-        mock_settings.USE_SIMULATION_FALLBACK = True
+    with patch("app.agent.graph.settings") as mock_settings, \
+         patch("app.agent.graph.ChatGoogleGenerativeAI") as mock_chat:
+        mock_settings.GEMINI_API_KEY = "test-key"
+        mock_chat.return_value.with_fallbacks.return_value = mock_clean_chain
         clean_state = await synthesizer_node(state)
         assert clean_state.injection_detected is False
 
     # Simulate model leaking the canary token
-    state2 = AgentState(query="Ping test", canary_token=canary)
+    state2 = AgentState(query="benchmark query", canary_token=canary)
+    mock_llm_chain = AsyncMock()
+    mock_response = AsyncMock()
+    mock_response.content = f"Leaked secret: {canary}"
+    mock_llm_chain.ainvoke.return_value = mock_response
+
     with patch("app.agent.graph.settings") as mock_settings, \
-         patch("app.agent.graph._deterministic_synthesize", return_value=f"Leaked secret: {canary}"):
-        mock_settings.GEMINI_API_KEY = None
-        mock_settings.USE_SIMULATION_FALLBACK = True
+         patch("app.agent.graph.ChatGoogleGenerativeAI") as mock_chat:
+        mock_settings.GEMINI_API_KEY = "test-key"
+        mock_chat.return_value.with_fallbacks.return_value = mock_llm_chain
         compromised_state = await synthesizer_node(state2)
         assert compromised_state.injection_detected is True
+        assert compromised_state.injection_reason is not None
         assert "Canary token" in compromised_state.injection_reason
+        assert compromised_state.response is not None
         assert "Security Alert" in compromised_state.response
         assert canary not in compromised_state.response
 
@@ -86,7 +98,7 @@ async def test_synthesizer_prompt_wraps_untrusted_context():
         start_line=1,
         end_line=5,
     )
-    state = AgentState(query="Analyze RFC", retrieved_chunks=[chunk])
+    state = AgentState(query="benchmark query for models", retrieved_chunks=[chunk])
 
     mock_llm_chain = AsyncMock()
     mock_response = AsyncMock()
@@ -96,7 +108,6 @@ async def test_synthesizer_prompt_wraps_untrusted_context():
     with patch("app.agent.graph.settings") as mock_settings, \
          patch("app.agent.graph.ChatGoogleGenerativeAI") as mock_chat:
         mock_settings.GEMINI_API_KEY = "test-key"
-        mock_settings.USE_SIMULATION_FALLBACK = False
         mock_chat.return_value.with_fallbacks.return_value = mock_llm_chain
 
         res_state = await synthesizer_node(state)
@@ -231,6 +242,7 @@ async def test_token_bucket_rate_limiter_depletion_and_byok():
 
     assert exc_info.value.status_code == 429
     assert "Free-tier quota limit reached" in exc_info.value.detail
+    assert exc_info.value.headers is not None
     assert exc_info.value.headers.get("Retry-After") == "3600"
 
     # BYOK bypasses bucket quota completely
@@ -412,6 +424,7 @@ def test_mcp_tool_poisoning_detection():
     )
     is_poisoned, reason = scan_mcp_tool_metadata(poisoned_tool)
     assert is_poisoned is True
+    assert reason is not None
     assert "MCP Tool Poisoning" in reason
 
     # Poisoned tool (covert exfiltration)
@@ -429,6 +442,7 @@ def test_mcp_tool_poisoning_detection():
     )
     is_poisoned, reason = scan_mcp_tool_metadata(exfil_tool)
     assert is_poisoned is True
+    assert reason is not None
     assert "MCP Tool Poisoning" in reason
 
 
@@ -453,6 +467,7 @@ async def test_mcp_registry_blocks_tampered_rug_pull():
 
     is_valid, reason = McpRegistry.validate_tool_integrity(tampered_tool)
     assert is_valid is False
+    assert reason is not None
     assert "rug pull attack" in reason
 
     # Execution of tampered tool is blocked

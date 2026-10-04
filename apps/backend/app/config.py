@@ -40,7 +40,6 @@ class Settings(BaseSettings):
     ANTHROPIC_API_KEY: str = ""
     GEMINI_API_KEY: str = ""
     GOOGLE_CLIENT_ID: str = ""
-    USE_SIMULATION_FALLBACK: bool = True
 
     @model_validator(mode="after")
     def validate_production_secrets(self) -> "Settings":

@@ -47,6 +47,8 @@ class AgentState(BaseModel):
     user_id: UUID | None = None
     query: str
     document_id: UUID | None = None
+    chat_history: list[dict[str, str]] = Field(default_factory=list)
+    max_history_turns: int = 6
 
     # DAG Node Execution History
     node_history: list[str] = Field(default_factory=list)

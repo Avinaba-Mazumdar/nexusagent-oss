@@ -725,10 +725,10 @@ export default function Home() {
                                     </div>
                                     <div className="flex flex-wrap gap-2 pt-1">
                                         {[
-                                            'Compare Raft vs Multi-Paxos quorum invariants (RFC-104)',
-                                            'Analyze Neon serverless storage architecture, Safekeepers, and Pageserver LSM tree',
-                                            'How does Claude Sonnet 5 compare on CursorBench at High effort?',
-                                            'Calculate batch commit sizing for 14,000 IOPS on Neon WAL Safekeepers'
+                                            'Compare Claude Sonnet 3.7 vs GPT-4o on CursorBench coding benchmarks',
+                                            'Which models have the lowest input token cost per 1M on OpenRouter?',
+                                            'Summarize BenchLM coding leaderboard rankings and pass rates',
+                                            'Compare context window lengths across top Gemini, Claude, and OpenAI models'
                                         ].map((promptText) => (
                                             <button
                                                 key={promptText}

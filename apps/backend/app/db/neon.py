@@ -494,6 +494,188 @@ class NeonDatabase:
             rows = await conn.fetch(query_sql, *params)
             return [dict(r) for r in rows]
 
+    async def create_conversation(
+        self,
+        user_id: UUID,
+        title: str = "New Architectural Inquiry",
+        conversation_id: UUID | None = None,
+    ) -> dict:
+        """Create a new conversation record."""
+        pool = self.get_pool()
+        cid = conversation_id or uuid4()
+        query = """
+            INSERT INTO agent_conversations (id, user_id, title, created_at)
+            VALUES ($1, $2, $3, CURRENT_TIMESTAMP)
+            ON CONFLICT (id) DO UPDATE SET title = EXCLUDED.title
+            RETURNING id, user_id, title, created_at;
+        """
+        async with pool.acquire() as conn:
+            row = await conn.fetchrow(query, cid, user_id, title)
+            return dict(row) if row else {}
+
+    async def get_conversation(self, user_id: UUID, conversation_id: UUID) -> dict | None:
+        """Fetch a specific conversation for a user."""
+        pool = self.get_pool()
+        query = """
+            SELECT id, user_id, title, created_at
+            FROM agent_conversations
+            WHERE id = $1 AND user_id = $2;
+        """
+        async with pool.acquire() as conn:
+            row = await conn.fetchrow(query, conversation_id, user_id)
+            return dict(row) if row else None
+
+    async def list_conversations(
+        self,
+        user_id: UUID,
+        search_term: str | None = None,
+        limit: int = 50,
+    ) -> list[dict]:
+        """List conversations for a user with aggregated message counts and latest snippets."""
+        pool = self.get_pool()
+        if search_term:
+            query = """
+                WITH user_convs AS (
+                    SELECT id, user_id, title, created_at
+                    FROM agent_conversations c
+                    WHERE c.user_id = $1 AND (
+                        c.title ILIKE $2 OR
+                        EXISTS (SELECT 1 FROM messages m WHERE m.conversation_id = c.id AND m.content ILIKE $2)
+                    )
+                    ORDER BY c.created_at DESC
+                    LIMIT $3
+                ),
+                msg_stats AS (
+                    SELECT conversation_id,
+                           COUNT(*) AS message_count,
+                           (ARRAY_AGG(content ORDER BY created_at DESC))[1] AS last_snippet
+                    FROM messages
+                    WHERE conversation_id IN (SELECT id FROM user_convs)
+                    GROUP BY conversation_id
+                )
+                SELECT c.id, c.user_id, c.title, c.created_at,
+                       COALESCE(s.message_count, 0) AS message_count,
+                       s.last_snippet
+                FROM user_convs c
+                LEFT JOIN msg_stats s ON c.id = s.conversation_id
+                ORDER BY c.created_at DESC;
+            """
+            search_pattern = f"%{search_term}%"
+            async with pool.acquire() as conn:
+                rows = await conn.fetch(query, user_id, search_pattern, limit)
+                return [dict(r) for r in rows]
+        else:
+            query = """
+                WITH user_convs AS (
+                    SELECT id, user_id, title, created_at
+                    FROM agent_conversations
+                    WHERE user_id = $1
+                    ORDER BY created_at DESC
+                    LIMIT $2
+                ),
+                msg_stats AS (
+                    SELECT conversation_id,
+                           COUNT(*) AS message_count,
+                           (ARRAY_AGG(content ORDER BY created_at DESC))[1] AS last_snippet
+                    FROM messages
+                    WHERE conversation_id IN (SELECT id FROM user_convs)
+                    GROUP BY conversation_id
+                )
+                SELECT c.id, c.user_id, c.title, c.created_at,
+                       COALESCE(s.message_count, 0) AS message_count,
+                       s.last_snippet
+                FROM user_convs c
+                LEFT JOIN msg_stats s ON c.id = s.conversation_id
+                ORDER BY c.created_at DESC;
+            """
+            async with pool.acquire() as conn:
+                rows = await conn.fetch(query, user_id, limit)
+                return [dict(r) for r in rows]
+
+    async def get_conversation_with_messages(
+        self,
+        user_id: UUID,
+        conversation_id: UUID,
+    ) -> tuple[dict | None, list[dict]]:
+        """Fetch conversation metadata and ordered messages in a single connection checkout."""
+        pool = self.get_pool()
+        query_conv = """
+            SELECT id, user_id, title, created_at
+            FROM agent_conversations
+            WHERE id = $1 AND user_id = $2;
+        """
+        query_msgs = """
+            SELECT id, conversation_id, role, content, plan_trace, reflection_summary, created_at
+            FROM messages
+            WHERE conversation_id = $1
+            ORDER BY created_at ASC;
+        """
+        async with pool.acquire() as conn:
+            conv_row = await conn.fetchrow(query_conv, conversation_id, user_id)
+            if not conv_row:
+                return None, []
+            msg_rows = await conn.fetch(query_msgs, conversation_id)
+            return dict(conv_row), [dict(r) for r in msg_rows]
+
+    async def get_conversation_messages(
+        self,
+        user_id: UUID,
+        conversation_id: UUID,
+    ) -> list[dict]:
+        """Fetch all messages for a verified user's conversation."""
+        pool = self.get_pool()
+        query = """
+            SELECT m.id, m.conversation_id, m.role, m.content, m.plan_trace, m.reflection_summary, m.created_at
+            FROM messages m
+            JOIN agent_conversations c ON m.conversation_id = c.id
+            WHERE c.id = $1 AND c.user_id = $2
+            ORDER BY m.created_at ASC;
+        """
+        async with pool.acquire() as conn:
+            rows = await conn.fetch(query, conversation_id, user_id)
+            return [dict(r) for r in rows]
+
+    async def save_message(
+        self,
+        conversation_id: UUID,
+        role: str,
+        content: str,
+        plan_trace: Any = None,
+        reflection_summary: Any = None,
+    ) -> dict:
+        """Insert a message into a conversation."""
+        pool = self.get_pool()
+        plan_trace_json = json.dumps(plan_trace) if plan_trace is not None else None
+        reflection_json = json.dumps(reflection_summary) if reflection_summary is not None else None
+        query = """
+            INSERT INTO messages (id, conversation_id, role, content, plan_trace, reflection_summary, created_at)
+            VALUES ($1, $2, $3, $4, $5, $6, CURRENT_TIMESTAMP)
+            RETURNING id, conversation_id, role, content, plan_trace, reflection_summary, created_at;
+        """
+        async with pool.acquire() as conn:
+            row = await conn.fetchrow(
+                query,
+                uuid4(),
+                conversation_id,
+                role,
+                content,
+                plan_trace_json,
+                reflection_json,
+            )
+            return dict(row) if row else {}
+
+    async def delete_conversation(self, user_id: UUID, conversation_id: UUID) -> bool:
+        """Delete conversation and cascade messages for verified owner."""
+        pool = self.get_pool()
+        query = """
+            DELETE FROM agent_conversations
+            WHERE id = $1 AND user_id = $2
+            RETURNING id;
+        """
+        async with pool.acquire() as conn:
+            row = await conn.fetchrow(query, conversation_id, user_id)
+            return bool(row)
+
 
 neon_db = NeonDatabase()
 
@@ -501,3 +683,4 @@ neon_db = NeonDatabase()
 async def get_db() -> NeonDatabase:
     """FastAPI dependency for accessing database singleton."""
     return neon_db
+

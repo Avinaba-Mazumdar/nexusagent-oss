@@ -14,6 +14,7 @@ import {
     LogOut,
     MessageSquare,
     Moon,
+    Menu,
     Send,
     Sparkles,
     Sun,
@@ -36,7 +37,8 @@ import { useAgentStream } from '@/hooks/useAgentStream';
 import { MarkdownRenderer } from '@/components/canvas';
 import { McpInspector } from '@/components/mcp';
 import { ApprovalModal } from '@/components/approval';
-import type { Citation } from '@nexusagent/contracts';
+import { ChatHistorySidebar } from '@/components/chat-history';
+import type { Citation, ChatMessageRecord } from '@nexusagent/contracts';
 
 interface ChatItem {
     id: string;
@@ -61,6 +63,8 @@ export default function Home() {
     const [hireMeModalOpen, setHireMeModalOpen] = React.useState(false);
     const [seededDocs, setSeededDocs] = React.useState<SeededDoc[]>([]);
     const [messages, setMessages] = React.useState<ChatItem[]>([]);
+    const [isHistoryOpen, setIsHistoryOpen] = React.useState(false);
+    const [activeSessionId, setActiveSessionId] = React.useState<string | null>(null);
     const [mobileActiveTab, setMobileActiveTab] = React.useState<'workspace' | 'chat' | 'observability'>('chat');
     const [selectedCitationDoc, setSelectedCitationDoc] = React.useState<string | null>(null);
 
@@ -111,6 +115,35 @@ export default function Home() {
         initAuth,
         setQuotaRemaining
     } = useAuthStore();
+
+    const isGoogleUser = Boolean(user && !user.isGuest);
+
+    const handleCloseHistory = React.useCallback(() => {
+        setIsHistoryOpen(false);
+    }, []);
+
+    const handleSelectConversation = React.useCallback(
+        (conversationId: string, _title: string, historyMessages?: ChatMessageRecord[], isLoading?: boolean) => {
+            setActiveSessionId(conversationId);
+            if (historyMessages && historyMessages.length > 0) {
+                setMessages(
+                    historyMessages.map((m) => ({
+                        id: m.id,
+                        role: m.role as 'user' | 'assistant',
+                        content: m.content
+                    }))
+                );
+            } else if (isLoading) {
+                setMessages([]);
+            }
+        },
+        []
+    );
+
+    const handleNewChat = React.useCallback(() => {
+        setActiveSessionId(null);
+        setMessages([]);
+    }, []);
 
     const googleClientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || '';
 
@@ -265,12 +298,18 @@ export default function Home() {
             const result = await agentStream.startStream({
                 query,
                 token,
-                byokKey
+                byokKey,
+                sessionId: activeSessionId || undefined
             });
 
+            const currentSessionId = result?.sessionId || activeSessionId;
+            if (result?.sessionId && !activeSessionId) {
+                setActiveSessionId(result.sessionId);
+            }
+
             if (result?.response) {
-                setMessages((prev) =>
-                    prev.map((m) =>
+                setMessages((prev) => {
+                    const next = prev.map((m) =>
                         m.id === assistantMsgId
                             ? {
                                   ...m,
@@ -278,8 +317,27 @@ export default function Home() {
                                   citations: result.citations
                               }
                             : m
-                    )
-                );
+                    );
+                    if (currentSessionId && typeof window !== 'undefined') {
+                        try {
+                            localStorage.setItem(
+                                `nexusagent_msgs_${currentSessionId}`,
+                                JSON.stringify(
+                                    next.map((m) => ({
+                                        id: m.id,
+                                        conversationId: currentSessionId,
+                                        role: m.role,
+                                        content: m.content,
+                                        createdAt: new Date().toISOString()
+                                    }))
+                                )
+                            );
+                        } catch {
+                            // Ignore
+                        }
+                    }
+                    return next;
+                });
             }
         } catch (err: unknown) {
             const errorText = err instanceof Error ? err.message : 'Failed to execute agent stream.';
@@ -660,11 +718,34 @@ export default function Home() {
                 <main
                     role="main"
                     aria-label="Active Synthesis Canvas"
-                    className={`flex-1 flex-col overflow-hidden bg-background ${mobileActiveTab === 'chat' ? 'flex' : 'hidden xl:flex'}`}
+                    className={`relative flex-1 flex-col overflow-hidden bg-background ${mobileActiveTab === 'chat' ? 'flex' : 'hidden xl:flex'}`}
                 >
+                    {/* Slide-over sidebar for Google Auth users */}
+                    <ChatHistorySidebar
+                        isOpen={isHistoryOpen}
+                        onClose={handleCloseHistory}
+                        activeSessionId={activeSessionId}
+                        onSelectConversation={handleSelectConversation}
+                        onNewChat={handleNewChat}
+                        isGoogleUser={isGoogleUser}
+                        userId={user?.id}
+                    />
+
                     <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-4">
                         <div className="flex items-center justify-between bg-card border border-border rounded-xl px-4 py-2.5 shadow-2xs">
                             <div className="flex items-center gap-2 text-xs">
+                                {isGoogleUser && (
+                                    <Button
+                                        variant="ghost"
+                                        size="icon-sm"
+                                        onClick={() => setIsHistoryOpen((prev) => !prev)}
+                                        aria-label="Toggle chat history"
+                                        title="Toggle chat history"
+                                        className="h-7 w-7 text-muted-foreground hover:text-foreground cursor-pointer -ml-1 mr-0.5"
+                                    >
+                                        <Menu className="h-4 w-4" />
+                                    </Button>
+                                )}
                                 <span className="font-bold text-foreground">Synthesis Canvas</span>
                                 <Badge variant="soft">Ready</Badge>
                             </div>

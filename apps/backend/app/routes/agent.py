@@ -55,6 +55,7 @@ async def generate_agent_stream(
     document_id: UUID | None,
     session_id: str,
     graph: AgentGraph,
+    is_guest: bool = True,
 ) -> AsyncIterator[str]:
     """
     Asynchronously run AgentGraph pipeline and yield SSE event chunks:
@@ -248,6 +249,42 @@ async def generate_agent_stream(
                 )
             )
 
+            # Persist chat turn to DB if authenticated Google user
+            if user_id and not is_guest:
+                try:
+                    from app.db.neon import neon_db
+                    conv_id = None
+                    try:
+                        conv_id = UUID(session_id)
+                    except ValueError:
+                        pass
+                    title = (query[:60] + "...") if len(query) > 60 else query
+                    conv = await neon_db.create_conversation(user_id, title=title, conversation_id=conv_id)
+                    if conv and "id" in conv:
+                        actual_conv_id = conv["id"]
+                        await neon_db.save_message(actual_conv_id, role="user", content=query)
+                        await neon_db.save_message(
+                            actual_conv_id,
+                            role="assistant",
+                            content=final_state.response,
+                            plan_trace=[
+                                {
+                                    "stepNumber": s.step_number,
+                                    "description": s.description,
+                                    "status": s.status,
+                                    "tool": s.tool,
+                                }
+                                for s in final_state.plan
+                            ],
+                            reflection_summary={
+                                "reflectionScore": final_state.reflection_score,
+                                "isGrounded": final_state.is_grounded,
+                                "mermaidDiagrams": final_state.mermaid_diagrams,
+                            },
+                        )
+                except Exception as save_err:
+                    logger.warning(f"Could not persist conversation history: {save_err}")
+
         except Exception as e:
             logger.exception("Error during agent SSE streaming")
             await event_queue.put(format_sse("error", {"error": str(e), "sessionId": session_id}))
@@ -311,6 +348,7 @@ async def stream_agent_execution(
             document_id=doc_uuid,
             session_id=session_id,
             graph=graph,
+            is_guest=current_user.is_guest,
         ),
         media_type="text/event-stream",
         headers={

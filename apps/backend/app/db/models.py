@@ -203,3 +203,23 @@ class DocumentUploadResponseWire(BaseModel):
     document: DocumentMetadataWire
     chunksCount: int
     previewChunks: list[DocumentChunkWire]
+
+
+class AgentConversationWire(BaseModel):
+    id: str
+    userId: str
+    title: str
+    createdAt: str
+    messageCount: int = 0
+    lastSnippet: str | None = None
+
+
+class ChatMessageWire(BaseModel):
+    id: str
+    conversationId: str
+    role: str
+    content: str
+    planTrace: Any = None
+    reflectionSummary: Any = None
+    createdAt: str
+

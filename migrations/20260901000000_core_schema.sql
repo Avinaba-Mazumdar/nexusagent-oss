@@ -90,6 +90,10 @@ CREATE TABLE IF NOT EXISTS messages (
     created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
+CREATE INDEX IF NOT EXISTS idx_conversations_user_created ON agent_conversations(user_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_messages_conv_created ON messages(conversation_id, created_at ASC);
+
+
 -- 7. OWASP ASI-10: Tool Execution Audit Logs
 CREATE TABLE IF NOT EXISTS tool_audit_logs (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),

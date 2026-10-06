@@ -96,6 +96,9 @@ describe('Home Page - Layout and Header Controls', () => {
         expect(await screen.findByText('Guest Architect #111111')).toBeInTheDocument();
         expect(screen.getByText('5/5 Quota')).toBeInTheDocument();
 
+        // Chat history hamburger is absent for guest users
+        expect(screen.queryByRole('button', { name: /toggle chat history/i })).not.toBeInTheDocument();
+
         // Sign out restores Sign In button
         const signOutButton = screen.getByRole('button', { name: /sign out/i });
         await user.click(signOutButton);
@@ -143,6 +146,14 @@ describe('Home Page - Layout and Header Controls', () => {
 
         // Verify cookie persistence
         expect(document.cookie).toContain('nexusagent_token=google.jwt.token');
+
+        // Chat history hamburger is visible only for Google auth users
+        const hamburgerBtn = screen.getByRole('button', { name: /toggle chat history/i });
+        expect(hamburgerBtn).toBeInTheDocument();
+
+        // Clicking hamburger opens the slide-over history drawer
+        await user.click(hamburgerBtn);
+        expect(screen.getByRole('complementary', { name: /chat history and search/i })).toBeInTheDocument();
 
         global.fetch = originalFetch;
     });

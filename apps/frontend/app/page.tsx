@@ -909,7 +909,6 @@ export default function Home() {
 
                 {/* 4. Observability Panel (Right) */}
                 <ObservabilityPanel
-                    metrics={metrics}
                     logs={logs}
                     currentNode={agentStream.currentNode}
                     plan={agentStream.plan}

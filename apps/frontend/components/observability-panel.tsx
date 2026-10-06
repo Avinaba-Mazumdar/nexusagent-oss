@@ -2,7 +2,7 @@
 
 import * as React from 'react';
 import { cn } from '@/lib/utils';
-import { Activity, CheckCircle2, ChevronRight, Clock, Cpu, GitFork, Hash, Loader2, RefreshCw, Terminal, Zap } from 'lucide-react';
+import { Activity, CheckCircle2, ChevronRight, GitFork, Loader2, RefreshCw, Terminal } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import type { PlanStep } from '@nexusagent/contracts';
@@ -26,7 +26,7 @@ export interface TelemetryMetrics {
 }
 
 interface ObservabilityPanelProps {
-    metrics: TelemetryMetrics;
+    metrics?: TelemetryMetrics;
     logs: LogEntry[];
     currentNode?: string | null;
     plan?: PlanStep[];
@@ -148,49 +148,6 @@ export function ObservabilityPanel({ metrics, logs, currentNode, plan = [], refl
                     </div>
                 )}
             </Card>
-
-            {/* Live Metrics Grid */}
-            <div className="grid grid-cols-2 gap-2">
-                <Card className="p-3 shadow-2xs border-border bg-secondary/20">
-                    <div className="flex items-center justify-between text-muted-foreground mb-1">
-                        <span className="text-[10px] font-medium uppercase tracking-wider">Active Model</span>
-                        <Cpu className="h-3 w-3 text-primary" />
-                    </div>
-                    <div className="text-xs font-bold font-mono text-foreground truncate" title={metrics.activeModel}>
-                        {metrics.activeModel || 'Idle'}
-                    </div>
-                    <div className="text-[10px] text-muted-foreground mt-0.5">{metrics.isByok ? 'Direct API Key' : 'Rate-limited auto-cascade'}</div>
-                </Card>
-
-                <Card className="p-3 shadow-2xs border-border bg-secondary/20">
-                    <div className="flex items-center justify-between text-muted-foreground mb-1">
-                        <span className="text-[10px] font-medium uppercase tracking-wider">Total Tokens</span>
-                        <Hash className="h-3 w-3 text-primary" />
-                    </div>
-                    <div className="text-xs font-bold font-mono text-foreground">{metrics.totalTokens.toLocaleString()}</div>
-                    <div className="text-[10px] text-muted-foreground mt-0.5">
-                        {metrics.promptTokens} in / {metrics.completionTokens} out
-                    </div>
-                </Card>
-
-                <Card className="p-3 shadow-2xs border-border bg-secondary/20">
-                    <div className="flex items-center justify-between text-muted-foreground mb-1">
-                        <span className="text-[10px] font-medium uppercase tracking-wider">Latency</span>
-                        <Clock className="h-3 w-3 text-amber-500" />
-                    </div>
-                    <div className="text-xs font-bold font-mono text-foreground">{metrics.latencyMs > 0 ? `${metrics.latencyMs}ms` : '--'}</div>
-                    <div className="text-[10px] text-muted-foreground mt-0.5">Edge TTFT &amp; generation</div>
-                </Card>
-
-                <Card className="p-3 shadow-2xs border-border bg-secondary/20">
-                    <div className="flex items-center justify-between text-muted-foreground mb-1">
-                        <span className="text-[10px] font-medium uppercase tracking-wider">Cost / Billing</span>
-                        <Zap className="h-3 w-3 text-success" />
-                    </div>
-                    <div className="text-xs font-bold font-mono text-success">{metrics.isByok ? 'Custom Billing' : '$0.00 (Free)'}</div>
-                    <div className="text-[10px] text-muted-foreground mt-0.5">{metrics.isByok ? 'Unlimited' : `${metrics.rpmRemaining ?? 15} RPM ceiling`}</div>
-                </Card>
-            </div>
 
             {/* Wire Logs Streaming Terminal */}
             <Card className="flex-1 flex flex-col shadow-2xs border-border bg-card overflow-hidden">

@@ -199,7 +199,6 @@ nexusagent-oss/
 │   │   │   └── observability/         # Live Agent Inspector (Right Zone)
 │   │   │       ├── LiveInspector.tsx  # Tabbed container for real-time telemetry
 │   │   │       ├── CurrentNode.tsx    # Active LangGraph node visual indicator
-│   │   │       ├── TokenUsage.tsx     # Real-time prompt, completion & cost estimator
 │   │   │       ├── StateLogViewer.tsx # Chronological execution trace and tool payloads
 │   │   │       ├── McpWireLog.tsx     # Raw JSON-RPC request/response logger
 │   │   │       └── McpInspector.tsx   # Interactive MCP protocol test console

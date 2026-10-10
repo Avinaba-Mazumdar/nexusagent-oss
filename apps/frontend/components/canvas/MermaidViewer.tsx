@@ -41,7 +41,7 @@ export function MermaidViewer({ chart, isDark = false, title = 'Architecture Seq
     const containerRef = React.useRef<HTMLDivElement>(null);
     const renderIdRef = React.useRef<string>(`mermaid-${Math.random().toString(36).substring(2, 9)}`);
 
-    // Clean chart content (strip accidental markdown fences if passed with backticks)
+    // Clean chart content (strip accidental markdown fences if passed with backticks and auto-quote labels with pipes)
     const cleanChart = React.useMemo(() => {
         let code = chart.trim();
         if (code.startsWith('```mermaid')) {
@@ -49,6 +49,8 @@ export function MermaidViewer({ chart, isDark = false, title = 'Architecture Seq
         } else if (code.startsWith('```')) {
             code = code.replace(/^```\s*/, '').replace(/```$/, '');
         }
+        // Auto-fix unquoted node labels with pipes, e.g. Node[Label | Detail] -> Node["Label | Detail"]
+        code = code.replace(/(\w+)\[([^"\]\r\n]*\|[^"\]\r\n]*)\]/g, '$1["$2"]');
         return code.trim();
     }, [chart]);
 
@@ -60,6 +62,7 @@ export function MermaidViewer({ chart, isDark = false, title = 'Architecture Seq
         try {
             mermaid.initialize({
                 startOnLoad: false,
+                suppressErrorRendering: true,
                 theme: isDark ? 'dark' : 'neutral',
                 securityLevel: 'strict',
                 fontFamily: 'JetBrains Mono, monospace, sans-serif'
@@ -74,8 +77,8 @@ export function MermaidViewer({ chart, isDark = false, title = 'Architecture Seq
                 return;
             }
 
+            const uniqueId = `${renderIdRef.current}-${Date.now()}`;
             try {
-                const uniqueId = `${renderIdRef.current}-${Date.now()}`;
                 const { svg } = await mermaid.render(uniqueId, cleanChart);
                 if (isMounted) {
                     setSvgContent(sanitizeSvg(svg));
@@ -83,6 +86,17 @@ export function MermaidViewer({ chart, isDark = false, title = 'Architecture Seq
                     setIsLoading(false);
                 }
             } catch (err: unknown) {
+                // Remove any leaked error container Mermaid 11.x might have attached to body
+                try {
+                    const stray = document.getElementById(`d${uniqueId}`) || document.getElementById(uniqueId);
+                    if (stray) stray.remove();
+                    document.querySelectorAll('svg[id^="mermaid-"]').forEach((el) => {
+                        if (el.parentElement === document.body) el.remove();
+                    });
+                } catch {
+                    // Ignore DOM cleanup error
+                }
+
                 if (isMounted) {
                     const message = err instanceof Error ? err.message : 'Invalid Mermaid diagram syntax';
                     setRenderError(message);

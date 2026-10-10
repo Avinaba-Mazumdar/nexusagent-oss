@@ -151,15 +151,15 @@ export function ObservabilityPanel({ metrics, logs, currentNode, plan = [], refl
 
             {/* Wire Logs Streaming Terminal */}
             <Card className="flex-1 flex flex-col shadow-2xs border-border bg-card overflow-hidden">
-                <CardHeader className="p-3 pb-2 border-b border-border bg-secondary/30 flex flex-row items-center justify-between">
-                    <div>
+                <CardHeader className="p-3 pb-2 border-b border-border bg-secondary/30 flex flex-row items-center justify-between gap-2">
+                    <div className="min-w-0 flex-1">
                         <CardTitle className="text-xs font-heading flex items-center gap-1.5">
-                            <Terminal className="h-3.5 w-3.5 text-primary" />
-                            <span>Execution Wire Logs</span>
+                            <Terminal className="h-3.5 w-3.5 text-primary shrink-0" />
+                            <span className="truncate">Execution Wire Logs</span>
                         </CardTitle>
-                        <CardDescription className="text-[11px] text-muted-foreground">Telemetry trace &amp; model routing events</CardDescription>
+                        <CardDescription className="text-[11px] text-muted-foreground truncate">Telemetry trace &amp; model routing events</CardDescription>
                     </div>
-                    <Badge variant="soft" className="text-[9px] px-1.5 py-0 h-4">
+                    <Badge variant="soft" className="text-[9px] px-1.5 py-0.5 shrink-0 whitespace-nowrap">
                         Live SSE
                     </Badge>
                 </CardHeader>

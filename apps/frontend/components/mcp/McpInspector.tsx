@@ -171,7 +171,7 @@ export function McpInspector({ apiBase = 'http://localhost:8000', authToken }: M
                         value={argsJson}
                         onChange={(e) => setArgsJson(e.target.value)}
                         rows={3}
-                        className="w-full font-mono text-[10px] bg-background border border-border rounded-lg p-2 leading-tight focus:outline-hidden focus:ring-1 focus:ring-primary text-foreground resize-none"
+                        className="w-full h-30 font-mono text-[10px] bg-background border border-border rounded-lg p-2 leading-tight focus:outline-hidden focus:ring-1 focus:ring-primary text-foreground resize-none"
                     />
                 </div>
 

@@ -122,23 +122,20 @@ export default function Home() {
         setIsHistoryOpen(false);
     }, []);
 
-    const handleSelectConversation = React.useCallback(
-        (conversationId: string, _title: string, historyMessages?: ChatMessageRecord[], isLoading?: boolean) => {
-            setActiveSessionId(conversationId);
-            if (historyMessages && historyMessages.length > 0) {
-                setMessages(
-                    historyMessages.map((m) => ({
-                        id: m.id,
-                        role: m.role as 'user' | 'assistant',
-                        content: m.content
-                    }))
-                );
-            } else if (isLoading) {
-                setMessages([]);
-            }
-        },
-        []
-    );
+    const handleSelectConversation = React.useCallback((conversationId: string, _title: string, historyMessages?: ChatMessageRecord[], isLoading?: boolean) => {
+        setActiveSessionId(conversationId);
+        if (historyMessages && historyMessages.length > 0) {
+            setMessages(
+                historyMessages.map((m) => ({
+                    id: m.id,
+                    role: m.role as 'user' | 'assistant',
+                    content: m.content
+                }))
+            );
+        } else if (isLoading) {
+            setMessages([]);
+        }
+    }, []);
 
     const handleNewChat = React.useCallback(() => {
         setActiveSessionId(null);
@@ -393,15 +390,15 @@ export default function Home() {
                     {/* Pre-loaded Guest / User Quota Badge */}
                     {user && (
                         <div
-                            className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-secondary/50 border border-border text-xs font-medium"
+                            className="hidden sm:flex items-center gap-1.5 h-9 px-3 rounded-xl bg-secondary/50 border border-border text-xs font-medium shrink-0"
                             title={`${quotaRemaining} of ${bucketCapacity} query quota remaining`}
                             data-testid="quota-badge"
                         >
-                            <span className={`h-2 w-2 rounded-full ${quotaRemaining > 0 ? 'bg-success animate-pulse' : 'bg-destructive'}`} />
-                            <span className="font-mono font-bold text-foreground">
+                            <span className={`h-2 w-2 rounded-full shrink-0 ${quotaRemaining > 0 ? 'bg-success' : 'bg-destructive'}`} />
+                            <span className="font-semibold text-foreground tabular-nums">
                                 {quotaRemaining}/{bucketCapacity}
                             </span>
-                            <span className="text-[11px] text-muted-foreground">{user.isGuest ? 'Free Pass' : 'Quota'}</span>
+                            <span className="text-muted-foreground">{user.isGuest ? 'Free Pass' : 'Quota'}</span>
                         </div>
                     )}
 

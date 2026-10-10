@@ -10,7 +10,7 @@ from app.config import settings
 logger = logging.getLogger("nexusagent.rag.embeddings")
 
 EMBEDDING_DIMENSION = 768
-GEMINI_EMBED_MODEL = "text-embedding-004"
+GEMINI_EMBED_MODELS = ["gemini-embedding-001", "gemini-embedding-2", "text-embedding-004"]
 GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1beta/models"
 
 
@@ -52,13 +52,14 @@ def generate_deterministic_embedding(text: str, dim: int = EMBEDDING_DIMENSION) 
 
 class EmbeddingService:
     """
-    Embedding generation service supporting Google Gemini text-embedding-004
-    with graceful deterministic simulation fallback.
+    Embedding generation service supporting Google Gemini embeddings (768-d)
+    with graceful fallback between gemini-embedding-001 and gemini-embedding-2.
     """
 
     def __init__(self, api_key: str | None = None):
         self.api_key = api_key or settings.GEMINI_API_KEY
         self.dimension = EMBEDDING_DIMENSION
+        self.active_model = GEMINI_EMBED_MODELS[0]
 
     async def get_embedding(self, text: str) -> list[float]:
         """Generate a 768-d dense embedding for a single text chunk."""
@@ -75,28 +76,37 @@ class EmbeddingService:
         if not self.api_key:
             raise RuntimeError("GEMINI_API_KEY is not configured for EmbeddingService.")
 
-        try:
-            url = f"{GEMINI_API_URL}/{GEMINI_EMBED_MODEL}:batchEmbedContents?key={self.api_key}"
-            requests_payload = [
-                {
-                    "model": f"models/{GEMINI_EMBED_MODEL}",
-                    "content": {"parts": [{"text": t[:2048]}]},
-                }
-                for t in texts
-            ]
-            async with httpx.AsyncClient(timeout=10.0) as client:
-                response = await client.post(url, json={"requests": requests_payload})
-                if response.status_code == 200:
-                    data = response.json()
-                    embeddings = [item["values"] for item in data.get("embeddings", [])]
-                    if len(embeddings) == len(texts):
-                        return embeddings
-                raise RuntimeError(
-                    f"Gemini embedding API failed with status code {response.status_code}: {response.text}"
-                )
-        except Exception as e:
-            logger.error(f"Error calling Gemini Embedding API: {e}")
-            raise RuntimeError(f"Gemini embedding provider unavailable: {e}") from e
+        last_error = None
+        # Try active_model first, then other fallback models
+        models_to_try = [self.active_model] + [m for m in GEMINI_EMBED_MODELS if m != self.active_model]
+
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            for model_name in models_to_try:
+                try:
+                    url = f"{GEMINI_API_URL}/{model_name}:batchEmbedContents?key={self.api_key}"
+                    requests_payload = [
+                        {
+                            "model": f"models/{model_name}",
+                            "content": {"parts": [{"text": t[:2048]}]},
+                            "outputDimensionality": self.dimension,
+                        }
+                        for t in texts
+                    ]
+                    response = await client.post(url, json={"requests": requests_payload})
+                    if response.status_code == 200:
+                        data = response.json()
+                        embeddings = [item["values"] for item in data.get("embeddings", [])]
+                        if len(embeddings) == len(texts):
+                            self.active_model = model_name
+                            return embeddings
+                    last_error = f"Gemini embedding API ({model_name}) status {response.status_code}: {response.text}"
+                    if response.status_code != 404:
+                        break
+                except Exception as e:
+                    last_error = str(e)
+
+        logger.error(f"Error calling Gemini Embedding API: {last_error}")
+        raise RuntimeError(f"Gemini embedding provider unavailable: {last_error}")
 
 
 default_embedding_service = EmbeddingService()
